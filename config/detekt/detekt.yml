@@ -3,10 +3,10 @@ build:
   excludeCorrectable: false
 config:
   validation: true
+style:
+  MagicNumber:
+    active: false
 formatting:
   active: true
   android: true
   autoCorrect: true
-style:
-  MagicNumber:
-    active: false
