@@ -1,0 +1,9 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build and upload an internal release via Gradle Play Publisher"
+  lane :internal do
+    gradle(task: "bundle", build_type: "Release")
+    gradle(task: "publishReleaseBundle")
+  end
+end
