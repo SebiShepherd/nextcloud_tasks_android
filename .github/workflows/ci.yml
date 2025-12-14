@@ -21,6 +21,8 @@ jobs:
         uses: android-actions/setup-android@v3
       - name:  Gradle cache
         uses: gradle/gradle-build-action@v3
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
       - name: Lint & Static Analysis
         run: ./gradlew ktlintCheck detekt :app:lintDebug
       - name: Unit tests
