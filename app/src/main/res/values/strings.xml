@@ -1,6 +1,23 @@
 <resources>
     <string name="app_name">Nextcloud Tasks</string>
-    <string name="task_list_title">Tasks overview</string>
-    <string name="empty_task_hint">Add your first task to stay organized.</string>
-    <string name="welcome_message">Welcome to your Nextcloud Tasks</string>
+    <string name="welcome_message">Welcome to Nextcloud Tasks</string>
+    <string name="empty_task_hint">Your tasks will show up here after syncing.</string>
+    <string name="empty_state_login_reminder">Sign in to your Nextcloud account to start syncing tasks.</string>
+    <string name="login_title">Connect to Nextcloud</string>
+    <string name="login_subtitle">Enter your server URL and credentials. Use OAuth2/OCS if your server enforces it.</string>
+    <string name="label_server_url">Nextcloud URL</string>
+    <string name="label_username">Username</string>
+    <string name="label_app_password">Password or app password</string>
+    <string name="label_display_name">Display name</string>
+    <string name="label_access_token">OAuth2 access token</string>
+    <string name="label_refresh_token_optional">Refresh token (optional)</string>
+    <string name="action_login_basic">Sign in with password</string>
+    <string name="action_login_oauth">Sign in with OAuth2/OCS</string>
+    <string name="auth_basic">Password</string>
+    <string name="auth_oauth">OAuth2/OCS</string>
+    <string name="label_signed_in_as">Signed in as %1$s</string>
+    <string name="action_switch_account">Switch account</string>
+    <string name="action_logout">Log out</string>
+    <string name="logout_confirm">Do you want to clear the current session?</string>
+    <string name="action_cancel">Cancel</string>
 </resources>

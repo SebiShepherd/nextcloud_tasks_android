@@ -31,6 +31,11 @@ dependencies {
     implementation(project(":domain"))
     implementation(libs.coroutines.android)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.retrofit2)
+    implementation(libs.retrofit2.converter.scalars)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
     kapt(libs.hilt.compiler)
     detektPlugins(libs.detekt.formatting)
 }
