@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(libs.coroutines.core)
     testImplementation(kotlin("test"))
+    detektPlugins(libs.detekt.formatting)
 }
 
 kotlin {
