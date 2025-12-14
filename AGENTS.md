@@ -84,7 +84,7 @@ The project follows Clean Architecture principles with three distinct modules:
 
 - **Jetpack Compose** with Material 3
 - **Kotlin Compiler Extension Version**: 1.5.15
-- **Compose BOM**: 2024.10.00
+- **Compose BOM**: 2025.12.00
 
 ### Theme Structure
 
