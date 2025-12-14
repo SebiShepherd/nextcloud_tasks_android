@@ -11,12 +11,12 @@ plugins {
 
 android {
     namespace = "com.nextcloud.tasks"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.nextcloud.tasks"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
 
@@ -72,6 +72,10 @@ android {
 
 kapt {
     correctErrorTypes = true
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {

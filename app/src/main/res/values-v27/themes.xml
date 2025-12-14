@@ -1,8 +1,8 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <style name="Theme.NextcloudTasks" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:statusBarColor">?attr/colorSurface</item>
         <item name="android:navigationBarColor">?attr/colorSurface</item>
         <item name="android:windowLightStatusBar">@bool/isLightTheme</item>
+        <item name="android:windowLightNavigationBar">@bool/isLightTheme</item>
     </style>
-    <bool name="isLightTheme" tools:targetApi="26">true</bool>
 </resources>
