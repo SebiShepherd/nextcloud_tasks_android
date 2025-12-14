@@ -1,9 +1,9 @@
 package com.nextcloud.tasks
 
 import android.app.Application
-import com.jakewharton.timber.log.Timber
 import com.nextcloud.tasks.BuildConfig
 import dagger.hilt.android.HiltAndroidApp
+import timber.log.Timber
 
 @HiltAndroidApp
 class TasksApp : Application() {
