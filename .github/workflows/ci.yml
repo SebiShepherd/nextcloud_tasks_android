@@ -67,15 +67,15 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-        if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        if: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        if: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
       - name:  Gradle cache
         uses: gradle/gradle-build-action@v3
-        if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        if: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
       - name: Publish to Play internal track
-        if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        if: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
