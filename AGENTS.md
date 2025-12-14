@@ -244,7 +244,7 @@ Keystore is decoded and written to `build/keystore/release.jks` at build time.
 
 ## Play Store Integration
 
-**Plugin**: Gradle Play Publisher (3.9.1)
+**Plugin**: Gradle Play Publisher (3.13.0)
 
 **Configuration** (in `app/build.gradle.kts`):
 - Track: `internal`
