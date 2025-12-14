@@ -3,4 +3,18 @@
     <string name="task_list_title">Tasks overview</string>
     <string name="empty_task_hint">Add your first task to stay organized.</string>
     <string name="welcome_message">Welcome to your Nextcloud Tasks</string>
+    <string name="server_url_label">Nextcloud-URL</string>
+    <string name="username_label">Benutzername</string>
+    <string name="password_label">Passwort oder App-Passwort</string>
+    <string name="authorization_code_label">OAuth2-/OCS-Code</string>
+    <string name="redirect_uri_label">Redirect-URI</string>
+    <string name="login_method_password">Passwort-Login</string>
+    <string name="login_method_oauth">OAuth2 / OCS</string>
+    <string name="login_action">Jetzt anmelden</string>
+    <string name="active_account">Aktives Konto</string>
+    <string name="logout">Abmelden</string>
+    <string name="switch_account">Konto wechseln</string>
+    <string name="invalid_certificate">Das Zertifikat konnte nicht geprüft werden.</string>
+    <string name="invalid_url">Bitte eine gültige HTTPS-URL angeben.</string>
+    <string name="account_connection_success">Verbindung hergestellt</string>
 </resources>
