@@ -4,8 +4,5 @@
         <item name="android:navigationBarColor">?attr/colorSurface</item>
         <item name="android:windowLightStatusBar">@bool/isLightTheme</item>
         <item name="android:windowLightNavigationBar">@bool/isLightTheme</item>
-        <item name="android:enforceStatusBarContrast">true</item>
-        <item name="android:enforceNavigationBarContrast">true</item>
-        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>
