@@ -73,7 +73,7 @@ jobs:
         if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
       - name:  Gradle cache
         uses: gradle/gradle-build-action@v3
-        if: ${{ env. PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
       - name: Publish to Play internal track
         if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
         env:
