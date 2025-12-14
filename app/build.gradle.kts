@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.hilt)
     alias(libs.plugins.playPublisher)
+    alias(libs.plugins.composeCompiler)
     kotlin("kapt")
 }
 
@@ -27,7 +28,11 @@ android {
         create("release") {
             val keystoreBase64 = System.getenv("SIGNING_KEYSTORE_BASE64")
             if (!keystoreBase64.isNullOrBlank()) {
-                val keystoreFile = layout.buildDirectory.file("keystore/release.jks").get().asFile
+                val keystoreFile =
+                    layout.buildDirectory
+                        .file("keystore/release.jks")
+                        .get()
+                        .asFile
                 keystoreFile.parentFile.mkdirs()
                 keystoreFile.writeBytes(Base64.getDecoder().decode(keystoreBase64))
                 storeFile = keystoreFile
@@ -57,16 +62,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 
     buildFeatures {
         compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
     }
 
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
