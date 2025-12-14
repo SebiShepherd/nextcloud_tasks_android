@@ -230,10 +230,10 @@ Keystore is decoded and written to `build/keystore/release.jks` at build time.
 **File**: `gradle/libs.versions.toml`
 
 **Key Libraries**:
-- Compose BOM: 2024.10.00
-- Kotlin: 1.9.25
-- Hilt: 2.52
-- Coroutines: 1.9.0
+- Compose BOM: 2025.12.00
+- Kotlin: 2.2.21
+- Hilt: 2.57.2
+- Coroutines: 1.10.2
 - Android Gradle Plugin: 8.13.2
 
 ### Dependency Management
