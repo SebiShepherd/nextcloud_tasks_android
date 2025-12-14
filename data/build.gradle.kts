@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.nextcloud.tasks.data"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 24
@@ -17,10 +17,18 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 kapt {
     correctErrorTypes = true
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
