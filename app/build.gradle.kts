@@ -18,6 +18,9 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["applicationId"] = "com.nextcloud.tasks.test"
     }
 
     signingConfigs {
@@ -82,6 +85,7 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
     implementation(libs.coroutines.android)
+    implementation(libs.material)
 
     kapt(libs.hilt.compiler)
 
