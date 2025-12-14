@@ -22,7 +22,11 @@ class ValidateServerUrlUseCase {
 }
 
 sealed class ValidationResult {
-    data class Invalid(val reason: String) : ValidationResult()
+    data class Invalid(
+        val reason: String,
+    ) : ValidationResult()
 
-    data class Valid(val normalizedUrl: String) : ValidationResult()
+    data class Valid(
+        val normalizedUrl: String,
+    ) : ValidationResult()
 }

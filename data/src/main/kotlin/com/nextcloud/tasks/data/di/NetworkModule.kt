@@ -1,7 +1,10 @@
 package com.nextcloud.tasks.data.di
 
+import com.nextcloud.tasks.data.BuildConfig
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.network.AuthInterceptor
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -11,8 +14,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.converter.moshi.MoshiConverterFactory
 import javax.inject.Singleton
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -28,7 +29,14 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor =
-        HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+        HttpLoggingInterceptor().apply {
+            level =
+                if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.HEADERS
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+        }
 
     @Provides
     @Singleton
@@ -40,11 +48,15 @@ object NetworkModule {
         loggingInterceptor: HttpLoggingInterceptor,
         authInterceptor: AuthInterceptor,
     ): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .followRedirects(true)
             .retryOnConnectionFailure(true)
             .connectionSpecs(listOf(ConnectionSpec.MODERN_TLS))
             .addInterceptor(authInterceptor)
-            .addInterceptor(loggingInterceptor)
-            .build()
+            .apply {
+                if (loggingInterceptor.level != HttpLoggingInterceptor.Level.NONE) {
+                    addInterceptor(loggingInterceptor)
+                }
+            }.build()
 }

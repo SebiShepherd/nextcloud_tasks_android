@@ -2,7 +2,9 @@ package com.nextcloud.tasks.data.auth
 
 import com.nextcloud.tasks.domain.model.AuthType
 
-sealed class AuthToken(open val serverUrl: String) {
+sealed class AuthToken(
+    open val serverUrl: String,
+) {
     data class Password(
         override val serverUrl: String,
         val username: String,
@@ -15,8 +17,9 @@ sealed class AuthToken(open val serverUrl: String) {
         val refreshToken: String?,
     ) : AuthToken(serverUrl)
 
-    fun authType(): AuthType = when (this) {
-        is OAuth -> AuthType.OAUTH
-        is Password -> AuthType.PASSWORD
-    }
+    fun authType(): AuthType =
+        when (this) {
+            is OAuth -> AuthType.OAUTH
+            is Password -> AuthType.PASSWORD
+        }
 }

@@ -22,7 +22,10 @@ class AuthInterceptor(
         return chain.proceed(requestBuilder.build())
     }
 
-    private fun attachAuthHeader(builder: okhttp3.Request.Builder, token: AuthToken) {
+    private fun attachAuthHeader(
+        builder: okhttp3.Request.Builder,
+        token: AuthToken,
+    ) {
         when (token) {
             is AuthToken.OAuth -> builder.header("Authorization", "Bearer ${token.accessToken}")
             is AuthToken.Password -> builder.header("Authorization", Credentials.basic(token.username, token.appPassword))
@@ -46,7 +49,9 @@ class BasicAuthInterceptor(
     }
 }
 
-class BearerTokenInterceptor(private val token: String) : Interceptor {
+class BearerTokenInterceptor(
+    private val token: String,
+) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request =
             chain

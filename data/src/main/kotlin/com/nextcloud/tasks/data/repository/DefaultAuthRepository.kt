@@ -89,7 +89,9 @@ class DefaultAuthRepository
                 StoredAccount(
                     id = UUID.randomUUID().toString(),
                     serverUrl = normalizedServer,
-                    username = user.body.data.id.orEmpty(),
+                    username =
+                        user.body.data.id
+                            .orEmpty(),
                     displayName = user.body.data.displayName ?: user.body.data.email ?: "Nextcloud Benutzer",
                     authType = AuthType.OAUTH.name,
                     accessToken = tokenResponse.accessToken,

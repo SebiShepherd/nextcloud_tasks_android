@@ -212,7 +212,10 @@ fun LoginScreen(
 }
 
 @Composable
-private fun AuthMethodSelector(selected: AuthUiMethod, onSelected: (AuthUiMethod) -> Unit) {
+private fun AuthMethodSelector(
+    selected: AuthUiMethod,
+    onSelected: (AuthUiMethod) -> Unit,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(
             selected = selected == AuthUiMethod.PASSWORD,

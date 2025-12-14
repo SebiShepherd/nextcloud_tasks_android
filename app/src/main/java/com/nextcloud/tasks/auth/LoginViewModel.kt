@@ -2,6 +2,7 @@ package com.nextcloud.tasks.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jakewharton.timber.log.Timber
 import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
@@ -14,12 +15,12 @@ import com.nextcloud.tasks.domain.usecase.SwitchAccountUseCase
 import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
 import com.nextcloud.tasks.domain.usecase.ValidationResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 private const val DEFAULT_REDIRECT_URI = "nc://login"
 
@@ -57,8 +58,7 @@ class LoginViewModel
 
         fun updatePassword(value: String) = _uiState.update { it.copy(password = value, error = null) }
 
-        fun updateAuthorizationCode(value: String) =
-            _uiState.update { it.copy(authorizationCode = value, error = null) }
+        fun updateAuthorizationCode(value: String) = _uiState.update { it.copy(authorizationCode = value, error = null) }
 
         fun updateRedirectUri(value: String) = _uiState.update { it.copy(redirectUri = value, error = null) }
 
@@ -78,12 +78,18 @@ class LoginViewModel
                 val normalizedServer =
                     when (val validation = validateServerUrlUseCase(state.serverUrl)) {
                         is ValidationResult.Invalid -> {
+                            Timber.w(
+                                "Server URL validation failed: %s",
+                                validation.reason,
+                            )
                             _uiState.update { it.copy(isLoading = false, validationMessage = validation.reason) }
                             return@launch
                         }
 
                         is ValidationResult.Valid -> validation.normalizedUrl
                     }
+
+                Timber.i("Submitting login (method=%s, server=%s)", state.authMethod.name, normalizedServer)
 
                 val result =
                     runCatching {
@@ -106,6 +112,12 @@ class LoginViewModel
 
                 result
                     .onSuccess { account ->
+                        Timber.i(
+                            "Login succeeded (accountId=%s, displayName=%s, method=%s)",
+                            account.id,
+                            account.displayName,
+                            state.authMethod.name,
+                        )
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -118,6 +130,12 @@ class LoginViewModel
                             )
                         }
                     }.onFailure { throwable ->
+                        Timber.e(
+                            throwable,
+                            "Login failed (method=%s, server=%s)",
+                            state.authMethod.name,
+                            normalizedServer,
+                        )
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -147,7 +165,9 @@ class LoginViewModel
             }
     }
 
-enum class AuthUiMethod(val authType: AuthType) {
+enum class AuthUiMethod(
+    val authType: AuthType,
+) {
     PASSWORD(AuthType.PASSWORD),
     OAUTH(AuthType.OAUTH),
 }

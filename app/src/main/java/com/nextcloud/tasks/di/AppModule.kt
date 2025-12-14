@@ -29,18 +29,15 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLoginWithPasswordUseCase(repository: AuthRepository): LoginWithPasswordUseCase =
-        LoginWithPasswordUseCase(repository)
+    fun provideLoginWithPasswordUseCase(repository: AuthRepository): LoginWithPasswordUseCase = LoginWithPasswordUseCase(repository)
 
     @Provides
     @Singleton
-    fun provideLoginWithOAuthUseCase(repository: AuthRepository): LoginWithOAuthUseCase =
-        LoginWithOAuthUseCase(repository)
+    fun provideLoginWithOAuthUseCase(repository: AuthRepository): LoginWithOAuthUseCase = LoginWithOAuthUseCase(repository)
 
     @Provides
     @Singleton
-    fun provideObserveAccountsUseCase(repository: AuthRepository): ObserveAccountsUseCase =
-        ObserveAccountsUseCase(repository)
+    fun provideObserveAccountsUseCase(repository: AuthRepository): ObserveAccountsUseCase = ObserveAccountsUseCase(repository)
 
     @Provides
     @Singleton
@@ -49,8 +46,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideSwitchAccountUseCase(repository: AuthRepository): SwitchAccountUseCase =
-        SwitchAccountUseCase(repository)
+    fun provideSwitchAccountUseCase(repository: AuthRepository): SwitchAccountUseCase = SwitchAccountUseCase(repository)
 
     @Provides
     @Singleton

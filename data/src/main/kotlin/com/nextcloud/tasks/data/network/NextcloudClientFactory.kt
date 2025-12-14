@@ -15,19 +15,30 @@ class NextcloudClientFactory
     ) {
         fun create(serverUrl: String): NextcloudService = build(serverUrl, okHttpClient)
 
-        fun createWithBasicAuth(serverUrl: String, username: String, password: String): NextcloudService {
+        fun createWithBasicAuth(
+            serverUrl: String,
+            username: String,
+            password: String,
+        ): NextcloudService {
             val client = okHttpClient.newBuilder().addInterceptor(BasicAuthInterceptor(username, password)).build()
             return build(serverUrl, client)
         }
 
-        fun createWithBearerToken(serverUrl: String, token: String): NextcloudService {
+        fun createWithBearerToken(
+            serverUrl: String,
+            token: String,
+        ): NextcloudService {
             val client = okHttpClient.newBuilder().addInterceptor(BearerTokenInterceptor(token)).build()
             return build(serverUrl, client)
         }
 
-        private fun build(serverUrl: String, client: OkHttpClient): NextcloudService {
+        private fun build(
+            serverUrl: String,
+            client: OkHttpClient,
+        ): NextcloudService {
             val normalizedBaseUrl = if (serverUrl.endsWith('/')) serverUrl else "$serverUrl/"
-            return Retrofit.Builder()
+            return Retrofit
+                .Builder()
                 .client(client)
                 .baseUrl(normalizedBaseUrl)
                 .addConverterFactory(moshiConverterFactory)

@@ -88,6 +88,7 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.coroutines.android)
     implementation(libs.material)
+    implementation(libs.timber)
 
     kapt(libs.hilt.compiler)
 
