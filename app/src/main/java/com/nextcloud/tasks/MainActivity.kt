@@ -35,10 +35,10 @@ import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -57,17 +57,19 @@ class MainActivity : ComponentActivity() {
 }
 
 @HiltViewModel
-class TaskListViewModel @Inject constructor(
-    private val loadTasksUseCase: LoadTasksUseCase,
-) : ViewModel() {
+class TaskListViewModel
+    @Inject
+    constructor(
+        private val loadTasksUseCase: LoadTasksUseCase,
+    ) : ViewModel() {
+        val tasks =
+            loadTasksUseCase()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val tasks = loadTasksUseCase()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    init {
-        viewModelScope.launch { loadTasksUseCase.seedSample() }
+        init {
+            viewModelScope.launch { loadTasksUseCase.seedSample() }
+        }
     }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -93,11 +95,15 @@ fun TaskListScreen(viewModel: TaskListViewModel) {
 }
 
 @Composable
-fun TaskList(padding: PaddingValues, tasks: List<Task>) {
+fun TaskList(
+    padding: PaddingValues,
+    tasks: List<Task>,
+) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(padding),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -130,9 +136,10 @@ fun TaskList(padding: PaddingValues, tasks: List<Task>) {
 @Composable
 fun EmptyState(padding: PaddingValues) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(padding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

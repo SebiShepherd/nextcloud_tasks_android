@@ -13,19 +13,21 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = NextcloudBlue,
-    secondary = NextcloudLight,
-    background = NextcloudDark,
-    surface = NextcloudDark,
-)
+private val DarkColorScheme =
+    darkColorScheme(
+        primary = NextcloudBlue,
+        secondary = NextcloudLight,
+        background = NextcloudDark,
+        surface = NextcloudDark,
+    )
 
-private val LightColorScheme = lightColorScheme(
-    primary = NextcloudBlue,
-    secondary = NextcloudDark,
-    background = NextcloudLight,
-    surface = NextcloudLight,
-)
+private val LightColorScheme =
+    lightColorScheme(
+        primary = NextcloudBlue,
+        secondary = NextcloudDark,
+        background = NextcloudLight,
+        surface = NextcloudLight,
+    )
 
 @Composable
 fun NextcloudTasksTheme(
@@ -33,15 +35,16 @@ fun NextcloudTasksTheme(
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val colorScheme =
+        when {
+            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                val context = LocalContext.current
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+            darkTheme -> DarkColorScheme
+            else -> LightColorScheme
+        }
 
     val view = LocalContext.current as? Activity
     view?.window?.let { window ->

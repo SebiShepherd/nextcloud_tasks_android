@@ -5,5 +5,6 @@ import kotlinx.coroutines.flow.Flow
 
 interface TasksRepository {
     fun observeTasks(): Flow<List<Task>>
+
     suspend fun addSampleTasksIfEmpty()
 }
