@@ -2,7 +2,6 @@ package com.nextcloud.tasks.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jakewharton.timber.log.Timber
 import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
@@ -15,11 +14,13 @@ import com.nextcloud.tasks.domain.usecase.SwitchAccountUseCase
 import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
 import com.nextcloud.tasks.domain.usecase.ValidationResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 private const val DEFAULT_REDIRECT_URI = "nc://login"
@@ -36,16 +37,27 @@ class LoginViewModel
         private val logoutUseCase: LogoutUseCase,
         private val validateServerUrlUseCase: ValidateServerUrlUseCase,
     ) : ViewModel() {
+        private val exceptionHandler =
+            CoroutineExceptionHandler { _, throwable ->
+                Timber.e(throwable, "Unhandled exception in LoginViewModel")
+                _uiState.update { state ->
+                    state.copy(
+                        isLoading = false,
+                        error = throwable.toMessage(),
+                    )
+                }
+            }
+
         private val _uiState = MutableStateFlow(LoginUiState())
         val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
         init {
-            viewModelScope.launch {
+            viewModelScope.launch(exceptionHandler) {
                 observeAccountsUseCase().collect { accounts ->
                     _uiState.update { it.copy(accounts = accounts) }
                 }
             }
-            viewModelScope.launch {
+            viewModelScope.launch(exceptionHandler) {
                 observeActiveAccountUseCase().collect { active ->
                     _uiState.update { it.copy(activeAccount = active) }
                 }
@@ -73,7 +85,7 @@ class LoginViewModel
 
         fun submit() {
             val state = _uiState.value
-            viewModelScope.launch {
+            viewModelScope.launch(exceptionHandler) {
                 _uiState.update { it.copy(isLoading = true, error = null, validationMessage = null) }
                 val normalizedServer =
                     when (val validation = validateServerUrlUseCase(state.serverUrl)) {
