@@ -3,23 +3,23 @@ name: Android CI
 on:
   push:
     branches: [ main ]
-  pull_request:
+  pull_request: 
     branches: [ main ]
   workflow_dispatch:
 
-jobs:
+jobs: 
   quality:
     runs-on: ubuntu-latest
-    steps:
+    steps: 
       - uses: actions/checkout@v4
-      - name: Set up JDK
+      - name:  Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-      - name: Gradle cache
+      - name:  Gradle cache
         uses: gradle/gradle-build-action@v3
       - name: Lint & Static Analysis
         run: ./gradlew ktlintCheck detekt :app:lintDebug
@@ -30,23 +30,23 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' }}
-    steps:
+    steps: 
       - uses: actions/checkout@v4
-      - name: Set up JDK
+      - name:  Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-      - name: Gradle cache
+      - name:  Gradle cache
         uses: gradle/gradle-build-action@v3
       - name: Build signed release bundle
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
-          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_KEYSTORE_PASSWORD: ${{ secrets. SIGNING_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets. SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD:  ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: ./gradlew bundleRelease
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -54,26 +54,30 @@ jobs:
           name: release-bundle
           path: app/build/outputs/bundle/release/app-release.aab
 
-  play-internal:
+  play-internal: 
     needs: signed-build
     runs-on: ubuntu-latest
-    if: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
-    steps:
+    if: ${{ github.event_name != 'pull_request' }}
+    steps: 
       - uses: actions/checkout@v4
-      - name: Set up JDK
+      - name:  Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+        if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-      - name: Gradle cache
+        if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+      - name:  Gradle cache
         uses: gradle/gradle-build-action@v3
+        if: ${{ env. PLAY_SERVICE_ACCOUNT_JSON != '' }}
       - name: Publish to Play internal track
+        if: ${{ env.PLAY_SERVICE_ACCOUNT_JSON != '' }}
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
-          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          SIGNING_KEYSTORE_PASSWORD: ${{ secrets. SIGNING_KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-        run: ./gradlew publishReleaseBundle
+        run: ./gradlew publishReleaseBundleToInternal
