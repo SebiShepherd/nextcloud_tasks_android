@@ -48,7 +48,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             NextcloudTasksTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background,
+                ) {
                     TaskListScreen(viewModel = viewModel)
                 }
             }
@@ -58,18 +61,18 @@ class MainActivity : ComponentActivity() {
 
 @HiltViewModel
 class TaskListViewModel
-@Inject
-constructor(
-    private val loadTasksUseCase: LoadTasksUseCase,
-) : ViewModel() {
-    val tasks =
-        loadTasksUseCase()
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    @Inject
+    constructor(
+        private val loadTasksUseCase: LoadTasksUseCase,
+    ) : ViewModel() {
+        val tasks =
+            loadTasksUseCase()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    init {
-        viewModelScope.launch { loadTasksUseCase.seedSample() }
+        init {
+            viewModelScope.launch { loadTasksUseCase.seedSample() }
+        }
     }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,9 +85,10 @@ fun TaskListScreen(viewModel: TaskListViewModel) {
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(id = R.string.app_name)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
+                    ),
             )
         },
     ) { padding ->
@@ -103,9 +107,9 @@ fun TaskList(
 ) {
     LazyColumn(
         modifier =
-        Modifier
-            .fillMaxSize()
-            .padding(padding),
+            Modifier
+                .fillMaxSize()
+                .padding(padding),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -139,9 +143,9 @@ fun TaskList(
 fun EmptyState(padding: PaddingValues) {
     Column(
         modifier =
-        Modifier
-            .fillMaxSize()
-            .padding(padding),
+            Modifier
+                .fillMaxSize()
+                .padding(padding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
