@@ -42,7 +42,7 @@ compose = [
     "androidx-activity-compose",
     "androidx-compose-ui",
     "androidx-compose-ui-tooling-preview",
-    "androidx.compose.material3",
+    "androidx-compose-material3",
     "androidx-navigation-compose"
 ]
 
