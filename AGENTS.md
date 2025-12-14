@@ -83,7 +83,7 @@ The project follows Clean Architecture principles with three distinct modules:
 ### UI Framework
 
 - **Jetpack Compose** with Material 3
-- **Kotlin Compiler Extension Version**: 1.5.15
+- **Kotlin Compiler Extension Version**: 2.2.21
 - **Compose BOM**: 2025.12.00
 
 ### Theme Structure
