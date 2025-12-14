@@ -1,0 +1,15 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+/.cxx
+*.apk
+*.aab
+**/build/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots

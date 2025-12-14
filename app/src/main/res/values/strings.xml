@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Nextcloud Tasks</string>
+    <string name="task_list_title">Tasks overview</string>
+    <string name="empty_task_hint">Add your first task to stay organized.</string>
+    <string name="welcome_message">Welcome to your Nextcloud Tasks</string>
+</resources>
