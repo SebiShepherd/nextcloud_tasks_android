@@ -6,7 +6,13 @@ config:
 style:
   MagicNumber:
     active: false
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - Composable
 formatting:
   active: true
   android: true
   autoCorrect: true
+  Indentation:
+    active: false
