@@ -136,6 +136,9 @@ class DefaultAuthRepository
                         AuthFailure.Network("Serverfehler (${throwable.code()})")
                     }
 
+                is SecurityException ->
+                    AuthFailure.Network("Netzwerkzugriff verweigert (fehlt die INTERNET-Berechtigung?)")
+
                 is UnknownHostException -> AuthFailure.Network("Server nicht erreichbar. Bitte URL prüfen")
                 is SSLPeerUnverifiedException, is SSLHandshakeException ->
                     AuthFailure.Certificate("Zertifikat konnte nicht geprüft werden")
