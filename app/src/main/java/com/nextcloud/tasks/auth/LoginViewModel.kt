@@ -92,7 +92,9 @@ class LoginViewModel
                     Timber.e("Login blocked: INTERNET permission missing")
                     _uiState.update {
                         it.copy(
-                            error = "Die App hat keine Internet-Berechtigung. Bitte neu installieren oder in den App-Einstellungen aktivieren.",
+                            error =
+                                "Die App hat keine Internet-Berechtigung. Bitte neu installieren " +
+                                    "oder in den App-Einstellungen aktivieren.",
                             isLoading = false,
                         )
                     }

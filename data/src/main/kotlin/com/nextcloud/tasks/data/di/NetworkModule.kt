@@ -3,6 +3,7 @@ package com.nextcloud.tasks.data.di
 import com.nextcloud.tasks.data.BuildConfig
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.network.AuthInterceptor
+import com.nextcloud.tasks.data.network.SafeDns
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
@@ -10,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.ConnectionSpec
+import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -44,15 +46,21 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideSafeDns(): Dns = SafeDns()
+
+    @Provides
+    @Singleton
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
         authInterceptor: AuthInterceptor,
+        dns: Dns,
     ): OkHttpClient =
         OkHttpClient
             .Builder()
             .followRedirects(true)
             .retryOnConnectionFailure(true)
             .connectionSpecs(listOf(ConnectionSpec.MODERN_TLS))
+            .dns(dns)
             .addInterceptor(authInterceptor)
             .apply {
                 if (loggingInterceptor.level != HttpLoggingInterceptor.Level.NONE) {
