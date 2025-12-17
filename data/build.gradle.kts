@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.moshi.kotlin)
+    implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     kapt(libs.hilt.compiler)
     detektPlugins(libs.detekt.formatting)
