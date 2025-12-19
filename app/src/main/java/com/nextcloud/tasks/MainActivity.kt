@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillParentMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -314,26 +315,29 @@ fun AuthenticatedHome(
             )
         },
     ) { padding ->
-        Column(
-            modifier =
-                Modifier
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
+        LazyColumn(
+            modifier = Modifier.padding(padding),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             state.activeAccount?.let { account ->
-                AccountSummaryCard(account = account)
+                item { AccountSummaryCard(account = account) }
             }
 
             if (tasks.isEmpty()) {
-                EmptyState(padding = PaddingValues())
+                item {
+                    EmptyState(
+                        modifier = Modifier.fillParentMaxHeight(),
+                    )
+                }
             } else {
-                Text(
-                    text = stringResource(id = R.string.task_list_title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                TaskList(padding = PaddingValues(), tasks = tasks)
+                item {
+                    Text(
+                        text = stringResource(id = R.string.task_list_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+                items(tasks) { task -> TaskCard(task = task) }
             }
         }
     }
@@ -434,43 +438,49 @@ fun TaskList(
     LazyColumn(
         modifier =
             Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(padding),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        items(tasks) { task ->
-            Surface(
-                tonalElevation = 1.dp,
-                shape = MaterialTheme.shapes.medium,
-                shadowElevation = 0.5.dp,
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    task.description?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 4.dp),
-                        )
-                    }
-                }
+        items(tasks) { task -> TaskCard(task = task) }
+    }
+}
+
+@Composable
+private fun TaskCard(task: Task) {
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium,
+        shadowElevation = 0.5.dp,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = task.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            task.description?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
         }
     }
 }
 
 @Composable
-fun EmptyState(padding: PaddingValues) {
+fun EmptyState(
+    modifier: Modifier = Modifier,
+    padding: PaddingValues = PaddingValues(),
+) {
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
+            modifier
+                .fillMaxWidth()
                 .padding(padding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
