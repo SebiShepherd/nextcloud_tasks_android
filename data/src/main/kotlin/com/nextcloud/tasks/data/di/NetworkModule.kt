@@ -53,8 +53,6 @@ object NetworkModule {
     @Provides
     @Singleton
     @Named("unauthenticated")
-    @Singleton
-    @Provides
     fun provideUnauthenticatedOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
         dns: Dns,
