@@ -15,6 +15,7 @@ import okhttp3.Dns
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.converter.moshi.MoshiConverterFactory
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -32,9 +33,10 @@ object NetworkModule {
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor =
         HttpLoggingInterceptor().apply {
+            redactHeader("Authorization")
             level =
                 if (BuildConfig.DEBUG) {
-                    HttpLoggingInterceptor.Level.HEADERS
+                    HttpLoggingInterceptor.Level.BASIC
                 } else {
                     HttpLoggingInterceptor.Level.NONE
                 }
@@ -50,9 +52,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(
+    @Named("unauthenticated")
+    @Singleton
+    @Provides
+    fun provideUnauthenticatedOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
-        authInterceptor: AuthInterceptor,
         dns: Dns,
     ): OkHttpClient =
         OkHttpClient
@@ -61,10 +65,17 @@ object NetworkModule {
             .retryOnConnectionFailure(true)
             .connectionSpecs(listOf(ConnectionSpec.MODERN_TLS))
             .dns(dns)
-            .addInterceptor(authInterceptor)
             .apply {
                 if (loggingInterceptor.level != HttpLoggingInterceptor.Level.NONE) {
                     addInterceptor(loggingInterceptor)
                 }
             }.build()
+
+    @Named("authenticated")
+    @Singleton
+    @Provides
+    fun provideAuthenticatedOkHttpClient(
+        @Named("unauthenticated") baseClient: OkHttpClient,
+        authInterceptor: AuthInterceptor,
+    ): OkHttpClient = baseClient.newBuilder().addInterceptor(authInterceptor).build()
 }

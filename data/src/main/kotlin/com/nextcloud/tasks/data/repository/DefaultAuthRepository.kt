@@ -67,7 +67,7 @@ class DefaultAuthRepository
                 throw AuthFailure.InvalidCredentials
             }
 
-            val unauthenticatedService = clientFactory.create(normalizedServer)
+            val unauthenticatedService = clientFactory.createUnauthenticated(normalizedServer)
             val tokenResponse =
                 runCatching {
                     unauthenticatedService.exchangeOAuthToken(
