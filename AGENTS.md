@@ -341,6 +341,7 @@ com.nextcloud.tasks.domain/
 ### DO's
 
 ✅ Follow Clean Architecture separation (domain → data → app)
+✅ Run a lightweight build (e.g., `./gradlew :app:compileDebugKotlin --no-daemon --console=plain`) after formatting to catch missing imports or resources before committing
 ✅ Use Hilt for dependency injection
 ✅ Use Flow for reactive streams
 ✅ Use Jetpack Compose for UI

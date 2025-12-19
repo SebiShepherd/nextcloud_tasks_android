@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillParentMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -326,9 +325,15 @@ fun AuthenticatedHome(
 
             if (tasks.isEmpty()) {
                 item {
-                    EmptyState(
-                        modifier = Modifier.fillParentMaxHeight(),
-                    )
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        EmptyState()
+                    }
                 }
             } else {
                 item {
