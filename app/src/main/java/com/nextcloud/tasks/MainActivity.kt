@@ -139,6 +139,7 @@ fun AuthenticatedHome(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AuthenticatedTopBar(
     state: LoginUiState,
