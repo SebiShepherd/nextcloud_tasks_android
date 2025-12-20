@@ -106,7 +106,10 @@ class DefaultAuthRepository
             secureAuthStorage.observeAccounts().map { stored -> stored.map { it.toDomain() } }
 
         override fun observeActiveAccount(): Flow<NextcloudAccount?> =
-            combine(secureAuthStorage.observeAccounts(), secureAuthStorage.observeActiveAccountId()) { accounts, activeId ->
+            combine(
+                secureAuthStorage.observeAccounts(),
+                secureAuthStorage.observeActiveAccountId(),
+            ) { accounts, activeId ->
                 accounts.firstOrNull { it.id == activeId }?.toDomain()
             }
 
