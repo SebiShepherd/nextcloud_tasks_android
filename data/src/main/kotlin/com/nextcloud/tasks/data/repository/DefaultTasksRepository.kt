@@ -15,15 +15,16 @@ import com.nextcloud.tasks.domain.model.TaskDraft
 import com.nextcloud.tasks.domain.model.TaskList
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.repository.TasksRepository
-import java.time.Instant
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.time.Instant
+import javax.inject.Inject
 
+@Suppress("TooManyFunctions")
 class DefaultTasksRepository @Inject constructor(
     private val api: NextcloudTasksApi,
     private val database: NextcloudTasksDatabase,

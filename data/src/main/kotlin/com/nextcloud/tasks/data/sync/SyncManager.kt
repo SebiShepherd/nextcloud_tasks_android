@@ -32,7 +32,7 @@ class SyncManager @Inject constructor(
         while (attempt < maxAttempts) {
             try {
                 return withContext(ioDispatcher) { block() }
-            } catch (error: Throwable) {
+            } catch (error: Exception) {
                 lastError = error
                 attempt++
                 if (attempt >= maxAttempts) {
@@ -50,6 +50,6 @@ class SyncManager @Inject constructor(
             }
         }
 
-        throw lastError ?: IllegalStateException("Sync failed without throwing an exception")
+        error(lastError?.message ?: "Sync failed without throwing an exception")
     }
 }

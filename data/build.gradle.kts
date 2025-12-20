@@ -49,15 +49,6 @@ kotlin {
     jvmToolchain(17)
 }
 
-kapt {
-    val sqliteTmpDir = layout.buildDirectory.dir("tmp/sqlite").get().asFile
-    sqliteTmpDir.mkdirs()
-    javacOptions {
-        option("-J-Dorg.sqlite.tmpdir=${sqliteTmpDir.absolutePath}")
-        option("-J-Djava.io.tmpdir=${sqliteTmpDir.absolutePath}")
-    }
-}
-
 dependencies {
     implementation(project(":domain"))
     implementation(libs.coroutines.android)
@@ -81,14 +72,4 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
     arg("room.incremental", "true")
     arg("room.expandProjection", "true")
-}
-
-val roomSchemaDir = file("$projectDir/schemas")
-tasks.withType<com.google.devtools.ksp.gradle.KspTask>().configureEach {
-    doFirst {
-        roomSchemaDir
-            .takeIf { it.exists() }
-            ?.listFiles { file -> file.extension == "json" && file.length() == 0L }
-            ?.forEach { it.delete() }
-    }
 }

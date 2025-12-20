@@ -5,8 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.nextcloud.tasks.data.database.entity.TaskListEntity
-import java.time.Instant
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 @Dao
 interface TaskListsDao {

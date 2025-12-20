@@ -8,8 +8,8 @@ import androidx.room.Transaction
 import com.nextcloud.tasks.data.database.entity.TaskEntity
 import com.nextcloud.tasks.data.database.entity.TaskTagCrossRef
 import com.nextcloud.tasks.data.database.model.TaskWithRelations
-import java.time.Instant
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 @Dao
 interface TasksDao {
