@@ -65,6 +65,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
@@ -88,6 +89,7 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.coroutines.android)
     implementation(libs.material)
+    implementation(libs.timber)
 
     kapt(libs.hilt.compiler)
 
