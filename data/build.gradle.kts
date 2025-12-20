@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KaptTask
-
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
@@ -39,10 +37,12 @@ kotlin {
     jvmToolchain(17)
 }
 
-tasks.withType<KaptTask>().configureEach {
+kapt {
     val sqliteTmpDir = layout.buildDirectory.dir("tmp/sqlite").get().asFile
     sqliteTmpDir.mkdirs()
-    jvmArgs("-Dorg.sqlite.tmpdir=${sqliteTmpDir.absolutePath}")
+    javacOptions {
+        option("-J-Dorg.sqlite.tmpdir=${sqliteTmpDir.absolutePath}")
+    }
 }
 
 dependencies {
