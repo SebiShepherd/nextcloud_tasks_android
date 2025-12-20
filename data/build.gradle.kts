@@ -82,3 +82,13 @@ ksp {
     arg("room.incremental", "true")
     arg("room.expandProjection", "true")
 }
+
+val roomSchemaDir = file("$projectDir/schemas")
+tasks.withType<com.google.devtools.ksp.gradle.KspTask>().configureEach {
+    doFirst {
+        roomSchemaDir
+            .takeIf { it.exists() }
+            ?.listFiles { file -> file.extension == "json" && file.length() == 0L }
+            ?.forEach { it.delete() }
+    }
+}
