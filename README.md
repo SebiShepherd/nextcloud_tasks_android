@@ -13,6 +13,25 @@ Ein modularer Android-Client für Nextcloud Tasks mit Jetpack Compose, Hilt und 
 - Dependency Injection: Hilt (`TasksApp`, Hilt-Module in `app/di` und `data/di`).
 - UI: Jetpack Compose (Material 3) mit zugänglichem Light/Dark-Theme.
 
+### OAuth-Konfiguration
+Die App verwendet OAuth für die Nextcloud-Authentifizierung. Die OAuth-Client-Credentials können über folgende Methoden konfiguriert werden:
+
+1. **Umgebungsvariablen** (empfohlen für CI/CD):
+   ```bash
+   export OAUTH_CLIENT_ID="your-client-id"
+   export OAUTH_CLIENT_SECRET="your-client-secret"
+   ```
+
+2. **gradle.properties** (lokal):
+   ```properties
+   OAUTH_CLIENT_ID=your-client-id
+   OAUTH_CLIENT_SECRET=your-client-secret
+   ```
+
+3. **Standardwerte**: Ohne Konfiguration werden Platzhalter-Werte für lokale Entwicklung verwendet (`nextcloud-tasks-android` / `local-client-secret`).
+
+**Wichtig**: Niemals echte OAuth-Credentials in den Quellcode committen!
+
 ### Wichtige Befehle
 - Format/Analyse: `./gradlew ktlintCheck detekt`
 - Lint: `./gradlew :app:lintDebug`

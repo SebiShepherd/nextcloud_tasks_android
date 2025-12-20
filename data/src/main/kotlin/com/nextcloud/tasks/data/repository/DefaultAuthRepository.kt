@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.data.repository
 
+import com.nextcloud.tasks.data.BuildConfig
 import com.nextcloud.tasks.data.auth.SecureAuthStorage
 import com.nextcloud.tasks.data.auth.StoredAccount
 import com.nextcloud.tasks.data.network.NextcloudClientFactory
@@ -28,8 +29,8 @@ class DefaultAuthRepository
         private val secureAuthStorage: SecureAuthStorage,
         private val validateServerUrlUseCase: ValidateServerUrlUseCase,
     ) : AuthRepository {
-        private val oauthClientId = "nextcloud-tasks-android"
-        private val oauthClientSecret = "local-client-secret"
+        private val oauthClientId = BuildConfig.OAUTH_CLIENT_ID
+        private val oauthClientSecret = BuildConfig.OAUTH_CLIENT_SECRET
 
         override suspend fun loginWithPassword(
             serverUrl: String,
