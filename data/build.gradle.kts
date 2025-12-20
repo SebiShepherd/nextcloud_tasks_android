@@ -5,6 +5,8 @@ plugins {
     kotlin("kapt")
 }
 
+val serializationVersion = libs.versions.serialization.get()
+
 android {
     namespace = "com.nextcloud.tasks.data"
     compileSdk = 36
@@ -74,5 +76,14 @@ dependencies {
     kapt(libs.hilt.compiler)
     kapt(libs.androidx.room.compiler)
     kapt(libs.kotlinx.serialization.json)
+    kapt("org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion")
+    kapt("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
     detektPlugins(libs.detekt.formatting)
+}
+
+configurations.kapt {
+    resolutionStrategy.force(
+        "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
+        "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
+    )
 }
