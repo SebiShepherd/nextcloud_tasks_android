@@ -2,9 +2,11 @@ package com.nextcloud.tasks.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nextcloud.tasks.domain.model.AuthErrorCode
 import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
+import com.nextcloud.tasks.domain.model.ValidationErrorCode
 import com.nextcloud.tasks.domain.usecase.LoginWithOAuthUseCase
 import com.nextcloud.tasks.domain.usecase.LoginWithPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
@@ -105,11 +107,12 @@ class LoginViewModel
                 val normalizedServer =
                     when (val validation = validateServerUrlUseCase(state.serverUrl)) {
                         is ValidationResult.Invalid -> {
+                            val message = validation.errorCode.toLocalizedString()
                             Timber.w(
                                 "Server URL validation failed: %s",
-                                validation.reason,
+                                message,
                             )
-                            _uiState.update { it.copy(isLoading = false, validationMessage = validation.reason) }
+                            _uiState.update { it.copy(isLoading = false, validationMessage = message) }
                             return@launch
                         }
 
@@ -183,12 +186,30 @@ class LoginViewModel
 
         private fun Throwable.toMessage(): String =
             when (this) {
-                is AuthFailure.InvalidServerUrl -> this.reason
+                is AuthFailure.InvalidServerUrl -> this.errorCode.toLocalizedString()
                 is AuthFailure.InvalidCredentials -> "Benutzername, Passwort oder Code sind nicht gültig"
-                is AuthFailure.Network -> this.reason
-                is AuthFailure.Certificate -> this.reason
-                is AuthFailure.Unexpected -> this.message ?: "Unerwarteter Fehler"
+                is AuthFailure.Network -> this.errorCode.toLocalizedString(this.details)
+                is AuthFailure.Certificate -> this.errorCode.toLocalizedString()
+                is AuthFailure.Unexpected -> this.errorCode.toLocalizedString(this.details)
                 else -> message ?: "Unbekannter Fehler"
+            }
+
+        private fun ValidationErrorCode.toLocalizedString(): String =
+            when (this) {
+                ValidationErrorCode.EMPTY_URL -> "Bitte eine Server-URL eingeben"
+                ValidationErrorCode.INVALID_FORMAT -> "Die Server-URL ist nicht gültig"
+                ValidationErrorCode.HTTPS_REQUIRED -> "HTTPS wird für eine sichere Verbindung benötigt"
+            }
+
+        private fun AuthErrorCode.toLocalizedString(details: String? = null): String =
+            when (this) {
+                AuthErrorCode.INVALID_CREDENTIALS -> "Benutzername, Passwort oder Code sind nicht gültig"
+                AuthErrorCode.SERVER_UNREACHABLE -> "Server nicht erreichbar. Bitte URL prüfen"
+                AuthErrorCode.SERVER_ERROR -> "Serverfehler${details?.let { " ($it)" } ?: ""}"
+                AuthErrorCode.NETWORK_ACCESS_DENIED -> "Netzwerkzugriff verweigert (fehlt die INTERNET-Berechtigung?)"
+                AuthErrorCode.CERTIFICATE_ERROR -> "Zertifikat konnte nicht geprüft werden"
+                AuthErrorCode.ACCOUNT_NOT_FOUND -> "Konto wurde nicht gefunden"
+                AuthErrorCode.UNEXPECTED_ERROR -> details ?: "Unerwarteter Fehler"
             }
     }
 

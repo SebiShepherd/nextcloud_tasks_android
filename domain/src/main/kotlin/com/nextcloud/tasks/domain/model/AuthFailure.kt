@@ -5,20 +5,22 @@ sealed class AuthFailure(
     cause: Throwable? = null,
 ) : Exception(message, cause) {
     data class InvalidServerUrl(
-        val reason: String,
-    ) : AuthFailure(reason)
+        val errorCode: ValidationErrorCode,
+    ) : AuthFailure()
 
     object InvalidCredentials : AuthFailure()
 
     data class Network(
-        val reason: String,
-    ) : AuthFailure(reason)
+        val errorCode: AuthErrorCode,
+        val details: String? = null,
+    ) : AuthFailure()
 
     data class Certificate(
-        val reason: String,
-    ) : AuthFailure(reason)
+        val errorCode: AuthErrorCode,
+    ) : AuthFailure()
 
     data class Unexpected(
-        val reason: String,
-    ) : AuthFailure(reason)
+        val errorCode: AuthErrorCode,
+        val details: String? = null,
+    ) : AuthFailure()
 }

@@ -3,6 +3,7 @@ package com.nextcloud.tasks.data.repository
 import com.nextcloud.tasks.data.auth.SecureAuthStorage
 import com.nextcloud.tasks.data.auth.StoredAccount
 import com.nextcloud.tasks.data.network.NextcloudClientFactory
+import com.nextcloud.tasks.domain.model.AuthErrorCode
 import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
@@ -113,7 +114,7 @@ class DefaultAuthRepository
 
         override suspend fun switchAccount(accountId: String) {
             if (secureAuthStorage.findAccount(accountId) == null) {
-                throw AuthFailure.Unexpected("Konto wurde nicht gefunden")
+                throw AuthFailure.Unexpected(AuthErrorCode.ACCOUNT_NOT_FOUND)
             }
             secureAuthStorage.setActiveAccount(accountId)
         }
@@ -124,7 +125,7 @@ class DefaultAuthRepository
 
         private fun normalizeOrThrow(serverUrl: String): String =
             when (val validation = validateServerUrlUseCase(serverUrl)) {
-                is ValidationResult.Invalid -> throw AuthFailure.InvalidServerUrl(validation.reason)
+                is ValidationResult.Invalid -> throw AuthFailure.InvalidServerUrl(validation.errorCode)
                 is ValidationResult.Valid -> validation.normalizedUrl
             }
 
@@ -134,16 +135,16 @@ class DefaultAuthRepository
                     if (throwable.code() == 401) {
                         AuthFailure.InvalidCredentials
                     } else {
-                        AuthFailure.Network("Serverfehler (${throwable.code()})")
+                        AuthFailure.Network(AuthErrorCode.SERVER_ERROR, details = throwable.code().toString())
                     }
 
                 is SecurityException ->
-                    AuthFailure.Network("Netzwerkzugriff verweigert (fehlt die INTERNET-Berechtigung?)")
+                    AuthFailure.Network(AuthErrorCode.NETWORK_ACCESS_DENIED)
 
-                is UnknownHostException -> AuthFailure.Network("Server nicht erreichbar. Bitte URL prüfen")
+                is UnknownHostException -> AuthFailure.Network(AuthErrorCode.SERVER_UNREACHABLE)
                 is SSLPeerUnverifiedException, is SSLHandshakeException ->
-                    AuthFailure.Certificate("Zertifikat konnte nicht geprüft werden")
-                else -> AuthFailure.Unexpected(throwable.message ?: "Unbekannter Fehler")
+                    AuthFailure.Certificate(AuthErrorCode.CERTIFICATE_ERROR)
+                else -> AuthFailure.Unexpected(AuthErrorCode.UNEXPECTED_ERROR, details = throwable.message)
             }
     }
 
