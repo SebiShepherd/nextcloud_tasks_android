@@ -174,11 +174,11 @@ class LoginViewModel
         }
 
         fun logout(accountId: String) {
-            viewModelScope.launch { logoutUseCase(accountId) }
+            viewModelScope.launch(exceptionHandler) { logoutUseCase(accountId) }
         }
 
         fun switchAccount(accountId: String) {
-            viewModelScope.launch { switchAccountUseCase(accountId) }
+            viewModelScope.launch(exceptionHandler) { switchAccountUseCase(accountId) }
         }
 
         private fun Throwable.toMessage(): String =
