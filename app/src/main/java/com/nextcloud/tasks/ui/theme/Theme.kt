@@ -46,14 +46,17 @@ fun NextcloudTasksTheme(
             else -> LightColorScheme
         }
 
-    val view = LocalContext.current as? Activity
-    view?.window?.let { window ->
-        window.statusBarColor = colorScheme.background.toArgb()
-        window.navigationBarColor = colorScheme.surface.toArgb()
-        WindowCompat.getInsetsController(window, window.decorView).apply {
+    val activity = LocalContext.current as? Activity
+    activity?.window?.let { window ->
+        val decorView = window.decorView
+        WindowCompat.getInsetsController(window, decorView).apply {
             isAppearanceLightStatusBars = !darkTheme
             isAppearanceLightNavigationBars = !darkTheme
         }
+        @Suppress("DEPRECATION")
+        window.statusBarColor = colorScheme.background.toArgb()
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = colorScheme.surface.toArgb()
     }
 
     MaterialTheme(
