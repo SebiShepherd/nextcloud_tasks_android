@@ -253,6 +253,11 @@ private fun CredentialsFields(
         onValueChange = onPasswordChange,
         label = { Text(stringResource(id = R.string.password_label)) },
         singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            autoCorrect = false,
+        ),
         modifier = Modifier.fillMaxWidth(),
     )
 }
