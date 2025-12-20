@@ -28,7 +28,11 @@ class AuthInterceptor(
     ) {
         when (token) {
             is AuthToken.OAuth -> builder.header("Authorization", "Bearer ${token.accessToken}")
-            is AuthToken.Password -> builder.header("Authorization", Credentials.basic(token.username, token.appPassword))
+            is AuthToken.Password ->
+                builder.header(
+                    "Authorization",
+                    Credentials.basic(token.username, token.appPassword),
+                )
         }
     }
 }

@@ -24,7 +24,11 @@ class NextcloudClientFactory
             username: String,
             password: String,
         ): NextcloudService {
-            val client = unauthenticatedClient.newBuilder().addInterceptor(BasicAuthInterceptor(username, password)).build()
+            val client =
+                unauthenticatedClient
+                    .newBuilder()
+                    .addInterceptor(BasicAuthInterceptor(username, password))
+                    .build()
             return build(serverUrl, client)
         }
 
@@ -32,7 +36,11 @@ class NextcloudClientFactory
             serverUrl: String,
             token: String,
         ): NextcloudService {
-            val client = unauthenticatedClient.newBuilder().addInterceptor(BearerTokenInterceptor(token)).build()
+            val client =
+                unauthenticatedClient
+                    .newBuilder()
+                    .addInterceptor(BearerTokenInterceptor(token))
+                    .build()
             return build(serverUrl, client)
         }
 

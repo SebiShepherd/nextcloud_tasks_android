@@ -29,13 +29,7 @@ private const val DEFAULT_REDIRECT_URI = "nc://login"
 class LoginViewModel
     @Inject
     constructor(
-        private val loginWithPasswordUseCase: LoginWithPasswordUseCase,
-        private val loginWithOAuthUseCase: LoginWithOAuthUseCase,
-        private val observeAccountsUseCase: ObserveAccountsUseCase,
-        private val observeActiveAccountUseCase: ObserveActiveAccountUseCase,
-        private val switchAccountUseCase: SwitchAccountUseCase,
-        private val logoutUseCase: LogoutUseCase,
-        private val validateServerUrlUseCase: ValidateServerUrlUseCase,
+        private val useCases: LoginUseCases,
     ) : ViewModel() {
         private val exceptionHandler =
             CoroutineExceptionHandler { _, throwable ->
@@ -43,7 +37,7 @@ class LoginViewModel
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
-                        error = throwable.toMessage(),
+                        error = throwable.toLoginMessage(),
                     )
                 }
             }
@@ -53,12 +47,12 @@ class LoginViewModel
 
         init {
             viewModelScope.launch(exceptionHandler) {
-                observeAccountsUseCase().collect { accounts ->
+                useCases.observeAccounts().collect { accounts ->
                     _uiState.update { it.copy(accounts = accounts) }
                 }
             }
             viewModelScope.launch(exceptionHandler) {
-                observeActiveAccountUseCase().collect { active ->
+                useCases.observeActiveAccount().collect { active ->
                     _uiState.update { it.copy(activeAccount = active) }
                 }
             }
@@ -70,9 +64,21 @@ class LoginViewModel
 
         fun updatePassword(value: String) = _uiState.update { it.copy(password = value, error = null) }
 
-        fun updateAuthorizationCode(value: String) = _uiState.update { it.copy(authorizationCode = value, error = null) }
+        fun updateAuthorizationCode(value: String) =
+            _uiState.update {
+                it.copy(
+                    authorizationCode = value,
+                    error = null,
+                )
+            }
 
-        fun updateRedirectUri(value: String) = _uiState.update { it.copy(redirectUri = value, error = null) }
+        fun updateRedirectUri(value: String) =
+            _uiState.update {
+                it.copy(
+                    redirectUri = value,
+                    error = null,
+                )
+            }
 
         fun switchAuthMethod(method: AuthUiMethod) =
             _uiState.update {
@@ -88,94 +94,141 @@ class LoginViewModel
             viewModelScope.launch(exceptionHandler) {
                 _uiState.update { it.copy(isLoading = true, error = null, validationMessage = null) }
                 val normalizedServer =
-                    when (val validation = validateServerUrlUseCase(state.serverUrl)) {
-                        is ValidationResult.Invalid -> {
-                            Timber.w(
-                                "Server URL validation failed: %s",
-                                validation.reason,
-                            )
-                            _uiState.update { it.copy(isLoading = false, validationMessage = validation.reason) }
-                            return@launch
-                        }
-
-                        is ValidationResult.Valid -> validation.normalizedUrl
-                    }
+                    validateServerOrShowError(
+                        serverUrl = state.serverUrl,
+                        validateServerUrlUseCase = useCases.validateServerUrl,
+                        uiState = _uiState,
+                    ) ?: return@launch
 
                 Timber.i("Submitting login (method=%s, server=%s)", state.authMethod.name, normalizedServer)
 
-                val result =
-                    runCatching {
-                        when (state.authMethod) {
-                            AuthUiMethod.PASSWORD ->
-                                loginWithPasswordUseCase(
-                                    serverUrl = normalizedServer,
-                                    username = state.username,
-                                    password = state.password,
-                                )
-
-                            AuthUiMethod.OAUTH ->
-                                loginWithOAuthUseCase(
-                                    serverUrl = normalizedServer,
-                                    authorizationCode = state.authorizationCode,
-                                    redirectUri = state.redirectUri.ifBlank { DEFAULT_REDIRECT_URI },
-                                )
-                        }
-                    }
-
-                result
+                runCatching { performLogin(state, normalizedServer) }
                     .onSuccess { account ->
-                        Timber.i(
-                            "Login succeeded (accountId=%s, displayName=%s, method=%s)",
-                            account.id,
-                            account.displayName,
-                            state.authMethod.name,
+                        handleLoginSuccess(
+                            account = account,
+                            state = state,
+                            normalizedServer = normalizedServer,
+                            uiState = _uiState,
                         )
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = null,
-                                validationMessage = null,
-                                password = "",
-                                authorizationCode = "",
-                                serverUrl = normalizedServer,
-                                activeAccount = account,
-                            )
-                        }
                     }.onFailure { throwable ->
-                        Timber.e(
-                            throwable,
-                            "Login failed (method=%s, server=%s)",
-                            state.authMethod.name,
-                            normalizedServer,
+                        handleLoginFailure(
+                            throwable = throwable,
+                            state = state,
+                            normalizedServer = normalizedServer,
+                            uiState = _uiState,
                         )
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = throwable.toMessage(),
-                            )
-                        }
                     }
             }
         }
 
         fun logout(accountId: String) {
-            viewModelScope.launch { logoutUseCase(accountId) }
+            viewModelScope.launch { useCases.logout(accountId) }
         }
 
         fun switchAccount(accountId: String) {
-            viewModelScope.launch { switchAccountUseCase(accountId) }
+            viewModelScope.launch { useCases.switchAccount(accountId) }
         }
 
-        private fun Throwable.toMessage(): String =
-            when (this) {
-                is AuthFailure.InvalidServerUrl -> this.reason
-                is AuthFailure.InvalidCredentials -> "Username, password, or code is not valid"
-                is AuthFailure.Network -> this.reason
-                is AuthFailure.Certificate -> this.reason
-                is AuthFailure.Unexpected -> this.message ?: "Unexpected error"
-                else -> message ?: "Unknown error"
+        private suspend fun performLogin(
+            state: LoginUiState,
+            normalizedServer: String,
+        ): NextcloudAccount =
+            when (state.authMethod) {
+                AuthUiMethod.PASSWORD ->
+                    useCases.loginWithPassword(
+                        serverUrl = normalizedServer,
+                        username = state.username,
+                        password = state.password,
+                    )
+
+                AuthUiMethod.OAUTH ->
+                    useCases.loginWithOAuth(
+                        serverUrl = normalizedServer,
+                        authorizationCode = state.authorizationCode,
+                        redirectUri = state.redirectUri.ifBlank { DEFAULT_REDIRECT_URI },
+                    )
             }
     }
+
+private fun validateServerOrShowError(
+    serverUrl: String,
+    validateServerUrlUseCase: ValidateServerUrlUseCase,
+    uiState: MutableStateFlow<LoginUiState>,
+): String? =
+    when (val validation = validateServerUrlUseCase(serverUrl)) {
+        is ValidationResult.Invalid -> {
+            Timber.w("Server URL validation failed: %s", validation.reason)
+            uiState.update { it.copy(isLoading = false, validationMessage = validation.reason) }
+            null
+        }
+
+        is ValidationResult.Valid -> validation.normalizedUrl
+    }
+
+private fun handleLoginSuccess(
+    account: NextcloudAccount,
+    state: LoginUiState,
+    normalizedServer: String,
+    uiState: MutableStateFlow<LoginUiState>,
+) {
+    Timber.i(
+        "Login succeeded (accountId=%s, displayName=%s, method=%s)",
+        account.id,
+        account.displayName,
+        state.authMethod.name,
+    )
+    uiState.update {
+        it.copy(
+            isLoading = false,
+            error = null,
+            validationMessage = null,
+            password = "",
+            authorizationCode = "",
+            serverUrl = normalizedServer,
+            activeAccount = account,
+        )
+    }
+}
+
+private fun handleLoginFailure(
+    throwable: Throwable,
+    state: LoginUiState,
+    normalizedServer: String,
+    uiState: MutableStateFlow<LoginUiState>,
+) {
+    Timber.e(
+        throwable,
+        "Login failed (method=%s, server=%s)",
+        state.authMethod.name,
+        normalizedServer,
+    )
+    uiState.update {
+        it.copy(
+            isLoading = false,
+            error = throwable.toLoginMessage(),
+        )
+    }
+}
+
+private fun Throwable.toLoginMessage(): String =
+    when (this) {
+        is AuthFailure.InvalidServerUrl -> this.reason
+        is AuthFailure.InvalidCredentials -> "Username, password, or code is not valid"
+        is AuthFailure.Network -> this.reason
+        is AuthFailure.Certificate -> this.reason
+        is AuthFailure.Unexpected -> this.message ?: "Unexpected error"
+        else -> message ?: "Unknown error"
+    }
+
+data class LoginUseCases(
+    val loginWithPassword: LoginWithPasswordUseCase,
+    val loginWithOAuth: LoginWithOAuthUseCase,
+    val observeAccounts: ObserveAccountsUseCase,
+    val observeActiveAccount: ObserveActiveAccountUseCase,
+    val switchAccount: SwitchAccountUseCase,
+    val logout: LogoutUseCase,
+    val validateServerUrl: ValidateServerUrlUseCase,
+)
 
 enum class AuthUiMethod(
     val authType: AuthType,
