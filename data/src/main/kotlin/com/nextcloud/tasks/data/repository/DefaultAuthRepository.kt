@@ -124,7 +124,7 @@ class DefaultAuthRepository
 
         private fun normalizeOrThrow(serverUrl: String): String =
             when (val validation = validateServerUrlUseCase(serverUrl)) {
-                is ValidationResult.Invalid -> throw AuthFailure.InvalidServerUrl(validation.reason)
+                is ValidationResult.Invalid -> throw AuthFailure.InvalidServerUrl(validation.error)
                 is ValidationResult.Valid -> validation.normalizedUrl
             }
 

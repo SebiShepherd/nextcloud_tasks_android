@@ -1,5 +1,7 @@
 package com.nextcloud.tasks.domain.model
 
+import com.nextcloud.tasks.domain.usecase.ValidationError
+
 sealed class AuthFailure(
     cause: Throwable? = null,
 ) : Exception(cause) {
@@ -7,7 +9,7 @@ sealed class AuthFailure(
      * Server URL validation failed
      */
     data class InvalidServerUrl(
-        val validationError: String,
+        val validationError: ValidationError,
     ) : AuthFailure()
 
     /**

@@ -18,6 +18,11 @@
     <string name="invalid_url">Bitte eine gültige HTTPS-URL angeben.</string>
     <string name="account_connection_success">Verbindung hergestellt</string>
 
+    <!-- Server URL validation errors -->
+    <string name="validation_empty_url">Bitte eine Server-URL eingeben</string>
+    <string name="validation_invalid_format">Die Server-URL ist nicht gültig</string>
+    <string name="validation_https_required">HTTPS wird für eine sichere Verbindung benötigt</string>
+
     <!-- Auth error messages -->
     <string name="error_invalid_credentials">Benutzername, Passwort oder Code sind nicht gültig</string>
     <string name="error_server_error">Serverfehler (%1$d)</string>
