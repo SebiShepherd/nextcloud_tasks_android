@@ -20,7 +20,7 @@ import com.nextcloud.tasks.data.database.entity.TaskTagCrossRef
         TaskTagCrossRef::class,
     ],
     version = 1,
-    exportSchema = true,
+    exportSchema = false,
 )
 @TypeConverters(InstantTypeConverter::class)
 abstract class NextcloudTasksDatabase : RoomDatabase() {
