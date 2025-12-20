@@ -8,7 +8,7 @@ sealed class AuthFailure(
         val reason: String,
     ) : AuthFailure(reason)
 
-    object InvalidCredentials : AuthFailure("Ungültige Anmeldedaten")
+    object InvalidCredentials : AuthFailure()
 
     data class Network(
         val reason: String,
