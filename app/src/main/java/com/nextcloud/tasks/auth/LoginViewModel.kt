@@ -13,7 +13,6 @@ import com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase
 import com.nextcloud.tasks.domain.usecase.SwitchAccountUseCase
 import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
 import com.nextcloud.tasks.domain.usecase.ValidationResult
-import com.nextcloud.tasks.network.NetworkPermissionChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,7 +36,6 @@ class LoginViewModel
         private val switchAccountUseCase: SwitchAccountUseCase,
         private val logoutUseCase: LogoutUseCase,
         private val validateServerUrlUseCase: ValidateServerUrlUseCase,
-        private val networkPermissionChecker: NetworkPermissionChecker,
     ) : ViewModel() {
         private val exceptionHandler =
             CoroutineExceptionHandler { _, throwable ->
@@ -88,19 +86,6 @@ class LoginViewModel
         fun submit() {
             val state = _uiState.value
             viewModelScope.launch(exceptionHandler) {
-                if (!networkPermissionChecker.hasInternetPermission()) {
-                    Timber.e("Login blocked: INTERNET permission missing")
-                    _uiState.update {
-                        it.copy(
-                            error =
-                                "The app is missing INTERNET permission. Please reinstall " +
-                                    "or enable it in system settings.",
-                            isLoading = false,
-                        )
-                    }
-                    return@launch
-                }
-
                 _uiState.update { it.copy(isLoading = true, error = null, validationMessage = null) }
                 val normalizedServer =
                     when (val validation = validateServerUrlUseCase(state.serverUrl)) {
