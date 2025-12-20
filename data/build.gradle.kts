@@ -73,5 +73,6 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     kapt(libs.hilt.compiler)
     kapt(libs.androidx.room.compiler)
+    kapt(libs.kotlinx.serialization.json)
     detektPlugins(libs.detekt.formatting)
 }
