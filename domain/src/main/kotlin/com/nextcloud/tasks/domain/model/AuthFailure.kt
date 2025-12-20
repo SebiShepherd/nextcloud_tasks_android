@@ -1,24 +1,56 @@
 package com.nextcloud.tasks.domain.model
 
-sealed class AuthFailure(
-    message: String? = null,
-    cause: Throwable? = null,
-) : Exception(message, cause) {
-    data class InvalidServerUrl(
-        val reason: String,
-    ) : AuthFailure(reason)
+import com.nextcloud.tasks.domain.usecase.ValidationError
 
+sealed class AuthFailure(
+    cause: Throwable? = null,
+) : Exception(cause) {
+    /**
+     * Server URL validation failed
+     */
+    data class InvalidServerUrl(
+        val validationError: ValidationError,
+    ) : AuthFailure()
+
+    /**
+     * Authentication credentials are invalid (HTTP 401)
+     */
     object InvalidCredentials : AuthFailure()
 
-    data class Network(
-        val reason: String,
-    ) : AuthFailure(reason)
+    /**
+     * Network-related errors
+     */
+    sealed class Network(cause: Throwable? = null) : AuthFailure(cause) {
+        /**
+         * Server returned an HTTP error (non-401)
+         */
+        data class ServerError(val httpCode: Int) : Network()
 
-    data class Certificate(
-        val reason: String,
-    ) : AuthFailure(reason)
+        /**
+         * Network permission denied
+         */
+        object PermissionDenied : Network()
 
+        /**
+         * Server unreachable (DNS/connection failure)
+         */
+        object Unreachable : Network()
+    }
+
+    /**
+     * SSL/TLS certificate verification failed
+     */
+    object CertificateError : AuthFailure()
+
+    /**
+     * Account not found in storage
+     */
+    object AccountNotFound : AuthFailure()
+
+    /**
+     * Unexpected error
+     */
     data class Unexpected(
-        val reason: String,
-    ) : AuthFailure(reason)
+        val originalError: Throwable,
+    ) : AuthFailure(originalError)
 }
