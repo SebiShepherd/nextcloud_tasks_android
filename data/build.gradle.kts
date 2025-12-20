@@ -3,9 +3,8 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.hilt)
     kotlin("kapt")
+    alias(libs.plugins.ksp)
 }
-
-val serializationVersion = libs.versions.serialization.get()
 
 android {
     namespace = "com.nextcloud.tasks.data"
@@ -74,16 +73,12 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     kapt(libs.hilt.compiler)
-    kapt(libs.androidx.room.compiler)
-    kapt(libs.kotlinx.serialization.json)
-    kapt("org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion")
-    kapt("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
+    ksp(libs.androidx.room.compiler)
     detektPlugins(libs.detekt.formatting)
 }
 
-configurations.kapt {
-    resolutionStrategy.force(
-        "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
-        "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
-    )
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
+    arg("room.expandProjection", "true")
 }

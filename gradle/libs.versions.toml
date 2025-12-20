@@ -21,6 +21,7 @@ securityCrypto = "1.1.0-alpha06"
 timber = "5.0.1"
 room = "2.7.0-alpha04"
 serialization = "1.7.1"
+ksp = "2.1.10-1.0.25"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -74,3 +75,4 @@ hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintPlugin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 playPublisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
