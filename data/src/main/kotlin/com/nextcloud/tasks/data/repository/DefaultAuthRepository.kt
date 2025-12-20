@@ -112,7 +112,7 @@ class DefaultAuthRepository
 
         override suspend fun switchAccount(accountId: String) {
             if (secureAuthStorage.findAccount(accountId) == null) {
-                throw AuthFailure.Unexpected("Konto wurde nicht gefunden")
+                throw AuthFailure.Unexpected("Account not found")
             }
             secureAuthStorage.setActiveAccount(accountId)
         }
