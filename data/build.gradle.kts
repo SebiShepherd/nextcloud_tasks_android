@@ -42,6 +42,7 @@ kapt {
     sqliteTmpDir.mkdirs()
     javacOptions {
         option("-J-Dorg.sqlite.tmpdir=${sqliteTmpDir.absolutePath}")
+        option("-J-Djava.io.tmpdir=${sqliteTmpDir.absolutePath}")
     }
 }
 
