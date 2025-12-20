@@ -113,7 +113,7 @@ class DefaultAuthRepository
 
         override suspend fun switchAccount(accountId: String) {
             if (secureAuthStorage.findAccount(accountId) == null) {
-                throw AuthFailure.Unexpected("Konto wurde nicht gefunden")
+                throw AuthFailure.AccountNotFound
             }
             secureAuthStorage.setActiveAccount(accountId)
         }
@@ -134,16 +134,16 @@ class DefaultAuthRepository
                     if (throwable.code() == 401) {
                         AuthFailure.InvalidCredentials
                     } else {
-                        AuthFailure.Network("Serverfehler (${throwable.code()})")
+                        AuthFailure.Network.ServerError(throwable.code())
                     }
 
                 is SecurityException ->
-                    AuthFailure.Network("Netzwerkzugriff verweigert (fehlt die INTERNET-Berechtigung?)")
+                    AuthFailure.Network.PermissionDenied
 
-                is UnknownHostException -> AuthFailure.Network("Server nicht erreichbar. Bitte URL prüfen")
+                is UnknownHostException -> AuthFailure.Network.Unreachable
                 is SSLPeerUnverifiedException, is SSLHandshakeException ->
-                    AuthFailure.Certificate("Zertifikat konnte nicht geprüft werden")
-                else -> AuthFailure.Unexpected(throwable.message ?: "Unbekannter Fehler")
+                    AuthFailure.CertificateError
+                else -> AuthFailure.Unexpected(throwable)
             }
     }
 

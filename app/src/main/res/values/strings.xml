@@ -17,4 +17,15 @@
     <string name="invalid_certificate">Das Zertifikat konnte nicht geprüft werden.</string>
     <string name="invalid_url">Bitte eine gültige HTTPS-URL angeben.</string>
     <string name="account_connection_success">Verbindung hergestellt</string>
+
+    <!-- Auth error messages -->
+    <string name="error_invalid_credentials">Benutzername, Passwort oder Code sind nicht gültig</string>
+    <string name="error_server_error">Serverfehler (%1$d)</string>
+    <string name="error_network_permission">Netzwerkzugriff verweigert (fehlt die INTERNET-Berechtigung?)</string>
+    <string name="error_network_unreachable">Server nicht erreichbar. Bitte URL prüfen</string>
+    <string name="error_certificate">Zertifikat konnte nicht geprüft werden</string>
+    <string name="error_account_not_found">Konto wurde nicht gefunden</string>
+    <string name="error_unexpected">Unerwarteter Fehler</string>
+    <string name="error_unknown">Unbekannter Fehler</string>
+    <string name="error_no_internet_permission">Die App hat keine Internet-Berechtigung. Bitte neu installieren oder in den App-Einstellungen aktivieren.</string>
 </resources>

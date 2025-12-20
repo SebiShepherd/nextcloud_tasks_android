@@ -1,7 +1,9 @@
 package com.nextcloud.tasks.auth
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nextcloud.tasks.R
 import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
@@ -15,6 +17,7 @@ import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
 import com.nextcloud.tasks.domain.usecase.ValidationResult
 import com.nextcloud.tasks.network.NetworkPermissionChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +33,7 @@ private const val DEFAULT_REDIRECT_URI = "nc://login"
 class LoginViewModel
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val loginWithPasswordUseCase: LoginWithPasswordUseCase,
         private val loginWithOAuthUseCase: LoginWithOAuthUseCase,
         private val observeAccountsUseCase: ObserveAccountsUseCase,
@@ -92,9 +96,7 @@ class LoginViewModel
                     Timber.e("Login blocked: INTERNET permission missing")
                     _uiState.update {
                         it.copy(
-                            error =
-                                "Die App hat keine Internet-Berechtigung. Bitte neu installieren " +
-                                    "oder in den App-Einstellungen aktivieren.",
+                            error = context.getString(R.string.error_no_internet_permission),
                             isLoading = false,
                         )
                     }
@@ -183,12 +185,15 @@ class LoginViewModel
 
         private fun Throwable.toMessage(): String =
             when (this) {
-                is AuthFailure.InvalidServerUrl -> this.reason
-                is AuthFailure.InvalidCredentials -> "Benutzername, Passwort oder Code sind nicht gültig"
-                is AuthFailure.Network -> this.reason
-                is AuthFailure.Certificate -> this.reason
-                is AuthFailure.Unexpected -> this.message ?: "Unerwarteter Fehler"
-                else -> message ?: "Unbekannter Fehler"
+                is AuthFailure.InvalidServerUrl -> this.validationError
+                is AuthFailure.InvalidCredentials -> context.getString(R.string.error_invalid_credentials)
+                is AuthFailure.Network.ServerError -> context.getString(R.string.error_server_error, this.httpCode)
+                is AuthFailure.Network.PermissionDenied -> context.getString(R.string.error_network_permission)
+                is AuthFailure.Network.Unreachable -> context.getString(R.string.error_network_unreachable)
+                is AuthFailure.CertificateError -> context.getString(R.string.error_certificate)
+                is AuthFailure.AccountNotFound -> context.getString(R.string.error_account_not_found)
+                is AuthFailure.Unexpected -> this.message ?: context.getString(R.string.error_unexpected)
+                else -> message ?: context.getString(R.string.error_unknown)
             }
     }
 
