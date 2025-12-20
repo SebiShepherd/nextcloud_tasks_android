@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.hilt)
     kotlin("kapt")
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -10,7 +11,24 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 26
+
+        buildConfigField(
+            "String",
+            "DEFAULT_NEXTCLOUD_BASE_URL",
+            "\"https://nextcloud.example.com/\"",
+        )
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                argument(
+                    "room.schemaLocation",
+                    "$projectDir/schemas",
+                )
+                argument("room.incremental", "true")
+                argument("room.expandProjection", "true")
+            }
+        }
     }
 
     buildFeatures {
@@ -40,8 +58,18 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.moshi.kotlin)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     kapt(libs.hilt.compiler)
+    ksp(libs.androidx.room.compiler)
     detektPlugins(libs.detekt.formatting)
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
+    arg("room.expandProjection", "true")
 }
