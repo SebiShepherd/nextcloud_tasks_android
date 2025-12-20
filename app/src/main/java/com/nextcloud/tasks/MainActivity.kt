@@ -19,6 +19,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -51,12 +52,14 @@ import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
+import com.nextcloud.tasks.data.sync.SyncManager
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -110,6 +113,7 @@ fun NextcloudTasksApp(
             tasks = tasks,
             onLogout = loginViewModel::logout,
             onSwitchAccount = loginViewModel::switchAccount,
+            onRefresh = taskListViewModel::refresh,
         )
     }
 }
@@ -121,6 +125,7 @@ fun AuthenticatedHome(
     tasks: List<Task>,
     onLogout: (String) -> Unit,
     onSwitchAccount: (String) -> Unit,
+    onRefresh: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -128,6 +133,7 @@ fun AuthenticatedHome(
                 state = state,
                 onSwitchAccount = onSwitchAccount,
                 onLogout = onLogout,
+                onRefresh = onRefresh,
             )
         },
     ) { padding ->
@@ -145,6 +151,7 @@ private fun AuthenticatedTopBar(
     state: LoginUiState,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
+    onRefresh: () -> Unit,
 ) {
     TopAppBar(
         title = {
@@ -160,6 +167,13 @@ private fun AuthenticatedTopBar(
             }
         },
         actions = {
+            IconButton(onClick = onRefresh) {
+                Icon(
+                    painter = painterResource(android.R.drawable.ic_popup_sync),
+                    contentDescription = stringResource(id = R.string.refresh_tasks),
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+            }
             state.activeAccount?.let { account ->
                 AccountDropdown(
                     activeAccount = account,
@@ -379,6 +393,7 @@ class TaskListViewModel
     @Inject
     constructor(
         private val loadTasksUseCase: LoadTasksUseCase,
+        private val syncManager: SyncManager,
     ) : ViewModel() {
         val tasks =
             loadTasksUseCase()
@@ -386,5 +401,12 @@ class TaskListViewModel
 
         init {
             viewModelScope.launch { loadTasksUseCase.seedSample() }
+        }
+
+        fun refresh() {
+            viewModelScope.launch {
+                runCatching { syncManager.manualRefresh() }
+                    .onFailure { Timber.w(it, "Manual refresh failed") }
+            }
         }
     }

@@ -17,4 +17,5 @@
     <string name="invalid_certificate">The certificate could not be verified.</string>
     <string name="invalid_url">Please provide a valid HTTPS URL.</string>
     <string name="account_connection_success">Connection established</string>
+    <string name="refresh_tasks">Refresh</string>
 </resources>
