@@ -32,14 +32,20 @@ class SecureAuthStorage
             } catch (e: Exception) {
                 // If encrypted preferences fail to initialize (e.g., corrupted keystore),
                 // delete the file and try again with a fresh instance
+                timber.log.Timber.w(e, "Failed to initialize encrypted preferences, resetting")
                 context.deleteSharedPreferences("auth_store")
-                EncryptedSharedPreferences.create(
-                    context,
-                    "auth_store",
-                    MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-                )
+                try {
+                    EncryptedSharedPreferences.create(
+                        context,
+                        "auth_store",
+                        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+                        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+                    )
+                } catch (retryException: Exception) {
+                    timber.log.Timber.e(retryException, "Failed to initialize encrypted preferences after reset")
+                    throw retryException
+                }
             }
 
         private val adapter =

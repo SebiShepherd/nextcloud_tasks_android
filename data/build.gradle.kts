@@ -21,7 +21,7 @@ android {
         buildConfigField(
             "String",
             "OAUTH_CLIENT_SECRET",
-            "\"${project.findProperty("OAUTH_CLIENT_SECRET") ?: System.getenv("OAUTH_CLIENT_SECRET") ?: "local-client-secret"}\""
+            "\"${project.findProperty("OAUTH_CLIENT_SECRET") ?: System.getenv("OAUTH_CLIENT_SECRET") ?: ""}\""
         )
     }
 

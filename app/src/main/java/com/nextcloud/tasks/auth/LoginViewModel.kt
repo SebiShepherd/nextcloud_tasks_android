@@ -107,7 +107,7 @@ class LoginViewModel
                         is ValidationResult.Valid -> validation.normalizedUrl
                     }
 
-                Timber.i("Submitting login (method=%s, server=%s)", state.authMethod.name, normalizedServer)
+                Timber.i("Submitting login (method=%s)", state.authMethod.name)
 
                 val result =
                     runCatching {
@@ -150,9 +150,8 @@ class LoginViewModel
                     }.onFailure { throwable ->
                         Timber.e(
                             throwable,
-                            "Login failed (method=%s, server=%s)",
+                            "Login failed (method=%s)",
                             state.authMethod.name,
-                            normalizedServer,
                         )
                         _uiState.update {
                             it.copy(
@@ -160,6 +159,7 @@ class LoginViewModel
                                 error = throwable.toMessage(),
                                 password = "",
                                 authorizationCode = "",
+                                serverUrl = normalizedServer,
                             )
                         }
                     }

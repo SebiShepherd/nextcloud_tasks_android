@@ -76,6 +76,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Handle OAuth redirect if present
+        handleOAuthRedirect(intent)
+        
         setContent {
             NextcloudTasksTheme {
                 Surface(
@@ -86,6 +90,23 @@ class MainActivity : ComponentActivity() {
                         loginViewModel = loginViewModel,
                         taskListViewModel = taskListViewModel,
                     )
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleOAuthRedirect(intent)
+    }
+
+    private fun handleOAuthRedirect(intent: android.content.Intent?) {
+        intent?.data?.let { uri ->
+            if (uri.scheme == "nc" && uri.host == "login") {
+                // Extract authorization code from the redirect URI
+                val authCode = uri.getQueryParameter("code")
+                if (authCode != null) {
+                    loginViewModel.updateAuthorizationCode(authCode)
                 }
             }
         }

@@ -8,8 +8,8 @@ import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.repository.AuthRepository
-import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
-import com.nextcloud.tasks.domain.usecase.ValidationResult
+import com.nextcloud.tasks.domain.validation.ServerUrlValidator
+import com.nextcloud.tasks.domain.validation.ValidationResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -27,7 +27,6 @@ class DefaultAuthRepository
     constructor(
         private val clientFactory: NextcloudClientFactory,
         private val secureAuthStorage: SecureAuthStorage,
-        private val validateServerUrlUseCase: ValidateServerUrlUseCase,
     ) : AuthRepository {
         private val oauthClientId = BuildConfig.OAUTH_CLIENT_ID
         private val oauthClientSecret = BuildConfig.OAUTH_CLIENT_SECRET
@@ -39,8 +38,7 @@ class DefaultAuthRepository
         ): NextcloudAccount {
             val normalizedServer = normalizeOrThrow(serverUrl)
             val trimmedUsername = username.trim()
-            val trimmedPassword = password.trim()
-            if (trimmedUsername.isBlank() || trimmedPassword.isBlank()) {
+            if (trimmedUsername.isBlank() || password.isBlank()) {
                 throw AuthFailure.InvalidCredentials
             }
 
@@ -51,13 +49,13 @@ class DefaultAuthRepository
             
             if (existingAccount != null) {
                 // Update existing account instead of creating duplicate
-                val service = clientFactory.createWithBasicAuth(normalizedServer, trimmedUsername, trimmedPassword)
+                val service = clientFactory.createWithBasicAuth(normalizedServer, trimmedUsername, password)
                 val user = runCatching { service.fetchUser() }.getOrElse { throw mapError(it) }
                 val updatedAccount =
                     existingAccount.copy(
                         displayName = user.body.data.displayName ?: trimmedUsername,
                         authType = AuthType.PASSWORD.name,
-                        appPassword = trimmedPassword,
+                        appPassword = password,
                         accessToken = null,
                         refreshToken = null,
                     )
@@ -66,7 +64,7 @@ class DefaultAuthRepository
                 return updatedAccount.toDomain()
             }
 
-            val service = clientFactory.createWithBasicAuth(normalizedServer, trimmedUsername, trimmedPassword)
+            val service = clientFactory.createWithBasicAuth(normalizedServer, trimmedUsername, password)
             val user = runCatching { service.fetchUser() }.getOrElse { throw mapError(it) }
             val account =
                 StoredAccount(
@@ -75,7 +73,7 @@ class DefaultAuthRepository
                     username = trimmedUsername,
                     displayName = user.body.data.displayName ?: trimmedUsername,
                     authType = AuthType.PASSWORD.name,
-                    appPassword = trimmedPassword,
+                    appPassword = password,
                 )
             secureAuthStorage.saveAccount(account)
             secureAuthStorage.setActiveAccount(account.id)
@@ -169,7 +167,7 @@ class DefaultAuthRepository
         }
 
         private fun normalizeOrThrow(serverUrl: String): String =
-            when (val validation = validateServerUrlUseCase(serverUrl)) {
+            when (val validation = ServerUrlValidator.validate(serverUrl)) {
                 is ValidationResult.Invalid -> throw AuthFailure.InvalidServerUrl(validation.error)
                 is ValidationResult.Valid -> validation.normalizedUrl
             }

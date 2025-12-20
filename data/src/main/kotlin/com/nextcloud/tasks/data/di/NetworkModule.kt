@@ -59,6 +59,9 @@ object NetworkModule {
     ): OkHttpClient =
         OkHttpClient
             .Builder()
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .followRedirects(true)
             .retryOnConnectionFailure(true)
             .connectionSpecs(listOf(ConnectionSpec.MODERN_TLS))
