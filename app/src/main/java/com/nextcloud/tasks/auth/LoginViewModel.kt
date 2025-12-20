@@ -93,17 +93,6 @@ class LoginViewModel
         fun submit() {
             val state = _uiState.value
             viewModelScope.launch(exceptionHandler) {
-                if (!networkPermissionChecker.hasInternetPermission()) {
-                    Timber.e("Login blocked: INTERNET permission missing")
-                    _uiState.update {
-                        it.copy(
-                            error = context.getString(R.string.error_no_internet_permission),
-                            isLoading = false,
-                        )
-                    }
-                    return@launch
-                }
-
                 _uiState.update { it.copy(isLoading = true, error = null, validationMessage = null) }
                 val normalizedServer =
                     when (val validation = validateServerUrlUseCase(state.serverUrl)) {
