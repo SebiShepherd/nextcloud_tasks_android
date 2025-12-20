@@ -390,7 +390,7 @@ private fun AccountDropdown(
         TextButton(onClick = { expanded = true }) {
             Icon(
                 painter = painterResource(android.R.drawable.ic_menu_manage),
-                contentDescription = null,
+                contentDescription = "Account settings",
                 tint = MaterialTheme.colorScheme.onSurface,
             )
             Text(

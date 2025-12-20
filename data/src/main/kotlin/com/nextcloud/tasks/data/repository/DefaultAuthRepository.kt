@@ -37,20 +37,44 @@ class DefaultAuthRepository
             password: String,
         ): NextcloudAccount {
             val normalizedServer = normalizeOrThrow(serverUrl)
-            if (username.isBlank() || password.isBlank()) {
+            val trimmedUsername = username.trim()
+            val trimmedPassword = password.trim()
+            if (trimmedUsername.isBlank() || trimmedPassword.isBlank()) {
                 throw AuthFailure.InvalidCredentials
             }
 
-            val service = clientFactory.createWithBasicAuth(normalizedServer, username.trim(), password)
+            // Check for existing account with same server and username
+            val existingAccount =
+                secureAuthStorage.observeAccounts().value
+                    .firstOrNull { it.serverUrl == normalizedServer && it.username == trimmedUsername }
+            
+            if (existingAccount != null) {
+                // Update existing account instead of creating duplicate
+                val service = clientFactory.createWithBasicAuth(normalizedServer, trimmedUsername, trimmedPassword)
+                val user = runCatching { service.fetchUser() }.getOrElse { throw mapError(it) }
+                val updatedAccount =
+                    existingAccount.copy(
+                        displayName = user.body.data.displayName ?: trimmedUsername,
+                        authType = AuthType.PASSWORD.name,
+                        appPassword = trimmedPassword,
+                        accessToken = null,
+                        refreshToken = null,
+                    )
+                secureAuthStorage.saveAccount(updatedAccount)
+                secureAuthStorage.setActiveAccount(updatedAccount.id)
+                return updatedAccount.toDomain()
+            }
+
+            val service = clientFactory.createWithBasicAuth(normalizedServer, trimmedUsername, trimmedPassword)
             val user = runCatching { service.fetchUser() }.getOrElse { throw mapError(it) }
             val account =
                 StoredAccount(
                     id = UUID.randomUUID().toString(),
                     serverUrl = normalizedServer,
-                    username = username.trim(),
-                    displayName = user.body.data.displayName ?: username,
+                    username = trimmedUsername,
+                    displayName = user.body.data.displayName ?: trimmedUsername,
                     authType = AuthType.PASSWORD.name,
-                    appPassword = password,
+                    appPassword = trimmedPassword,
                 )
             secureAuthStorage.saveAccount(account)
             secureAuthStorage.setActiveAccount(account.id)
@@ -88,6 +112,27 @@ class DefaultAuthRepository
             val username =
                 user.body.data.id
                     .orEmpty()
+            
+            // Check for existing account with same server and username
+            val existingAccount =
+                secureAuthStorage.observeAccounts().value
+                    .firstOrNull { it.serverUrl == normalizedServer && it.username == username }
+            
+            if (existingAccount != null) {
+                // Update existing account instead of creating duplicate
+                val updatedAccount =
+                    existingAccount.copy(
+                        displayName = user.body.data.displayName ?: user.body.data.email ?: username,
+                        authType = AuthType.OAUTH.name,
+                        accessToken = tokenResponse.accessToken,
+                        refreshToken = tokenResponse.refreshToken,
+                        appPassword = null,
+                    )
+                secureAuthStorage.saveAccount(updatedAccount)
+                secureAuthStorage.setActiveAccount(updatedAccount.id)
+                return updatedAccount.toDomain()
+            }
+            
             val account =
                 StoredAccount(
                     id = UUID.randomUUID().toString(),

@@ -1,6 +1,6 @@
 
 [versions]
-androidGradlePlugin = "8.13.2"
+androidGradlePlugin = "8.2.0"
 kotlin = "2.2.21"
 composeCompiler = "2.2.21"
 composeBom = "2025.12.00"
@@ -17,7 +17,7 @@ playPublisher = "3.13.0"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
 moshi = "1.15.1"
-securityCrypto = "1.1.0-alpha06"
+securityCrypto = "1.0.0"
 timber = "5.0.1"
 
 [libraries]
@@ -44,6 +44,7 @@ retrofit-converter-moshi = { module = "com.squareup.retrofit2:converter-moshi", 
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-logging = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttp" }
 moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "moshi" }
+moshi-codegen = { module = "com.squareup.moshi:moshi-kotlin-codegen", version.ref = "moshi" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 

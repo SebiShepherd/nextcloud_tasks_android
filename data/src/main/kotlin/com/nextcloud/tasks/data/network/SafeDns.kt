@@ -1,7 +1,7 @@
 package com.nextcloud.tasks.data.network
 
+import android.util.Log
 import okhttp3.Dns
-import timber.log.Timber
 import java.net.InetAddress
 import java.net.UnknownHostException
 
@@ -15,11 +15,15 @@ class SafeDns : Dns {
         runCatching { Dns.SYSTEM.lookup(hostname) }
             .onFailure { throwable ->
                 if (throwable is SecurityException) {
-                    Timber.e(throwable, "DNS lookup blocked for %s", hostname)
+                    Log.e(TAG, "DNS lookup blocked for $hostname", throwable)
                 }
             }.getOrElse { throwable ->
                 throw UnknownHostException(
                     throwable.message ?: "DNS lookup failed",
                 ).apply { initCause(throwable) }
             }
+    
+    companion object {
+        private const val TAG = "SafeDns"
+    }
 }
