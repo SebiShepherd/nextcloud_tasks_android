@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.nextcloud.tasks.data.BuildConfig
 import com.nextcloud.tasks.data.api.NextcloudTasksApi
+import com.nextcloud.tasks.data.auth.AuthTokenProvider
+import com.nextcloud.tasks.data.auth.PersistentAuthTokenProvider
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
 import com.nextcloud.tasks.data.database.migrations.DatabaseMigrations
 import com.nextcloud.tasks.data.repository.DefaultAuthRepository
@@ -34,6 +36,10 @@ interface RepositoryBindings {
     @Binds
     @Singleton
     fun bindAuthRepository(implementation: DefaultAuthRepository): AuthRepository
+
+    @Binds
+    @Singleton
+    fun bindAuthTokenProvider(implementation: PersistentAuthTokenProvider): AuthTokenProvider
 }
 
 @Module
