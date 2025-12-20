@@ -1,10 +1,21 @@
 package com.nextcloud.tasks.di
 
+import android.content.Context
+import com.nextcloud.tasks.domain.repository.AuthRepository
 import com.nextcloud.tasks.domain.repository.TasksRepository
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
+import com.nextcloud.tasks.domain.usecase.LoginWithOAuthUseCase
+import com.nextcloud.tasks.domain.usecase.LoginWithPasswordUseCase
+import com.nextcloud.tasks.domain.usecase.LogoutUseCase
+import com.nextcloud.tasks.domain.usecase.ObserveAccountsUseCase
+import com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase
+import com.nextcloud.tasks.domain.usecase.SwitchAccountUseCase
+import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
+import com.nextcloud.tasks.network.NetworkPermissionChecker
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -14,4 +25,39 @@ object AppModule {
     @Provides
     @Singleton
     fun provideLoadTasksUseCase(repository: TasksRepository): LoadTasksUseCase = LoadTasksUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideValidateServerUrlUseCase(): ValidateServerUrlUseCase = ValidateServerUrlUseCase()
+
+    @Provides
+    @Singleton
+    fun provideLoginWithPasswordUseCase(repository: AuthRepository): LoginWithPasswordUseCase = LoginWithPasswordUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideLoginWithOAuthUseCase(repository: AuthRepository): LoginWithOAuthUseCase = LoginWithOAuthUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideObserveAccountsUseCase(repository: AuthRepository): ObserveAccountsUseCase = ObserveAccountsUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideObserveActiveAccountUseCase(repository: AuthRepository): ObserveActiveAccountUseCase =
+        ObserveActiveAccountUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideSwitchAccountUseCase(repository: AuthRepository): SwitchAccountUseCase = SwitchAccountUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideLogoutUseCase(repository: AuthRepository): LogoutUseCase = LogoutUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideNetworkPermissionChecker(
+        @ApplicationContext context: Context,
+    ): NetworkPermissionChecker = NetworkPermissionChecker(context)
 }

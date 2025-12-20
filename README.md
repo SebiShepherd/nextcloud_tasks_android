@@ -20,6 +20,13 @@ Ein modularer Android-Client für Nextcloud Tasks mit Jetpack Compose, Hilt und 
 - Release-Bundle: `./gradlew bundleRelease`
 - Play-Upload (intern, setzt `PLAY_SERVICE_ACCOUNT_JSON` voraus): `./gradlew publishReleaseBundle`
 
+## Debugging von Login-/Auth-Problemen
+
+- Verwende die **debug**-Variante der App. Timber-Logs und der OkHttp-Logging-Interceptor werden nur in Debug-Builds aktiviert.
+- Öffne in Android Studio die **Logcat**-Ansicht, während die Debug-App läuft. Filtere nach Package `com.nextcloud.tasks` oder Tag `LoginViewModel`, um Validierungs-, Submit- und Fehler-Logs zu sehen. HTTP-Anfrage-/Antwort-Header werden dort ebenfalls ausgegeben (sensibles bleibt ausgelassen).
+- Die App deklariert die **INTERNET**-Berechtigung im `app`- und `data`-Modul. Falls Logcat dennoch `SecurityException: Permission denied (missing INTERNET permission?)` zeigt, deinstalliere die vorhandene App vollständig und installiere die Debug-Variante neu, damit die Berechtigung übernommen wird. Firewalls/VPNs können ebenfalls DNS-Lookups blockieren und denselben Fehler auslösen.
+- Fehlertexte aus dem UI stammen aus `LoginUiState.error`. Wenn ein Fehler angezeigt wird, bitte einen Screenshot plus passenden Logcat-Ausschnitt anhängen.
+
 ## CI
 GitHub Actions Workflow (`.github/workflows/ci.yml`):
 1. `quality`: ktlint, detekt, Lint, Unit-Tests.
