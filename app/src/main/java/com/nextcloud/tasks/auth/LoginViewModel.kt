@@ -194,7 +194,7 @@ class LoginViewModel
                 is AuthFailure.Network.Unreachable -> context.getString(R.string.error_network_unreachable)
                 is AuthFailure.CertificateError -> context.getString(R.string.error_certificate)
                 is AuthFailure.AccountNotFound -> context.getString(R.string.error_account_not_found)
-                is AuthFailure.Unexpected -> this.message ?: context.getString(R.string.error_unexpected)
+                is AuthFailure.Unexpected -> this.originalError.message ?: context.getString(R.string.error_unexpected)
                 else -> message ?: context.getString(R.string.error_unknown)
             }
 
