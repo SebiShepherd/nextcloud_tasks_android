@@ -254,6 +254,7 @@ private fun CredentialsFields(
         label = { Text(stringResource(id = R.string.password_label)) },
         singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
+        visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Password,
             autoCorrect = false,
