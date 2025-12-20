@@ -85,14 +85,15 @@ class DefaultAuthRepository
                     token = tokenResponse.accessToken,
                 )
             val user = runCatching { authenticatedService.fetchUser() }.getOrElse { throw mapError(it) }
+            val username =
+                user.body.data.id
+                    .orEmpty()
             val account =
                 StoredAccount(
                     id = UUID.randomUUID().toString(),
                     serverUrl = normalizedServer,
-                    username =
-                        user.body.data.id
-                            .orEmpty(),
-                    displayName = user.body.data.displayName ?: user.body.data.email ?: "Nextcloud Benutzer",
+                    username = username,
+                    displayName = user.body.data.displayName ?: user.body.data.email ?: username,
                     authType = AuthType.OAUTH.name,
                     accessToken = tokenResponse.accessToken,
                     refreshToken = tokenResponse.refreshToken,
