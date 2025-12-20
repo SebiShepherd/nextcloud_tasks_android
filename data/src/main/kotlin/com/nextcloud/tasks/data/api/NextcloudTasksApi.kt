@@ -16,10 +16,14 @@ interface NextcloudTasksApi {
     suspend fun getTasks(): List<TaskDto>
 
     @GET("ocs/v2.php/apps/tasks/api/v1/tasks/{id}")
-    suspend fun getTask(@Path("id") id: String): TaskDto
+    suspend fun getTask(
+        @Path("id") id: String,
+    ): TaskDto
 
     @POST("ocs/v2.php/apps/tasks/api/v1/tasks")
-    suspend fun createTask(@Body request: TaskRequestDto): TaskDto
+    suspend fun createTask(
+        @Body request: TaskRequestDto,
+    ): TaskDto
 
     @PUT("ocs/v2.php/apps/tasks/api/v1/tasks/{id}")
     suspend fun updateTask(
@@ -28,7 +32,9 @@ interface NextcloudTasksApi {
     ): TaskDto
 
     @DELETE("ocs/v2.php/apps/tasks/api/v1/tasks/{id}")
-    suspend fun deleteTask(@Path("id") id: String)
+    suspend fun deleteTask(
+        @Path("id") id: String,
+    )
 
     @GET("ocs/v2.php/apps/tasks/api/v1/lists")
     suspend fun getTaskLists(): List<TaskListDto>

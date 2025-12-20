@@ -19,11 +19,12 @@ data class TaskWithRelations(
     @Relation(
         parentColumn = "id",
         entityColumn = "id",
-        associateBy = Junction(
-            value = TaskTagCrossRef::class,
-            parentColumn = "task_id",
-            entityColumn = "tag_id",
-        ),
+        associateBy =
+            Junction(
+                value = TaskTagCrossRef::class,
+                parentColumn = "task_id",
+                entityColumn = "tag_id",
+            ),
     )
     val tags: List<TagEntity>,
 )

@@ -18,13 +18,13 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Named
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import javax.inject.Named
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -50,34 +50,31 @@ object DataModule {
     fun provideRetrofit(
         @Named("authenticated") okHttpClient: OkHttpClient,
         moshiConverterFactory: MoshiConverterFactory,
-    ): Retrofit {
-        return Retrofit.Builder()
+    ): Retrofit =
+        Retrofit
+            .Builder()
             .client(okHttpClient)
             .baseUrl(BuildConfig.DEFAULT_NEXTCLOUD_BASE_URL)
             .addConverterFactory(moshiConverterFactory)
             .build()
-    }
 
     @Provides
     @Singleton
-    fun provideNextcloudTasksApi(retrofit: Retrofit): NextcloudTasksApi {
-        return retrofit.create(NextcloudTasksApi::class.java)
-    }
+    fun provideNextcloudTasksApi(retrofit: Retrofit): NextcloudTasksApi = retrofit.create(NextcloudTasksApi::class.java)
 
     @Provides
     @Singleton
     @Suppress("SpreadOperator")
     fun provideDatabase(
         @ApplicationContext context: Context,
-    ): NextcloudTasksDatabase {
-        return Room.databaseBuilder(
-            context,
-            NextcloudTasksDatabase::class.java,
-            "nextcloud_tasks.db",
-        )
-            .addMigrations(*DatabaseMigrations.all)
+    ): NextcloudTasksDatabase =
+        Room
+            .databaseBuilder(
+                context,
+                NextcloudTasksDatabase::class.java,
+                "nextcloud_tasks.db",
+            ).addMigrations(*DatabaseMigrations.all)
             .build()
-    }
 
     @Provides
     @Singleton
