@@ -1,6 +1,7 @@
 package com.nextcloud.tasks.data.sync
 
 import com.nextcloud.tasks.domain.repository.TasksRepository
+import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +33,7 @@ class SyncManager @Inject constructor(
         while (attempt < maxAttempts) {
             try {
                 return withContext(ioDispatcher) { block() }
-            } catch (error: Exception) {
+            } catch (error: IOException) {
                 lastError = error
                 attempt++
                 if (attempt >= maxAttempts) {
