@@ -40,6 +40,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.moshi.kotlin)
+    kapt(libs.moshi.kotlin.codegen)
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     kapt(libs.hilt.compiler)
