@@ -1,6 +1,6 @@
 package com.nextcloud.tasks.domain.model
 
-import com.nextcloud.tasks.domain.usecase.ValidationError
+import com.nextcloud.tasks.domain.validation.ValidationError
 
 sealed class AuthFailure(
     cause: Throwable? = null,
