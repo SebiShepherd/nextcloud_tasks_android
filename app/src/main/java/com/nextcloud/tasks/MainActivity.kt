@@ -420,7 +420,12 @@ private fun AccountDropdown(
                     },
                     trailingIcon =
                         if (account.id == activeAccount.id) {
-                            { Icon(painterResource(android.R.drawable.checkbox_on_background), contentDescription = null) }
+                            {
+                                Icon(
+                                    painter = painterResource(android.R.drawable.checkbox_on_background),
+                                    contentDescription = "Active account",
+                                )
+                            }
                         } else {
                             null
                         },
