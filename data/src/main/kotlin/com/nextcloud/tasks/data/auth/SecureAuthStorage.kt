@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,7 +33,7 @@ class SecureAuthStorage
             } catch (e: Exception) {
                 // If encrypted preferences fail to initialize (e.g., corrupted keystore),
                 // delete the file and try again with a fresh instance
-                timber.log.Timber.w(e, "Failed to initialize encrypted preferences, resetting")
+                Timber.w(e, "Failed to initialize encrypted preferences, resetting")
                 context.deleteSharedPreferences("auth_store")
                 try {
                     EncryptedSharedPreferences.create(
@@ -43,7 +44,7 @@ class SecureAuthStorage
                         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
                     )
                 } catch (retryException: Exception) {
-                    timber.log.Timber.e(retryException, "Failed to initialize encrypted preferences after reset")
+                    Timber.e(retryException, "Failed to initialize encrypted preferences after reset")
                     throw retryException
                 }
             }
