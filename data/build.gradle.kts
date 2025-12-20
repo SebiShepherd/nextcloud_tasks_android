@@ -11,6 +11,12 @@ android {
 
     defaultConfig {
         minSdk = 24
+
+        buildConfigField(
+            "String",
+            "DEFAULT_NEXTCLOUD_BASE_URL",
+            "\"https://nextcloud.example.com/\"",
+        )
     }
 
     buildFeatures {
@@ -40,8 +46,11 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.moshi.kotlin)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     kapt(libs.hilt.compiler)
+    kapt(libs.androidx.room.compiler)
     detektPlugins(libs.detekt.formatting)
 }

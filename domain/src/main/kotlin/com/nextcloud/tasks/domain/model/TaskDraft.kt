@@ -2,13 +2,11 @@ package com.nextcloud.tasks.domain.model
 
 import java.time.Instant
 
-data class Task(
-    val id: String,
+data class TaskDraft(
     val listId: String,
     val title: String,
     val description: String? = null,
     val completed: Boolean = false,
     val due: Instant? = null,
-    val updatedAt: Instant,
-    val tags: List<Tag> = emptyList(),
+    val tagIds: List<String> = emptyList(),
 )
