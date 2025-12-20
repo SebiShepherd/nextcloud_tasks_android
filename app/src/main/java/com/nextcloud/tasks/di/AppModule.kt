@@ -1,3 +1,5 @@
+@file:Suppress("ArgumentListWrapping", "MaxLineLength", "ParameterListWrapping")
+
 package com.nextcloud.tasks.di
 
 import com.nextcloud.tasks.domain.repository.AuthRepository
