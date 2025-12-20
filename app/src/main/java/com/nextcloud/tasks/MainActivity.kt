@@ -202,11 +202,13 @@ fun LoginScreen(
                 Text(text = stringResource(id = R.string.login_action))
             }
 
-            Text(
-                text = stringResource(id = R.string.invalid_certificate),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (state.error?.contains("certificate", ignoreCase = true) == true) {
+                Text(
+                    text = stringResource(id = R.string.invalid_certificate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
