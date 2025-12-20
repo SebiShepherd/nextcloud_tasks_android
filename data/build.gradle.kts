@@ -11,6 +11,18 @@ android {
 
     defaultConfig {
         minSdk = 24
+
+        // OAuth client credentials - override these in gradle.properties or via environment variables
+        buildConfigField(
+            "String",
+            "OAUTH_CLIENT_ID",
+            "\"${project.findProperty("OAUTH_CLIENT_ID") ?: System.getenv("OAUTH_CLIENT_ID") ?: "nextcloud-tasks-android"}\""
+        )
+        buildConfigField(
+            "String",
+            "OAUTH_CLIENT_SECRET",
+            "\"${project.findProperty("OAUTH_CLIENT_SECRET") ?: System.getenv("OAUTH_CLIENT_SECRET") ?: "local-client-secret"}\""
+        )
     }
 
     buildFeatures {
