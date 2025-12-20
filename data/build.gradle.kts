@@ -68,6 +68,7 @@ dependencies {
     implementation(libs.moshi.kotlin)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     kapt(libs.hilt.compiler)

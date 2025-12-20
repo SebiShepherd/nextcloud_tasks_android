@@ -20,6 +20,7 @@ moshi = "1.15.1"
 securityCrypto = "1.1.0-alpha06"
 timber = "5.0.1"
 room = "2.7.0-alpha04"
+serialization = "1.6.3"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -50,6 +51,7 @@ timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 
 [bundles]
 compose = [
