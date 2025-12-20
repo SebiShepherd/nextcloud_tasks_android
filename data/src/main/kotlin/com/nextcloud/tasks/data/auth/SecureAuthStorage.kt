@@ -21,13 +21,26 @@ class SecureAuthStorage
         moshi: Moshi,
     ) {
         private val prefs =
-            EncryptedSharedPreferences.create(
-                context,
-                "auth_store",
-                MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-            )
+            try {
+                EncryptedSharedPreferences.create(
+                    context,
+                    "auth_store",
+                    MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+                )
+            } catch (e: Exception) {
+                // If encrypted preferences fail to initialize (e.g., corrupted keystore),
+                // delete the file and try again with a fresh instance
+                context.deleteSharedPreferences("auth_store")
+                EncryptedSharedPreferences.create(
+                    context,
+                    "auth_store",
+                    MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+                )
+            }
 
         private val adapter =
             moshi.adapter<List<StoredAccount>>(
@@ -47,7 +60,7 @@ class SecureAuthStorage
             }
 
         fun setActiveAccount(id: String?) {
-            prefs.edit().putString(KEY_ACTIVE_ACCOUNT, id).apply()
+            prefs.edit().putString(KEY_ACTIVE_ACCOUNT, id).commit()
             activeAccountIdState.value = id
         }
 
@@ -70,7 +83,7 @@ class SecureAuthStorage
 
         private fun persistAccounts(accounts: List<StoredAccount>) {
             val serialized = adapter.toJson(accounts)
-            prefs.edit().putString(KEY_ACCOUNTS, serialized).apply()
+            prefs.edit().putString(KEY_ACCOUNTS, serialized).commit()
             accountsState.value = accounts
         }
 

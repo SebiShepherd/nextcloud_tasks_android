@@ -43,5 +43,6 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     kapt(libs.hilt.compiler)
+    kapt(libs.moshi.codegen)
     detektPlugins(libs.detekt.formatting)
 }
