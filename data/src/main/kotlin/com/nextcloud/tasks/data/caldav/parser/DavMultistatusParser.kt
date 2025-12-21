@@ -63,7 +63,7 @@ class DavMultistatusParser
 
         private fun parsePropstat(parser: XmlPullParser): Map<String, String?> {
             val properties = mutableMapOf<String, String?>()
-            var isSuccess = false
+            var statusCode: String? = null
 
             while (true) {
                 val eventType = parser.next()
@@ -74,18 +74,16 @@ class DavMultistatusParser
 
                 when (parser.name) {
                     "status" -> {
-                        val status = parser.nextText()
-                        isSuccess = status.contains("200")
+                        statusCode = parser.nextText()
                     }
                     "prop" -> {
-                        if (isSuccess || properties.isEmpty()) {
-                            parseProp(parser, properties)
-                        }
+                        parseProp(parser, properties)
                     }
                 }
             }
 
-            return if (isSuccess) properties else emptyMap()
+            // Only return properties if status is 200 OK
+            return if (statusCode?.contains("200") == true) properties else emptyMap()
         }
 
         private fun parseProp(
@@ -185,11 +183,16 @@ class DavMultistatusParser
          * Extract principal URL from multistatus response
          */
         fun parsePrincipalUrl(multistatus: DavMultistatus): PrincipalInfo? {
+            timber.log.Timber.d("Parsing principal from ${multistatus.responses.size} responses")
+            multistatus.responses.forEach { response ->
+                timber.log.Timber.d("Response href: ${response.href}, properties: ${response.properties}")
+            }
             val principalHref =
                 multistatus.responses
                     .firstOrNull()
                     ?.properties
                     ?.get(DavProperty.CURRENT_USER_PRINCIPAL)
+            timber.log.Timber.d("Principal href found: $principalHref")
             return principalHref?.let { PrincipalInfo(it) }
         }
 

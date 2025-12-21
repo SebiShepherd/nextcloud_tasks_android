@@ -61,7 +61,9 @@ class CalDavService
                 }
 
                 val responseBody = response.body?.string() ?: throw IOException("Empty response")
+                timber.log.Timber.d("Principal discovery response: %s", responseBody)
                 val multistatus = parser.parseMultistatus(responseBody)
+                timber.log.Timber.d("Parsed multistatus: %s", multistatus)
                 parser.parsePrincipalUrl(multistatus) ?: throw IOException("Principal URL not found")
             }
 
