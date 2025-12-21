@@ -335,6 +335,7 @@ class CalDavClient
             tags: List<String>,
         ): String {
             val status = if (completed) "COMPLETED" else "NEEDS-ACTION"
+            val utcZone = ZoneId.of("UTC")
             val builder =
                 StringBuilder()
                     .appendLine("BEGIN:VCALENDAR")
@@ -342,16 +343,16 @@ class CalDavClient
                     .appendLine("PRODID:-//Nextcloud Tasks Android//EN")
                     .appendLine("BEGIN:VTODO")
                     .appendLine("UID:$uid")
-                    .appendLine("SUMMARY:${title}")
+                    .appendLine("SUMMARY:$title")
                     .appendLine("STATUS:$status")
             if (description != null) {
                 builder.appendLine("DESCRIPTION:$description")
             }
             builder.appendLine("PRIORITY:$priority")
-            due?.let { builder.appendLine("DUE:${dateTimeFormatter.format(it.atZone(ZoneId.of(\"UTC\")))}") }
-            builder.appendLine("DTSTAMP:${dateTimeFormatter.format(Instant.now().atZone(ZoneId.of(\"UTC\")))}")
+            due?.let { builder.appendLine("DUE:${dateTimeFormatter.format(it.atZone(utcZone))}") }
+            builder.appendLine("DTSTAMP:${dateTimeFormatter.format(Instant.now().atZone(utcZone))}")
             if (tags.isNotEmpty()) {
-                builder.appendLine("CATEGORIES:${tags.joinToString(\",\")}")
+                builder.appendLine("CATEGORIES:${tags.joinToString(",")}")
             }
             builder.appendLine("END:VTODO")
             builder.appendLine("END:VCALENDAR")
