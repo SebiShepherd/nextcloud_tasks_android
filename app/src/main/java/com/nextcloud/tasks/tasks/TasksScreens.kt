@@ -120,6 +120,7 @@ fun TasksNavHost(
                 onPriorityFilterChange = viewModel::setPriorityFilter,
                 onTagToggle = viewModel::toggleTagFilter,
                 onSortChange = viewModel::setSortOption,
+                onListSelect = viewModel::setSelectedList,
                 onRefresh = viewModel::refresh,
             )
         }
@@ -205,9 +206,11 @@ fun TaskListScreen(
     onPriorityFilterChange: (PriorityFilter) -> Unit,
     onTagToggle: (String) -> Unit,
     onSortChange: (TaskSortOption) -> Unit,
+    onListSelect: (String?) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val listNames = remember(state.lists) { state.lists.associate { it.id to it.name } }
     val pullRefreshState =
         rememberPullRefreshState(
             refreshing = state.isRefreshing,
@@ -228,6 +231,13 @@ fun TaskListScreen(
                 TaskSearchBar(
                     query = state.filters.query,
                     onQueryChange = onQueryChange,
+                )
+            }
+            item {
+                ListSelector(
+                    lists = state.lists,
+                    selectedListId = state.selectedListId,
+                    onListSelect = onListSelect,
                 )
             }
             item {
@@ -274,6 +284,7 @@ fun TaskListScreen(
                 items(state.filteredTasks) { task ->
                     TaskRow(
                         task = task,
+                        listName = listNames[task.listId],
                         onClick = { onTaskClick(task.id) },
                     )
                 }
@@ -303,6 +314,35 @@ fun TaskListScreen(
                 contentDescription = stringResource(id = R.string.add_task),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
             )
+        }
+    }
+}
+
+@Composable
+private fun ListSelector(
+    lists: List<TaskList>,
+    selectedListId: String?,
+    onListSelect: (String?) -> Unit,
+) {
+    if (lists.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(id = R.string.filter_lists_label),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = selectedListId == null,
+                onClick = { onListSelect(null) },
+                label = { Text(text = stringResource(id = R.string.filter_list_all)) },
+            )
+            lists.forEach { list ->
+                FilterChip(
+                    selected = selectedListId == list.id,
+                    onClick = { onListSelect(list.id) },
+                    label = { Text(text = list.name) },
+                )
+            }
         }
     }
 }
@@ -469,6 +509,7 @@ private fun SortButton(
 @Composable
 private fun TaskRow(
     task: Task,
+    listName: String?,
     onClick: () -> Unit,
 ) {
     Card(
@@ -509,6 +550,13 @@ private fun TaskRow(
                 task.due?.let { due ->
                     Text(
                         text = stringResource(id = R.string.due_date_label, dateFormatter.format(due)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                listName?.takeIf { it.isNotBlank() }?.let { name ->
+                    Text(
+                        text = name,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

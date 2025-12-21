@@ -12,6 +12,8 @@
     <string name="filter_priority_high">High</string>
     <string name="filter_priority_medium">Medium</string>
     <string name="filter_priority_low">Low</string>
+    <string name="filter_lists_label">Lists</string>
+    <string name="filter_list_all">All lists</string>
     <string name="filter_tags_label">Tags</string>
     <string name="sort_label">Sort by</string>
     <string name="sort_due_date">Due date</string>

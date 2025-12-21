@@ -45,7 +45,8 @@ class CalDavClient
     ) {
         private val xmlMediaType = "application/xml; charset=utf-8".toMediaType()
         private val icalMediaType = "text/calendar; charset=utf-8".toMediaType()
-        private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssX")
+        private val utcDateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssX")
+        private val localDateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
         private val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
 
         suspend fun fetchCalendars(): List<CalDavCalendar> {
@@ -276,6 +277,7 @@ class CalDavClient
                             line.startsWith("STATUS:", ignoreCase = true) -> status = line.substringAfter("STATUS:", "")
                             line.startsWith("PRIORITY:", ignoreCase = true) -> priority = line.substringAfter("PRIORITY:", "0").toIntOrNull() ?: 0
                             line.startsWith("DUE", ignoreCase = true) -> due = parseDue(line)
+                            line.startsWith("COMPLETED:", ignoreCase = true) -> status = "COMPLETED"
                             line.startsWith("LAST-MODIFIED:", ignoreCase = true) -> lastModified = parseDateTime(line.substringAfter("LAST-MODIFIED:", ""))
                             line.startsWith("DTSTAMP:", ignoreCase = true) -> if (lastModified == null) lastModified = parseDateTime(line.substringAfter("DTSTAMP:", ""))
                             line.startsWith("CATEGORIES:", ignoreCase = true) -> categories = line.substringAfter("CATEGORIES:", "").split(',').map { it.trim() }.filter { it.isNotBlank() }
@@ -314,15 +316,34 @@ class CalDavClient
         }
 
         private fun parseDue(line: String): Instant? {
-            val value = line.substringAfter(':', "")
-            val cleaned = value.substringAfter('=' , value)
-            return parseDateTime(cleaned)
+            val parts = line.split(":", limit = 2)
+            if (parts.size < 2) return null
+            val params = parts.first()
+            val value = parts.last()
+            val timeZoneId =
+                params
+                    .substringAfter("TZID=", missingDelimiterValue = "")
+                    .substringBefore(";")
+                    .takeIf { it.isNotBlank() }
+            return parseDateTime(value, timeZoneId)
         }
 
-        private fun parseDateTime(value: String): Instant? {
-            return runCatching { ZonedDateTime.parse(value, dateTimeFormatter).toInstant() }.getOrNull()
-                ?: runCatching { LocalDateTime.parse(value, dateTimeFormatter).atZone(ZoneId.systemDefault()).toInstant() }.getOrNull()
-                ?: runCatching { LocalDate.parse(value, dateFormatter).atStartOfDay(ZoneId.systemDefault()).toInstant() }.getOrNull()
+        private fun parseDateTime(
+            value: String,
+            timeZoneId: String? = null,
+        ): Instant? {
+            val zone = timeZoneId?.let { runCatching { ZoneId.of(it) }.getOrNull() }
+            return runCatching {
+                ZonedDateTime.parse(value, utcDateTimeFormatter).toInstant()
+            }.getOrNull()
+                ?: runCatching {
+                    if (zone != null) {
+                        LocalDateTime.parse(value, localDateTimeFormatter).atZone(zone).toInstant()
+                    } else {
+                        LocalDateTime.parse(value, localDateTimeFormatter).atZone(ZoneId.systemDefault()).toInstant()
+                    }
+                }.getOrNull()
+                ?: runCatching { LocalDate.parse(value, dateFormatter).atStartOfDay(zone ?: ZoneId.systemDefault()).toInstant() }.getOrNull()
         }
 
         private fun buildICal(
@@ -336,6 +357,7 @@ class CalDavClient
         ): String {
             val status = if (completed) "COMPLETED" else "NEEDS-ACTION"
             val utcZone = ZoneId.of("UTC")
+            val now = Instant.now().atZone(utcZone)
             val builder =
                 StringBuilder()
                     .appendLine("BEGIN:VCALENDAR")
@@ -349,8 +371,12 @@ class CalDavClient
                 builder.appendLine("DESCRIPTION:$description")
             }
             builder.appendLine("PRIORITY:$priority")
-            due?.let { builder.appendLine("DUE:${dateTimeFormatter.format(it.atZone(utcZone))}") }
-            builder.appendLine("DTSTAMP:${dateTimeFormatter.format(Instant.now().atZone(utcZone))}")
+            due?.let { builder.appendLine("DUE:${utcDateTimeFormatter.format(it.atZone(utcZone))}") }
+            if (completed) {
+                builder.appendLine("COMPLETED:${utcDateTimeFormatter.format(now)}")
+            }
+            builder.appendLine("LAST-MODIFIED:${utcDateTimeFormatter.format(now)}")
+            builder.appendLine("DTSTAMP:${utcDateTimeFormatter.format(now)}")
             if (tags.isNotEmpty()) {
                 builder.appendLine("CATEGORIES:${tags.joinToString(",")}")
             }

@@ -52,6 +52,7 @@ data class TaskListUiState(
     val tags: List<Tag> = emptyList(),
     val lists: List<TaskList> = emptyList(),
     val filters: TaskListFilters = TaskListFilters(),
+    val selectedListId: String? = null, // null = All lists
 )
 
 data class TaskDetailUiState(
@@ -82,6 +83,7 @@ class TasksViewModel
         private val useCases: TasksUseCases,
     ) : ViewModel() {
         private val filters = MutableStateFlow(TaskListFilters())
+        private val selectedListId = MutableStateFlow<String?>(null)
         private val _listState = MutableStateFlow(TaskListUiState())
         val listState: StateFlow<TaskListUiState> = _listState.asStateFlow()
 
@@ -127,6 +129,10 @@ class TasksViewModel
             filters.update { it.copy(sortOption = sortOption) }
         }
 
+        fun setSelectedList(listId: String?) {
+            selectedListId.value = listId
+        }
+
         fun toggleTagFilter(tagId: String) {
             filters.update { current ->
                 val tagIds =
@@ -162,7 +168,7 @@ class TasksViewModel
         fun prepareEditorForCreate(defaultListId: String?) {
             _editorState.value =
                 TaskEditorUiState(
-                    listId = defaultListId ?: _listState.value.lists.firstOrNull()?.id,
+                    listId = defaultListId ?: _listState.value.selectedListId ?: _listState.value.lists.firstOrNull()?.id,
                 )
         }
 
@@ -319,14 +325,16 @@ class TasksViewModel
                     useCases.observeTags(),
                     useCases.observeLists(),
                     filters,
-                ) { tasks, tags, lists, filters ->
-                    val filteredTasks = applyFilters(tasks, filters)
-                    Triple(
+                    selectedListId,
+                ) { tasks, tags, lists, filters, selectedListId ->
+                    val activeListId = selectedListId?.takeIf { id -> lists.any { it.id == id } }
+                    val filteredTasks = applyFilters(tasks, filters, activeListId)
+                    Pair(
                         Triple(tasks, filteredTasks, filters),
-                        tags,
-                        lists,
+                        Triple(tags, lists, activeListId),
                     )
-                }.collect { (taskData, tags, lists) ->
+                }.collect { (taskData, metadata) ->
+                    val (tags, lists, activeListId) = metadata
                     val (tasks, filteredTasks, currentFilters) = taskData
                     _listState.update {
                         it.copy(
@@ -337,7 +345,12 @@ class TasksViewModel
                             filters = currentFilters,
                             tags = tags,
                             lists = lists,
+                            selectedListId = activeListId,
                         )
+                    }
+
+                    if (selectedListId.value != activeListId) {
+                        selectedListId.value = activeListId
                     }
 
                     if (_editorState.value.listId == null && lists.isNotEmpty()) {
@@ -358,7 +371,6 @@ class TasksViewModel
                             state.copy(errorMessage = throwable.message ?: "Unable to sync tasks.")
                         }
                     }
-                runCatching { useCases.loadTasks.seedSample() }
                 _listState.update { it.copy(isLoading = false) }
             }
         }
@@ -366,9 +378,15 @@ class TasksViewModel
         private fun applyFilters(
             tasks: List<Task>,
             filters: TaskListFilters,
+            selectedListId: String?,
         ): List<Task> {
-            val filteredByStatus =
+            val filteredByList =
                 tasks.filter { task ->
+                    selectedListId == null || task.listId == selectedListId
+                }
+
+            val filteredByStatus =
+                filteredByList.filter { task ->
                     when (filters.status) {
                         TaskStatusFilter.ALL -> true
                         TaskStatusFilter.OPEN -> !task.completed

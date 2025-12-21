@@ -106,6 +106,7 @@ class DefaultTasksRepository
                         }
 
                 database.withTransaction {
+                    clearLocalData()
                     upsertTaskLists(
                         remoteLists.map { calendar ->
                             TaskListEntity(
@@ -213,5 +214,12 @@ class DefaultTasksRepository
         private suspend fun shouldReplaceTag(tag: TagEntity): Boolean {
             val currentUpdatedAt = tagsDao.getUpdatedAt(tag.id)
             return currentUpdatedAt == null || !currentUpdatedAt.isAfter(tag.updatedAt)
+        }
+
+        private suspend fun clearLocalData() {
+            tasksDao.clearTaskTagCrossRefs()
+            tasksDao.clearTasks()
+            taskListsDao.clearTaskLists()
+            tagsDao.clearTags()
         }
     }

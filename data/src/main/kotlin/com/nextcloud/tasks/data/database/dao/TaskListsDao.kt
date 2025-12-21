@@ -19,6 +19,9 @@ interface TaskListsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTaskList(entity: TaskListEntity)
 
+    @Query("DELETE FROM task_lists")
+    suspend fun clearTaskLists()
+
     @Query("SELECT updated_at FROM task_lists WHERE id = :listId LIMIT 1")
     suspend fun getUpdatedAt(listId: String): Instant?
 }
