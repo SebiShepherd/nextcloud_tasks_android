@@ -10,6 +10,7 @@ data class TaskRequestDto(
     val title: String,
     val description: String?,
     val completed: Boolean,
+    val priority: Int,
     val due: Long?,
     @Json(name = "tag_ids")
     val tagIds: List<String>,

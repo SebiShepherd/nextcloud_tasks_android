@@ -12,6 +12,7 @@ data class TaskDto(
     val title: String,
     val description: String?,
     val completed: Boolean,
+    val priority: Int = 0,
     val due: Long?,
     @Json(name = "updated_at")
     val updatedAt: Long,

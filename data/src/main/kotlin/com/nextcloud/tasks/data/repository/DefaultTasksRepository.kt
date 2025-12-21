@@ -125,6 +125,7 @@ class DefaultTasksRepository
                         title = "Welcome to Nextcloud Tasks",
                         description = "Use the refresh action to fetch tasks from your Nextcloud server.",
                         completed = false,
+                        priority = 0,
                         due = null,
                         updatedAt = now,
                     )

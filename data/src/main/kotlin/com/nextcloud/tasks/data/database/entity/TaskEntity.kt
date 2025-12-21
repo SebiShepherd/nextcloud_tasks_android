@@ -15,6 +15,7 @@ data class TaskEntity(
     val title: String,
     val description: String?,
     val completed: Boolean,
+    val priority: Int,
     val due: Instant?,
     @ColumnInfo(name = "updated_at")
     val updatedAt: Instant,

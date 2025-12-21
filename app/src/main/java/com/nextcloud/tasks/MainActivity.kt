@@ -11,14 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -26,42 +18,37 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.rememberNavController
 import com.nextcloud.tasks.auth.LoginCallbacks
 import com.nextcloud.tasks.auth.LoginScreen
 import com.nextcloud.tasks.auth.LoginUiState
 import com.nextcloud.tasks.auth.LoginViewModel
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
-import com.nextcloud.tasks.domain.model.Task
-import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
+import com.nextcloud.tasks.tasks.TasksNavHost
+import com.nextcloud.tasks.tasks.TasksViewModel
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val taskListViewModel: TaskListViewModel by viewModels()
     private val loginViewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,10 +59,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    NextcloudTasksApp(
-                        loginViewModel = loginViewModel,
-                        taskListViewModel = taskListViewModel,
-                    )
+                    NextcloudTasksApp(loginViewModel = loginViewModel)
                 }
             }
         }
@@ -85,10 +69,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NextcloudTasksApp(
     loginViewModel: LoginViewModel,
-    taskListViewModel: TaskListViewModel,
+    tasksViewModel: TasksViewModel = hiltViewModel(),
 ) {
     val loginState by loginViewModel.uiState.collectAsState()
-    val tasks by taskListViewModel.tasks.collectAsState()
 
     if (loginState.activeAccount == null) {
         LoginScreen(
@@ -107,21 +90,24 @@ fun NextcloudTasksApp(
     } else {
         AuthenticatedHome(
             state = loginState,
-            tasks = tasks,
+            tasksViewModel = tasksViewModel,
             onLogout = loginViewModel::logout,
             onSwitchAccount = loginViewModel::switchAccount,
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthenticatedHome(
     state: LoginUiState,
-    tasks: List<Task>,
+    tasksViewModel: TasksViewModel,
     onLogout: (String) -> Unit,
     onSwitchAccount: (String) -> Unit,
 ) {
+    val navController = rememberNavController()
+    val listState by tasksViewModel.listState.collectAsState()
+    val detailState by tasksViewModel.detailState.collectAsState()
+    val editorState by tasksViewModel.editorState.collectAsState()
     Scaffold(
         topBar = {
             AuthenticatedTopBar(
@@ -131,15 +117,35 @@ fun AuthenticatedHome(
             )
         },
     ) { padding ->
-        TasksContent(
-            padding = padding,
-            state = state,
-            tasks = tasks,
-        )
+        Column(
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            state.activeAccount?.let { account ->
+                AccountSummaryCard(
+                    account = account,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+            TasksNavHost(
+                navController = navController,
+                padding = PaddingValues(),
+                listState = listState,
+                detailState = detailState,
+                editorState = editorState,
+                viewModel = tasksViewModel,
+                onTaskSaved = tasksViewModel::refresh,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AuthenticatedTopBar(
     state: LoginUiState,
@@ -177,51 +183,12 @@ private fun AuthenticatedTopBar(
 }
 
 @Composable
-private fun TasksContent(
-    padding: PaddingValues,
-    state: LoginUiState,
-    tasks: List<Task>,
+private fun AccountSummaryCard(
+    account: NextcloudAccount,
+    modifier: Modifier = Modifier,
 ) {
-    LazyColumn(
-        modifier = Modifier.padding(padding),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        state.activeAccount?.let { account ->
-            item { AccountSummaryCard(account = account) }
-        }
-
-        if (tasks.isEmpty()) {
-            item {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    EmptyState()
-                }
-            }
-        } else {
-            item {
-                Text(
-                    text = stringResource(id = R.string.task_list_title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-            items(tasks) { task -> TaskCard(task = task) }
-        }
-    }
-}
-
-@Composable
-private fun AccountSummaryCard(account: NextcloudAccount) {
     Card(
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
-            ),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -281,7 +248,10 @@ private fun AccountDropdown(
             )
         }
 
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
             accounts.forEach { account ->
                 DropdownMenuItem(
                     text = {
@@ -321,70 +291,3 @@ private fun AccountDropdown(
         }
     }
 }
-
-@Composable
-private fun TaskCard(task: Task) {
-    Surface(
-        tonalElevation = 1.dp,
-        shape = MaterialTheme.shapes.medium,
-        shadowElevation = 0.5.dp,
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = task.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            task.description?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun EmptyState(
-    modifier: Modifier = Modifier,
-    padding: PaddingValues = PaddingValues(),
-) {
-    Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(padding),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = stringResource(id = R.string.welcome_message),
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = stringResource(id = R.string.empty_task_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-    }
-}
-
-@HiltViewModel
-class TaskListViewModel
-    @Inject
-    constructor(
-        private val loadTasksUseCase: LoadTasksUseCase,
-    ) : ViewModel() {
-        val tasks =
-            loadTasksUseCase()
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-        init {
-            viewModelScope.launch { loadTasksUseCase.seedSample() }
-        }
-    }
