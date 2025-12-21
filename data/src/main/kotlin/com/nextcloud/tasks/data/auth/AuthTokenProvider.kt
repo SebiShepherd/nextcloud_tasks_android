@@ -4,4 +4,6 @@ interface AuthTokenProvider {
     fun activeToken(): AuthToken?
 
     fun activeServerUrl(): String?
+
+    fun activeUsername(): String?
 }

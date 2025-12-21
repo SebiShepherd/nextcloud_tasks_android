@@ -1,7 +1,6 @@
 package com.nextcloud.tasks.data.repository
 
 import androidx.room.withTransaction
-import com.nextcloud.tasks.data.api.NextcloudTasksApiFactory
 import com.nextcloud.tasks.data.api.dto.TaskDto
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
 import com.nextcloud.tasks.data.database.entity.TagEntity
@@ -10,6 +9,7 @@ import com.nextcloud.tasks.data.database.entity.TaskListEntity
 import com.nextcloud.tasks.data.mapper.TagMapper
 import com.nextcloud.tasks.data.mapper.TaskListMapper
 import com.nextcloud.tasks.data.mapper.TaskMapper
+import com.nextcloud.tasks.data.network.CalDavClient
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskDraft
@@ -28,7 +28,7 @@ import javax.inject.Inject
 class DefaultTasksRepository
     @Inject
     constructor(
-        private val tasksApiFactory: NextcloudTasksApiFactory,
+        private val calDavClient: CalDavClient,
         private val database: NextcloudTasksDatabase,
         private val taskMapper: TaskMapper,
         private val taskListMapper: TaskListMapper,
@@ -61,22 +61,25 @@ class DefaultTasksRepository
 
         override suspend fun createTask(draft: TaskDraft): Task =
             withContext(ioDispatcher) {
-                val now = Instant.now()
-                val response = api().createTask(taskMapper.toRequest(draft, now))
+                val calendars = calDavClient.fetchCalendars()
+                val targetCalendar =
+                    calendars.firstOrNull { it.href == draft.listId }
+                        ?: error("Task list ${draft.listId} not found on server")
+                val response = calDavClient.createTask(targetCalendar, draft)
                 upsertFromRemote(listOf(response))
                 getTask(response.id) ?: error("Created task missing from local database")
             }
 
         override suspend fun updateTask(task: Task): Task =
             withContext(ioDispatcher) {
-                val response = api().updateTask(task.id, taskMapper.toRequest(task))
+                val response = calDavClient.updateTask(task)
                 upsertFromRemote(listOf(response))
                 getTask(task.id) ?: error("Updated task missing from local database")
             }
 
         override suspend fun deleteTask(taskId: String) =
             withContext(ioDispatcher) {
-                api().deleteTask(taskId)
+                calDavClient.deleteTask(taskId)
                 database.withTransaction {
                     tasksDao.clearTagsForTask(taskId)
                     tasksDao.deleteTask(taskId)
@@ -85,14 +88,35 @@ class DefaultTasksRepository
 
         override suspend fun refresh() =
             withContext(ioDispatcher) {
-                val tasksApi = api()
-                val remoteLists = tasksApi.getTaskLists()
-                val remoteTags = tasksApi.getTags()
-                val remoteTasks = tasksApi.getTasks()
+                val remoteLists = calDavClient.fetchCalendars()
+                val remoteTasks =
+                    remoteLists.flatMap { calendar ->
+                        calDavClient.fetchTasks(calendar).map { it.copy(listId = calendar.href) }
+                    }
+                val remoteTags =
+                    remoteTasks
+                        .flatMap { task -> task.tagIds }
+                        .distinct()
+                        .map { tag ->
+                            TagEntity(
+                                id = tag,
+                                name = tag,
+                                updatedAt = Instant.now(),
+                            )
+                        }
 
                 database.withTransaction {
-                    upsertTaskLists(remoteLists.map(taskListMapper::toEntity))
-                    upsertTags(remoteTags.map(tagMapper::toEntity))
+                    upsertTaskLists(
+                        remoteLists.map { calendar ->
+                            TaskListEntity(
+                                id = calendar.href,
+                                name = calendar.displayName,
+                                color = calendar.color,
+                                updatedAt = Instant.ofEpochMilli(calendar.updatedAt),
+                            )
+                        },
+                    )
+                    upsertTags(remoteTags)
                     upsertFromRemote(remoteTasks)
                 }
             }
@@ -190,6 +214,4 @@ class DefaultTasksRepository
             val currentUpdatedAt = tagsDao.getUpdatedAt(tag.id)
             return currentUpdatedAt == null || !currentUpdatedAt.isAfter(tag.updatedAt)
         }
-
-        private fun api() = tasksApiFactory.create()
     }

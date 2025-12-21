@@ -37,4 +37,6 @@ class PersistentAuthTokenProvider
             }
 
         override fun activeServerUrl(): String? = storage.activeAccount()?.serverUrl
+
+        override fun activeUsername(): String? = storage.activeAccount()?.username
     }
