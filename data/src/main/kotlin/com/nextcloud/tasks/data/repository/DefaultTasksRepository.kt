@@ -1,7 +1,7 @@
 package com.nextcloud.tasks.data.repository
 
 import androidx.room.withTransaction
-import com.nextcloud.tasks.data.api.NextcloudTasksApi
+import com.nextcloud.tasks.data.api.NextcloudTasksApiFactory
 import com.nextcloud.tasks.data.api.dto.TaskDto
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
 import com.nextcloud.tasks.data.database.entity.TagEntity
@@ -28,7 +28,7 @@ import javax.inject.Inject
 class DefaultTasksRepository
     @Inject
     constructor(
-        private val api: NextcloudTasksApi,
+        private val tasksApiFactory: NextcloudTasksApiFactory,
         private val database: NextcloudTasksDatabase,
         private val taskMapper: TaskMapper,
         private val taskListMapper: TaskListMapper,
@@ -62,21 +62,21 @@ class DefaultTasksRepository
         override suspend fun createTask(draft: TaskDraft): Task =
             withContext(ioDispatcher) {
                 val now = Instant.now()
-                val response = api.createTask(taskMapper.toRequest(draft, now))
+                val response = api().createTask(taskMapper.toRequest(draft, now))
                 upsertFromRemote(listOf(response))
                 getTask(response.id) ?: error("Created task missing from local database")
             }
 
         override suspend fun updateTask(task: Task): Task =
             withContext(ioDispatcher) {
-                val response = api.updateTask(task.id, taskMapper.toRequest(task))
+                val response = api().updateTask(task.id, taskMapper.toRequest(task))
                 upsertFromRemote(listOf(response))
                 getTask(task.id) ?: error("Updated task missing from local database")
             }
 
         override suspend fun deleteTask(taskId: String) =
             withContext(ioDispatcher) {
-                api.deleteTask(taskId)
+                api().deleteTask(taskId)
                 database.withTransaction {
                     tasksDao.clearTagsForTask(taskId)
                     tasksDao.deleteTask(taskId)
@@ -85,9 +85,10 @@ class DefaultTasksRepository
 
         override suspend fun refresh() =
             withContext(ioDispatcher) {
-                val remoteLists = api.getTaskLists()
-                val remoteTags = api.getTags()
-                val remoteTasks = api.getTasks()
+                val tasksApi = api()
+                val remoteLists = tasksApi.getTaskLists()
+                val remoteTags = tasksApi.getTags()
+                val remoteTasks = tasksApi.getTasks()
 
                 database.withTransaction {
                     upsertTaskLists(remoteLists.map(taskListMapper::toEntity))
@@ -189,4 +190,6 @@ class DefaultTasksRepository
             val currentUpdatedAt = tagsDao.getUpdatedAt(tag.id)
             return currentUpdatedAt == null || !currentUpdatedAt.isAfter(tag.updatedAt)
         }
+
+        private fun api() = tasksApiFactory.create()
     }

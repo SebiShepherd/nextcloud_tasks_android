@@ -2,8 +2,6 @@ package com.nextcloud.tasks.data.di
 
 import android.content.Context
 import androidx.room.Room
-import com.nextcloud.tasks.data.BuildConfig
-import com.nextcloud.tasks.data.api.NextcloudTasksApi
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.auth.PersistentAuthTokenProvider
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
@@ -20,10 +18,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import okhttp3.OkHttpClient
-import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
-import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -45,23 +39,6 @@ interface RepositoryBindings {
 @Module
 @InstallIn(SingletonComponent::class)
 object DataModule {
-    @Provides
-    @Singleton
-    fun provideRetrofit(
-        @Named("authenticated") okHttpClient: OkHttpClient,
-        moshiConverterFactory: MoshiConverterFactory,
-    ): Retrofit =
-        Retrofit
-            .Builder()
-            .client(okHttpClient)
-            .baseUrl(BuildConfig.DEFAULT_NEXTCLOUD_BASE_URL)
-            .addConverterFactory(moshiConverterFactory)
-            .build()
-
-    @Provides
-    @Singleton
-    fun provideNextcloudTasksApi(retrofit: Retrofit): NextcloudTasksApi = retrofit.create(NextcloudTasksApi::class.java)
-
     @Provides
     @Singleton
     @Suppress("SpreadOperator")
