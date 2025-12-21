@@ -26,6 +26,7 @@ import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.nextcloud.tasks.auth.LoginCallbacks
 import com.nextcloud.tasks.auth.LoginScreen
 import com.nextcloud.tasks.auth.LoginUiState
@@ -147,6 +149,7 @@ fun AuthenticatedHome(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun AuthenticatedTopBar(
     state: LoginUiState,
     onSwitchAccount: (String) -> Unit,

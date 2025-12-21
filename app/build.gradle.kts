@@ -85,7 +85,9 @@ dependencies {
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)
+    implementation(libs.androidx.compose.material.pullrefresh)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.compose.foundation)
     implementation(libs.hilt.android)
     implementation(libs.coroutines.android)
     implementation(libs.material)
