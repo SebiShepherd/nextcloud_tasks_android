@@ -25,6 +25,12 @@ class TaskMapper
                 completed = dto.completed,
                 due = dto.due?.let { Instant.ofEpochMilli(it) },
                 updatedAt = Instant.ofEpochMilli(dto.updatedAt),
+                priority = null,
+                status = null,
+                completedAt = null,
+                uid = null,
+                etag = null,
+                href = null,
             )
 
         fun toDomain(taskWithRelations: TaskWithRelations): Task {
@@ -38,6 +44,12 @@ class TaskMapper
                 due = taskWithRelations.task.due,
                 updatedAt = taskWithRelations.task.updatedAt,
                 tags = tags,
+                priority = taskWithRelations.task.priority,
+                status = taskWithRelations.task.status,
+                completedAt = taskWithRelations.task.completedAt,
+                uid = taskWithRelations.task.uid,
+                etag = taskWithRelations.task.etag,
+                href = taskWithRelations.task.href,
             )
         }
 

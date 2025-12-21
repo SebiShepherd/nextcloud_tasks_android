@@ -18,4 +18,11 @@ data class TaskEntity(
     val due: Instant?,
     @ColumnInfo(name = "updated_at")
     val updatedAt: Instant,
+    val priority: Int?,
+    val status: String?,
+    @ColumnInfo(name = "completed_at")
+    val completedAt: Instant?,
+    val uid: String?,
+    val etag: String?,
+    val href: String?,
 )

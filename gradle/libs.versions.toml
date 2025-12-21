@@ -22,6 +22,7 @@ timber = "5.0.1"
 room = "2.7.0-alpha04"
 serialization = "1.7.1"
 ksp = "2.1.10-1.0.29"
+ical4j = "3.2.18"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -53,6 +54,7 @@ androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+ical4j-core = { module = "org.mnode.ical4j:ical4j", version.ref = "ical4j" }
 
 [bundles]
 compose = [

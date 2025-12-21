@@ -15,6 +15,9 @@ class TaskListMapper
                 name = dto.name,
                 color = dto.color,
                 updatedAt = Instant.ofEpochMilli(dto.updatedAt),
+                etag = null,
+                href = null,
+                order = null,
             )
 
         fun toDomain(entity: TaskListEntity): TaskList =
@@ -23,5 +26,8 @@ class TaskListMapper
                 name = entity.name,
                 color = entity.color,
                 updatedAt = entity.updatedAt,
+                etag = entity.etag,
+                href = entity.href,
+                order = entity.order,
             )
     }

@@ -11,4 +11,10 @@ data class Task(
     val due: Instant? = null,
     val updatedAt: Instant,
     val tags: List<Tag> = emptyList(),
+    val priority: Int? = null,
+    val status: String? = null,
+    val completedAt: Instant? = null,
+    val uid: String? = null,
+    val etag: String? = null,
+    val href: String? = null,
 )

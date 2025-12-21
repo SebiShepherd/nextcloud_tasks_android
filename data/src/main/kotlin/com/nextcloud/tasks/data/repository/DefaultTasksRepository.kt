@@ -3,6 +3,9 @@ package com.nextcloud.tasks.data.repository
 import androidx.room.withTransaction
 import com.nextcloud.tasks.data.api.NextcloudTasksApi
 import com.nextcloud.tasks.data.api.dto.TaskDto
+import com.nextcloud.tasks.data.auth.AuthTokenProvider
+import com.nextcloud.tasks.data.caldav.parser.VTodoParser
+import com.nextcloud.tasks.data.caldav.service.CalDavService
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
 import com.nextcloud.tasks.data.database.entity.TagEntity
 import com.nextcloud.tasks.data.database.entity.TaskEntity
@@ -33,6 +36,9 @@ class DefaultTasksRepository
         private val taskMapper: TaskMapper,
         private val taskListMapper: TaskListMapper,
         private val tagMapper: TagMapper,
+        private val calDavService: CalDavService,
+        private val vTodoParser: VTodoParser,
+        private val authTokenProvider: AuthTokenProvider,
         private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     ) : TasksRepository {
         private val tasksDao get() = database.tasksDao()
@@ -85,14 +91,79 @@ class DefaultTasksRepository
 
         override suspend fun refresh() =
             withContext(ioDispatcher) {
-                val remoteLists = api.getTaskLists()
-                val remoteTags = api.getTags()
-                val remoteTasks = api.getTasks()
+                val baseUrl = authTokenProvider.activeServerUrl() ?: run {
+                    Timber.w("No active server URL, skipping refresh")
+                    return@withContext
+                }
 
+                // CalDAV discovery
+                val principalResult = calDavService.discoverPrincipal(baseUrl)
+                if (principalResult.isFailure) {
+                    Timber.e(principalResult.exceptionOrNull(), "Failed to discover principal")
+                    return@withContext
+                }
+
+                val principal = principalResult.getOrThrow()
+                val calendarHomeResult = calDavService.discoverCalendarHome(baseUrl, principal.principalUrl)
+                if (calendarHomeResult.isFailure) {
+                    Timber.e(calendarHomeResult.exceptionOrNull(), "Failed to discover calendar home")
+                    return@withContext
+                }
+
+                val calendarHome = calendarHomeResult.getOrThrow()
+                val collectionsResult =
+                    calDavService.enumerateCalendarCollections(baseUrl, calendarHome.calendarHomeUrl)
+                if (collectionsResult.isFailure) {
+                    Timber.e(collectionsResult.exceptionOrNull(), "Failed to enumerate collections")
+                    return@withContext
+                }
+
+                val collections = collectionsResult.getOrThrow()
+                Timber.d("Found ${collections.size} calendar collections with VTODO support")
+
+                // Convert collections to TaskListEntity
+                val taskLists =
+                    collections.map { collection ->
+                        TaskListEntity(
+                            id = collection.href,
+                            name = collection.displayName,
+                            color = collection.color,
+                            updatedAt = Instant.now(),
+                            etag = collection.etag,
+                            href = collection.href,
+                            order = collection.order,
+                        )
+                    }
+
+                // Fetch tasks from each collection
+                val allTasks = mutableListOf<TaskEntity>()
+                collections.forEach { collection ->
+                    val todosResult = calDavService.fetchTodosFromCollection(baseUrl, collection.href)
+                    if (todosResult.isSuccess) {
+                        val todos = todosResult.getOrThrow()
+                        Timber.d("Found ${todos.size} todos in ${collection.displayName}")
+
+                        todos.forEach { todo ->
+                            val taskEntity =
+                                vTodoParser.parseVTodo(
+                                    icalData = todo.calendarData,
+                                    listId = collection.href,
+                                    href = todo.href,
+                                    etag = todo.etag,
+                                )
+                            taskEntity?.let { allTasks.add(it) }
+                        }
+                    } else {
+                        Timber.w(todosResult.exceptionOrNull(), "Failed to fetch todos from ${collection.displayName}")
+                    }
+                }
+
+                Timber.d("Fetched total ${allTasks.size} tasks from CalDAV")
+
+                // Update database
                 database.withTransaction {
-                    upsertTaskLists(remoteLists.map(taskListMapper::toEntity))
-                    upsertTags(remoteTags.map(tagMapper::toEntity))
-                    upsertFromRemote(remoteTasks)
+                    upsertTaskLists(taskLists)
+                    upsertTasksFromCalDav(allTasks)
                 }
             }
 
@@ -111,6 +182,9 @@ class DefaultTasksRepository
                         name = "Inbox",
                         color = null,
                         updatedAt = now,
+                        etag = null,
+                        href = null,
+                        order = null,
                     )
                 val sampleTag =
                     TagEntity(
@@ -127,6 +201,12 @@ class DefaultTasksRepository
                         completed = false,
                         due = null,
                         updatedAt = now,
+                        priority = null,
+                        status = null,
+                        completedAt = null,
+                        uid = null,
+                        etag = null,
+                        href = null,
                     )
 
                 database.withTransaction {
@@ -187,5 +267,18 @@ class DefaultTasksRepository
         private suspend fun shouldReplaceTag(tag: TagEntity): Boolean {
             val currentUpdatedAt = tagsDao.getUpdatedAt(tag.id)
             return currentUpdatedAt == null || !currentUpdatedAt.isAfter(tag.updatedAt)
+        }
+
+        private suspend fun upsertTasksFromCalDav(tasks: List<TaskEntity>) {
+            tasks.forEach { task ->
+                if (shouldReplaceTask(task)) {
+                    tasksDao.upsertTask(task)
+                    // Clear existing tag associations
+                    tasksDao.clearTagsForTask(task.id)
+                    // Note: CalDAV tags will be handled separately if needed
+                } else {
+                    Timber.d("Skipped task %s because local version is newer", task.id)
+                }
+            }
         }
     }
