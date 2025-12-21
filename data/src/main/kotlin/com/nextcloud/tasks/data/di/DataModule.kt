@@ -6,6 +6,7 @@ import com.nextcloud.tasks.data.BuildConfig
 import com.nextcloud.tasks.data.api.NextcloudTasksApi
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.auth.PersistentAuthTokenProvider
+import com.nextcloud.tasks.data.caldav.generator.VTodoGenerator
 import com.nextcloud.tasks.data.caldav.parser.DavMultistatusParser
 import com.nextcloud.tasks.data.caldav.parser.VTodoParser
 import com.nextcloud.tasks.data.caldav.service.CalDavService
@@ -97,4 +98,8 @@ object DataModule {
     @Provides
     @Singleton
     fun provideVTodoParser(): VTodoParser = VTodoParser()
+
+    @Provides
+    @Singleton
+    fun provideVTodoGenerator(): VTodoGenerator = VTodoGenerator()
 }

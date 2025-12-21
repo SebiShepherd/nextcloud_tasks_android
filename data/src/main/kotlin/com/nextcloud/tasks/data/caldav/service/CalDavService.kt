@@ -200,6 +200,114 @@ class CalDavService
             }
 
         /**
+         * Create a new VTODO in a calendar collection
+         */
+        suspend fun createTodo(
+            baseUrl: String,
+            collectionHref: String,
+            filename: String,
+            icalData: String,
+        ): Result<String> =
+            runCatching {
+                val todoUrl = buildFullUrl(baseUrl, "$collectionHref/$filename")
+
+                val requestBody = icalData.toRequestBody("text/calendar; charset=utf-8".toMediaType())
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(todoUrl)
+                        .put(requestBody)
+                        .header("Content-Type", "text/calendar; charset=utf-8")
+                        .build()
+
+                val response = okHttpClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    throw IOException("Failed to create todo: ${response.code} - ${response.message}")
+                }
+
+                // Extract ETag from response
+                response.header("ETag")?.trim('"') ?: ""
+            }
+
+        /**
+         * Update an existing VTODO
+         */
+        suspend fun updateTodo(
+            baseUrl: String,
+            todoHref: String,
+            icalData: String,
+            etag: String?,
+        ): Result<String> =
+            runCatching {
+                val todoUrl = buildFullUrl(baseUrl, todoHref)
+
+                val requestBody = icalData.toRequestBody("text/calendar; charset=utf-8".toMediaType())
+
+                val requestBuilder =
+                    Request
+                        .Builder()
+                        .url(todoUrl)
+                        .put(requestBody)
+                        .header("Content-Type", "text/calendar; charset=utf-8")
+
+                // Add If-Match header for optimistic locking
+                etag?.let {
+                    requestBuilder.header("If-Match", "\"$it\"")
+                }
+
+                val request = requestBuilder.build()
+                val response = okHttpClient.newCall(request).execute()
+
+                if (!response.isSuccessful) {
+                    if (response.code == 412) {
+                        throw IOException("Conflict: Task was modified on server (ETag mismatch)")
+                    }
+                    throw IOException("Failed to update todo: ${response.code} - ${response.message}")
+                }
+
+                // Return new ETag
+                response.header("ETag")?.trim('"') ?: etag ?: ""
+            }
+
+        /**
+         * Delete a VTODO
+         */
+        suspend fun deleteTodo(
+            baseUrl: String,
+            todoHref: String,
+            etag: String?,
+        ): Result<Unit> =
+            runCatching {
+                val todoUrl = buildFullUrl(baseUrl, todoHref)
+
+                val requestBuilder =
+                    Request
+                        .Builder()
+                        .url(todoUrl)
+                        .delete()
+
+                // Add If-Match header for optimistic locking
+                etag?.let {
+                    requestBuilder.header("If-Match", "\"$it\"")
+                }
+
+                val request = requestBuilder.build()
+                val response = okHttpClient.newCall(request).execute()
+
+                if (!response.isSuccessful) {
+                    if (response.code == 412) {
+                        throw IOException("Conflict: Task was modified on server (ETag mismatch)")
+                    }
+                    if (response.code == 404) {
+                        // Already deleted, consider success
+                        return@runCatching
+                    }
+                    throw IOException("Failed to delete todo: ${response.code} - ${response.message}")
+                }
+            }
+
+        /**
          * Build the DAV root URL
          */
         private fun buildDavUrl(baseUrl: String): String {

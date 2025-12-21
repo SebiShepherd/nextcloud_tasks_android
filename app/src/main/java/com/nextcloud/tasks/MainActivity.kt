@@ -17,8 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -32,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -112,6 +116,8 @@ fun NextcloudTasksApp(
     val taskSort by taskListViewModel.taskSort.collectAsState()
     val isRefreshing by taskListViewModel.isRefreshing.collectAsState()
 
+    var showCreateDialog by remember { mutableStateOf(false) }
+
     if (loginState.activeAccount == null) {
         LoginScreen(
             state = loginState,
@@ -141,7 +147,25 @@ fun NextcloudTasksApp(
             onSetFilter = taskListViewModel::setFilter,
             onSetSort = taskListViewModel::setSort,
             onRefresh = taskListViewModel::refresh,
+            onCreateTask = { showCreateDialog = true },
+            onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
+            onDeleteTask = taskListViewModel::deleteTask,
         )
+
+        // Create task dialog
+        if (showCreateDialog) {
+            val defaultListId = selectedListId ?: taskLists.firstOrNull()?.id
+            if (defaultListId != null) {
+                CreateTaskDialog(
+                    listId = defaultListId,
+                    onDismiss = { showCreateDialog = false },
+                    onCreate = { title, description ->
+                        taskListViewModel.createTask(title, description, defaultListId)
+                        showCreateDialog = false
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -161,6 +185,9 @@ fun AuthenticatedHome(
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onRefresh: () -> Unit,
+    onCreateTask: () -> Unit,
+    onToggleTaskComplete: (Task) -> Unit,
+    onDeleteTask: (String) -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -189,6 +216,11 @@ fun AuthenticatedHome(
                     isRefreshing = isRefreshing,
                 )
             },
+            floatingActionButton = {
+                FloatingActionButton(onClick = onCreateTask) {
+                    Text("+", style = MaterialTheme.typography.headlineMedium)
+                }
+            },
         ) { padding ->
             TasksContent(
                 padding = padding,
@@ -198,6 +230,8 @@ fun AuthenticatedHome(
                 taskSort = taskSort,
                 onSetFilter = onSetFilter,
                 onSetSort = onSetSort,
+                onToggleTaskComplete = onToggleTaskComplete,
+                onDeleteTask = onDeleteTask,
             )
         }
     }
@@ -266,6 +300,8 @@ private fun TasksContent(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
+    onToggleTaskComplete: (Task) -> Unit,
+    onDeleteTask: (String) -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.padding(padding),
@@ -317,7 +353,13 @@ private fun TasksContent(
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
-                items(openTasks) { task -> TaskCard(task = task) }
+                items(openTasks) { task ->
+                    TaskCard(
+                        task = task,
+                        onToggleComplete = { onToggleTaskComplete(task) },
+                        onDelete = { onDeleteTask(task.id) },
+                    )
+                }
             }
 
             if (completedTasks.isNotEmpty()) {
@@ -328,7 +370,13 @@ private fun TasksContent(
                         modifier = Modifier.padding(top = 16.dp),
                     )
                 }
-                items(completedTasks) { task -> TaskCard(task = task) }
+                items(completedTasks) { task ->
+                    TaskCard(
+                        task = task,
+                        onToggleComplete = { onToggleTaskComplete(task) },
+                        onDelete = { onDeleteTask(task.id) },
+                    )
+                }
             }
         }
     }
@@ -557,66 +605,141 @@ private fun AccountDropdown(
 }
 
 @Composable
-private fun TaskCard(task: Task) {
+private fun TaskCard(
+    task: Task,
+    onToggleComplete: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Surface(
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.medium,
         shadowElevation = 0.5.dp,
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                task.priority?.let { priority ->
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+        ) {
+            // Checkbox
+            Checkbox(
+                checked = task.completed,
+                onCheckedChange = { onToggleComplete() },
+            )
+
+            // Task content
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
                     Text(
-                        text = "P$priority",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 8.dp),
+                        text = task.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
                     )
+                    task.priority?.let { priority ->
+                        Text(
+                            text = "P$priority",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
                 }
-            }
 
-            task.description?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-
-            // Show due date and tags
-            Row(
-                modifier = Modifier.padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                task.due?.let { due ->
+                task.description?.let {
                     Text(
-                        text = "Due: ${java.time.format.DateTimeFormatter.ofPattern("MMM dd").format(due.atZone(java.time.ZoneId.systemDefault()))}",
-                        style = MaterialTheme.typography.labelSmall,
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (task.tags.isNotEmpty()) {
-                    Text(
-                        text = task.tags.joinToString { it.name },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
+
+                // Show due date and tags
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    task.due?.let { due ->
+                        Text(
+                            text = "Due: ${java.time.format.DateTimeFormatter.ofPattern("MMM dd").format(due.atZone(java.time.ZoneId.systemDefault()))}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (task.tags.isNotEmpty()) {
+                        Text(
+                            text = task.tags.joinToString { it.name },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
                 }
+            }
+
+            // Delete button
+            IconButton(onClick = onDelete) {
+                Icon(
+                    painter = painterResource(android.R.drawable.ic_menu_delete),
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error,
+                )
             }
         }
     }
+}
+
+@Composable
+private fun CreateTaskDialog(
+    listId: String,
+    onDismiss: () -> Unit,
+    onCreate: (String, String?) -> Unit,
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Create New Task") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (title.isNotBlank()) {
+                        onCreate(title.trim(), description.ifBlank { null })
+                    }
+                },
+                enabled = title.isNotBlank(),
+            ) {
+                Text("Create")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 @Composable
@@ -734,6 +857,58 @@ class TaskListViewModel
                     timber.log.Timber.e(e, "Failed to refresh tasks")
                 } finally {
                     _isRefreshing.value = false
+                }
+            }
+        }
+
+        fun createTask(
+            title: String,
+            description: String? = null,
+            listId: String,
+        ) {
+            viewModelScope.launch {
+                try {
+                    val draft =
+                        com.nextcloud.tasks.domain.model.TaskDraft(
+                            listId = listId,
+                            title = title,
+                            description = description,
+                            completed = false,
+                            due = null,
+                            tagIds = emptyList(),
+                        )
+                    tasksRepository.createTask(draft)
+                    timber.log.Timber.d("Task created successfully")
+                } catch (e: Exception) {
+                    timber.log.Timber.e(e, "Failed to create task")
+                }
+            }
+        }
+
+        fun toggleTaskComplete(task: Task) {
+            viewModelScope.launch {
+                try {
+                    val updated =
+                        task.copy(
+                            completed = !task.completed,
+                            completedAt = if (!task.completed) java.time.Instant.now() else null,
+                            status = if (!task.completed) "COMPLETED" else "NEEDS-ACTION",
+                        )
+                    tasksRepository.updateTask(updated)
+                    timber.log.Timber.d("Task completion toggled")
+                } catch (e: Exception) {
+                    timber.log.Timber.e(e, "Failed to toggle task completion")
+                }
+            }
+        }
+
+        fun deleteTask(taskId: String) {
+            viewModelScope.launch {
+                try {
+                    tasksRepository.deleteTask(taskId)
+                    timber.log.Timber.d("Task deleted successfully")
+                } catch (e: Exception) {
+                    timber.log.Timber.e(e, "Failed to delete task")
                 }
             }
         }

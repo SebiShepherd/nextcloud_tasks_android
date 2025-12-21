@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.nextcloud.tasks.data.api.NextcloudTasksApi
 import com.nextcloud.tasks.data.api.dto.TaskDto
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
+import com.nextcloud.tasks.data.caldav.generator.VTodoGenerator
 import com.nextcloud.tasks.data.caldav.parser.VTodoParser
 import com.nextcloud.tasks.data.caldav.service.CalDavService
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
 
@@ -38,6 +40,7 @@ class DefaultTasksRepository
         private val tagMapper: TagMapper,
         private val calDavService: CalDavService,
         private val vTodoParser: VTodoParser,
+        private val vTodoGenerator: VTodoGenerator,
         private val authTokenProvider: AuthTokenProvider,
         private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     ) : TasksRepository {
@@ -67,22 +70,125 @@ class DefaultTasksRepository
 
         override suspend fun createTask(draft: TaskDraft): Task =
             withContext(ioDispatcher) {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+
+                // Generate UID and create task domain model
+                val uid = java.util.UUID.randomUUID().toString()
                 val now = Instant.now()
-                val response = api.createTask(taskMapper.toRequest(draft, now))
-                upsertFromRemote(listOf(response))
-                getTask(response.id) ?: error("Created task missing from local database")
+                val task =
+                    Task(
+                        id = "$draft.listId/$uid", // Temporary ID
+                        listId = draft.listId,
+                        title = draft.title,
+                        description = draft.description,
+                        completed = draft.completed,
+                        due = draft.due,
+                        updatedAt = now,
+                        tags = emptyList(), // Tags will be set separately if needed
+                        priority = null,
+                        status = if (draft.completed) "COMPLETED" else "NEEDS-ACTION",
+                        completedAt = if (draft.completed) now else null,
+                        uid = uid,
+                        etag = null,
+                        href = null,
+                    )
+
+                // Generate iCalendar VTODO
+                val icalData = vTodoGenerator.generateVTodo(task)
+                val filename = vTodoGenerator.generateFilename(uid)
+
+                // Upload to server
+                val createResult = calDavService.createTodo(baseUrl, draft.listId, filename, icalData)
+                if (createResult.isFailure) {
+                    throw createResult.exceptionOrNull() ?: IOException("Failed to create task")
+                }
+
+                val etag = createResult.getOrThrow()
+                val href = "${draft.listId}/$filename"
+
+                // Save to local database
+                val taskEntity =
+                    TaskEntity(
+                        id = "$draft.listId/$uid",
+                        listId = draft.listId,
+                        title = draft.title,
+                        description = draft.description,
+                        completed = draft.completed,
+                        due = draft.due,
+                        updatedAt = now,
+                        priority = null,
+                        status = if (draft.completed) "COMPLETED" else "NEEDS-ACTION",
+                        completedAt = if (draft.completed) now else null,
+                        uid = uid,
+                        etag = etag,
+                        href = href,
+                    )
+
+                database.withTransaction {
+                    tasksDao.upsertTask(taskEntity)
+                }
+
+                getTask(taskEntity.id) ?: error("Created task missing from local database")
             }
 
         override suspend fun updateTask(task: Task): Task =
             withContext(ioDispatcher) {
-                val response = api.updateTask(task.id, taskMapper.toRequest(task))
-                upsertFromRemote(listOf(response))
+                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+
+                if (task.href == null) {
+                    throw IOException("Cannot update task without href")
+                }
+
+                // Generate updated iCalendar VTODO
+                val icalData = vTodoGenerator.generateVTodo(task)
+
+                // Upload to server with ETag for optimistic locking
+                val updateResult = calDavService.updateTodo(baseUrl, task.href, icalData, task.etag)
+                if (updateResult.isFailure) {
+                    throw updateResult.exceptionOrNull() ?: IOException("Failed to update task")
+                }
+
+                val newEtag = updateResult.getOrThrow()
+
+                // Update local database
+                val taskEntity =
+                    TaskEntity(
+                        id = task.id,
+                        listId = task.listId,
+                        title = task.title,
+                        description = task.description,
+                        completed = task.completed,
+                        due = task.due,
+                        updatedAt = Instant.now(),
+                        priority = task.priority,
+                        status = task.status,
+                        completedAt = task.completedAt,
+                        uid = task.uid,
+                        etag = newEtag,
+                        href = task.href,
+                    )
+
+                database.withTransaction {
+                    tasksDao.upsertTask(taskEntity)
+                }
+
                 getTask(task.id) ?: error("Updated task missing from local database")
             }
 
         override suspend fun deleteTask(taskId: String) =
             withContext(ioDispatcher) {
-                api.deleteTask(taskId)
+                val baseUrl = authTokenProvider.activeServerUrl()
+                val task = getTask(taskId)
+
+                if (baseUrl != null && task?.href != null) {
+                    // Delete from server
+                    val deleteResult = calDavService.deleteTodo(baseUrl, task.href, task.etag)
+                    if (deleteResult.isFailure) {
+                        Timber.w(deleteResult.exceptionOrNull(), "Failed to delete task from server, deleting locally")
+                    }
+                }
+
+                // Delete from local database
                 database.withTransaction {
                     tasksDao.clearTagsForTask(taskId)
                     tasksDao.deleteTask(taskId)
