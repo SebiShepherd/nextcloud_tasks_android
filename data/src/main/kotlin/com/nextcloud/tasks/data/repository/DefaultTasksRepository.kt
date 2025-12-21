@@ -135,15 +135,13 @@ class DefaultTasksRepository
             withContext(ioDispatcher) {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
 
-                if (task.href == null) {
-                    throw IOException("Cannot update task without href")
-                }
+                val href = task.href ?: throw IOException("Cannot update task without href")
 
                 // Generate updated iCalendar VTODO
                 val icalData = vTodoGenerator.generateVTodo(task)
 
                 // Upload to server with ETag for optimistic locking
-                val updateResult = calDavService.updateTodo(baseUrl, task.href, icalData, task.etag)
+                val updateResult = calDavService.updateTodo(baseUrl, href, icalData, task.etag)
                 if (updateResult.isFailure) {
                     throw updateResult.exceptionOrNull() ?: IOException("Failed to update task")
                 }
@@ -179,10 +177,11 @@ class DefaultTasksRepository
             withContext(ioDispatcher) {
                 val baseUrl = authTokenProvider.activeServerUrl()
                 val task = getTask(taskId)
+                val taskHref = task?.href
 
-                if (baseUrl != null && task?.href != null) {
+                if (baseUrl != null && taskHref != null) {
                     // Delete from server
-                    val deleteResult = calDavService.deleteTodo(baseUrl, task.href, task.etag)
+                    val deleteResult = calDavService.deleteTodo(baseUrl, taskHref, task.etag)
                     if (deleteResult.isFailure) {
                         Timber.w(deleteResult.exceptionOrNull(), "Failed to delete task from server, deleting locally")
                     }
