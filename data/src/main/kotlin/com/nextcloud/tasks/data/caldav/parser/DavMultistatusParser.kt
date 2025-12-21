@@ -27,7 +27,7 @@ class DavMultistatusParser
 
             var eventType = parser.eventType
             while (eventType != XmlPullParser.END_DOCUMENT) {
-                if (eventType == XmlPullParser.START_TAG && parser.name == "response") {
+                if (eventType == XmlPullParser.START_TAG && matchesTag(parser.name, "response")) {
                     responses.add(parseResponse(parser))
                 }
                 eventType = parser.next()
@@ -36,6 +36,15 @@ class DavMultistatusParser
             return DavMultistatus(responses)
         }
 
+        /**
+         * Check if a tag name matches, handling namespace prefixes
+         * e.g., "d:response" or "response" both match "response"
+         */
+        private fun matchesTag(
+            tagName: String,
+            expectedName: String,
+        ): Boolean = tagName == expectedName || tagName.endsWith(":$expectedName")
+
         private fun parseResponse(parser: XmlPullParser): DavResourceResponse {
             var href = ""
             val properties = mutableMapOf<String, String?>()
@@ -43,14 +52,14 @@ class DavMultistatusParser
 
             while (true) {
                 val eventType = parser.next()
-                if (eventType == XmlPullParser.END_TAG && parser.name == "response") {
+                if (eventType == XmlPullParser.END_TAG && matchesTag(parser.name, "response")) {
                     break
                 }
                 if (eventType != XmlPullParser.START_TAG) continue
 
-                when (parser.name) {
-                    "href" -> href = parser.nextText()
-                    "propstat" -> {
+                when {
+                    matchesTag(parser.name, "href") -> href = parser.nextText()
+                    matchesTag(parser.name, "propstat") -> {
                         val propstatProps = parsePropstat(parser)
                         properties.putAll(propstatProps)
                         propstatProps[DavProperty.GET_ETAG]?.let { etag = it }
@@ -67,16 +76,16 @@ class DavMultistatusParser
 
             while (true) {
                 val eventType = parser.next()
-                if (eventType == XmlPullParser.END_TAG && parser.name == "propstat") {
+                if (eventType == XmlPullParser.END_TAG && matchesTag(parser.name, "propstat")) {
                     break
                 }
                 if (eventType != XmlPullParser.START_TAG) continue
 
-                when (parser.name) {
-                    "status" -> {
+                when {
+                    matchesTag(parser.name, "status") -> {
                         statusCode = parser.nextText()
                     }
-                    "prop" -> {
+                    matchesTag(parser.name, "prop") -> {
                         parseProp(parser, properties)
                     }
                 }
@@ -98,33 +107,33 @@ class DavMultistatusParser
                 }
                 if (eventType != XmlPullParser.START_TAG) continue
 
-                when (parser.name) {
-                    "current-user-principal" -> {
+                when {
+                    matchesTag(parser.name, "current-user-principal") -> {
                         properties[DavProperty.CURRENT_USER_PRINCIPAL] = parseHrefValue(parser)
                     }
-                    "calendar-home-set" -> {
+                    matchesTag(parser.name, "calendar-home-set") -> {
                         properties[DavProperty.CALENDAR_HOME_SET] = parseHrefValue(parser)
                     }
-                    "displayname" -> {
+                    matchesTag(parser.name, "displayname") -> {
                         properties[DavProperty.DISPLAY_NAME] = parser.nextText()
                     }
-                    "getetag" -> {
+                    matchesTag(parser.name, "getetag") -> {
                         properties[DavProperty.GET_ETAG] = parser.nextText().trim('"')
                     }
-                    "resourcetype" -> {
+                    matchesTag(parser.name, "resourcetype") -> {
                         properties[DavProperty.RESOURCE_TYPE] = parseResourceType(parser)
                     }
-                    "supported-calendar-component-set" -> {
+                    matchesTag(parser.name, "supported-calendar-component-set") -> {
                         properties[DavProperty.SUPPORTED_CALENDAR_COMPONENT_SET] =
                             parseSupportedComponents(parser)
                     }
-                    "calendar-data" -> {
+                    matchesTag(parser.name, "calendar-data") -> {
                         properties[DavProperty.CALENDAR_DATA] = parser.nextText()
                     }
-                    "calendar-color" -> {
+                    matchesTag(parser.name, "calendar-color") -> {
                         properties[DavProperty.CALENDAR_COLOR] = parser.nextText()
                     }
-                    "calendar-order" -> {
+                    matchesTag(parser.name, "calendar-order") -> {
                         properties[DavProperty.CALENDAR_ORDER] = parser.nextText()
                     }
                 }
@@ -138,7 +147,7 @@ class DavMultistatusParser
                 if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
                     break
                 }
-                if (eventType == XmlPullParser.START_TAG && parser.name == "href") {
+                if (eventType == XmlPullParser.START_TAG && matchesTag(parser.name, "href")) {
                     return parser.nextText()
                 }
             }
@@ -155,7 +164,14 @@ class DavMultistatusParser
                     break
                 }
                 if (eventType == XmlPullParser.START_TAG) {
-                    types.add(parser.name)
+                    // Extract tag name without namespace prefix
+                    val tagName = parser.name
+                    val cleanName = if (tagName.contains(":")) {
+                        tagName.substringAfter(":")
+                    } else {
+                        tagName
+                    }
+                    types.add(cleanName)
                 }
             }
 
@@ -171,7 +187,7 @@ class DavMultistatusParser
                 if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
                     break
                 }
-                if (eventType == XmlPullParser.START_TAG && parser.name == "comp") {
+                if (eventType == XmlPullParser.START_TAG && matchesTag(parser.name, "comp")) {
                     parser.getAttributeValue(null, "name")?.let { components.add(it) }
                 }
             }
