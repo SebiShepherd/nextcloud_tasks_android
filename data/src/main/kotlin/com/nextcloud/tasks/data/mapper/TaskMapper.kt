@@ -8,6 +8,7 @@ import com.nextcloud.tasks.data.database.model.TaskWithRelations
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskDraft
+import com.nextcloud.tasks.domain.model.TaskPriority
 import java.time.Instant
 import javax.inject.Inject
 
@@ -25,6 +26,7 @@ class TaskMapper
                 completed = dto.completed,
                 due = dto.due?.let { Instant.ofEpochMilli(it) },
                 updatedAt = Instant.ofEpochMilli(dto.updatedAt),
+                priority = TaskPriority.fromRaw(dto.priority).name,
             )
 
         fun toDomain(taskWithRelations: TaskWithRelations): Task {
@@ -37,6 +39,7 @@ class TaskMapper
                 completed = taskWithRelations.task.completed,
                 due = taskWithRelations.task.due,
                 updatedAt = taskWithRelations.task.updatedAt,
+                priority = TaskPriority.fromRaw(taskWithRelations.task.priority),
                 tags = tags,
             )
         }
@@ -50,6 +53,7 @@ class TaskMapper
                 due = task.due?.toEpochMilli(),
                 tagIds = task.tags.map(Tag::id),
                 updatedAt = task.updatedAt.toEpochMilli(),
+                priority = task.priority.name,
             )
 
         fun toRequest(
@@ -64,6 +68,7 @@ class TaskMapper
                 due = draft.due?.toEpochMilli(),
                 tagIds = draft.tagIds,
                 updatedAt = updatedAt.toEpochMilli(),
+                priority = draft.priority.name,
             )
 
         fun crossRefs(

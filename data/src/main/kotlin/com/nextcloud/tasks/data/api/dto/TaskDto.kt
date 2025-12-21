@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.data.api.dto
 
+import com.nextcloud.tasks.domain.model.TaskPriority
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
@@ -17,4 +18,5 @@ data class TaskDto(
     val updatedAt: Long,
     @Json(name = "tag_ids")
     val tagIds: List<String> = emptyList(),
+    val priority: String = TaskPriority.MEDIUM.name,
 )

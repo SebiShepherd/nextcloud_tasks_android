@@ -14,6 +14,7 @@ import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskDraft
 import com.nextcloud.tasks.domain.model.TaskList
+import com.nextcloud.tasks.domain.model.TaskPriority
 import com.nextcloud.tasks.domain.repository.TasksRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -127,6 +128,7 @@ class DefaultTasksRepository
                         completed = false,
                         due = null,
                         updatedAt = now,
+                        priority = TaskPriority.HIGH.name,
                     )
 
                 database.withTransaction {

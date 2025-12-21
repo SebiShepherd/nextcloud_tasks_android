@@ -6,12 +6,18 @@ import com.nextcloud.tasks.auth.LoginUseCases
 import com.nextcloud.tasks.domain.repository.AuthRepository
 import com.nextcloud.tasks.domain.repository.TasksRepository
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
+import com.nextcloud.tasks.domain.usecase.CreateTaskUseCase
+import com.nextcloud.tasks.domain.usecase.DeleteTaskUseCase
 import com.nextcloud.tasks.domain.usecase.LoginWithOAuthUseCase
 import com.nextcloud.tasks.domain.usecase.LoginWithPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
+import com.nextcloud.tasks.domain.usecase.ObserveTaskListsUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveAccountsUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase
+import com.nextcloud.tasks.domain.usecase.ObserveTagsUseCase
+import com.nextcloud.tasks.domain.usecase.RefreshTasksUseCase
 import com.nextcloud.tasks.domain.usecase.SwitchAccountUseCase
+import com.nextcloud.tasks.domain.usecase.UpdateTaskUseCase
 import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
 import dagger.Module
 import dagger.Provides
@@ -25,6 +31,30 @@ object AppModule {
     @Provides
     @Singleton
     fun provideLoadTasksUseCase(repository: TasksRepository): LoadTasksUseCase = LoadTasksUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideRefreshTasksUseCase(repository: TasksRepository): RefreshTasksUseCase = RefreshTasksUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideCreateTaskUseCase(repository: TasksRepository): CreateTaskUseCase = CreateTaskUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideUpdateTaskUseCase(repository: TasksRepository): UpdateTaskUseCase = UpdateTaskUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideDeleteTaskUseCase(repository: TasksRepository): DeleteTaskUseCase = DeleteTaskUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideObserveTaskListsUseCase(repository: TasksRepository): ObserveTaskListsUseCase = ObserveTaskListsUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideObserveTagsUseCase(repository: TasksRepository): ObserveTagsUseCase = ObserveTagsUseCase(repository)
 
     @Provides
     @Singleton

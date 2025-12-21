@@ -15,4 +15,5 @@ data class TaskRequestDto(
     val tagIds: List<String>,
     @Json(name = "updated_at")
     val updatedAt: Long,
+    val priority: String,
 )

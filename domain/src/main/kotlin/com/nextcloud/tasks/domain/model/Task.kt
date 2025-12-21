@@ -8,6 +8,7 @@ data class Task(
     val title: String,
     val description: String? = null,
     val completed: Boolean = false,
+    val priority: TaskPriority = TaskPriority.MEDIUM,
     val due: Instant? = null,
     val updatedAt: Instant,
     val tags: List<Tag> = emptyList(),

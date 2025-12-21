@@ -3,6 +3,7 @@ package com.nextcloud.tasks.data.database.entity
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.nextcloud.tasks.domain.model.TaskPriority
 import java.time.Instant
 
 @Entity(tableName = "tasks")
@@ -18,4 +19,5 @@ data class TaskEntity(
     val due: Instant?,
     @ColumnInfo(name = "updated_at")
     val updatedAt: Instant,
+    val priority: String = TaskPriority.MEDIUM.name,
 )
