@@ -19,7 +19,7 @@ import com.nextcloud.tasks.data.database.entity.TaskTagCrossRef
         TagEntity::class,
         TaskTagCrossRef::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(InstantTypeConverter::class)

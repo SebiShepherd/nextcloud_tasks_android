@@ -25,4 +25,6 @@ data class TaskEntity(
     val uid: String?,
     val etag: String?,
     val href: String?,
+    @ColumnInfo(name = "parent_uid")
+    val parentUid: String?,
 )

@@ -22,5 +22,13 @@ object DatabaseMigrations {
             }
         }
 
-    val all: Array<Migration> = arrayOf(MIGRATION_1_2)
+    val MIGRATION_2_3 =
+        object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add parent_uid column for sub-task support
+                db.execSQL("ALTER TABLE tasks ADD COLUMN parent_uid TEXT")
+            }
+        }
+
+    val all: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }

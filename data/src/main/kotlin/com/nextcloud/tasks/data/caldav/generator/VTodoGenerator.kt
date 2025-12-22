@@ -76,6 +76,11 @@ class VTodoGenerator
                 vtodo.properties.add(categories)
             }
 
+            // RELATED-TO (parent task for sub-tasks)
+            task.parentUid?.let { parentUid ->
+                vtodo.properties.add(net.fortuna.ical4j.model.property.RelatedTo(parentUid))
+            }
+
             calendar.components.add(vtodo)
             return calendar.toString()
         }

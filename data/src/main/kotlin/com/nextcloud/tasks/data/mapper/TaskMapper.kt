@@ -31,6 +31,7 @@ class TaskMapper
                 uid = null,
                 etag = null,
                 href = null,
+                parentUid = null,
             )
 
         fun toDomain(taskWithRelations: TaskWithRelations): Task {
@@ -50,6 +51,7 @@ class TaskMapper
                 uid = taskWithRelations.task.uid,
                 etag = taskWithRelations.task.etag,
                 href = taskWithRelations.task.href,
+                parentUid = taskWithRelations.task.parentUid,
             )
         }
 

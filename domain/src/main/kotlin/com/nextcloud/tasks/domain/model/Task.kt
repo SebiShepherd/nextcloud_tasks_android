@@ -17,4 +17,5 @@ data class Task(
     val uid: String? = null,
     val etag: String? = null,
     val href: String? = null,
+    val parentUid: String? = null, // UID of parent task for sub-tasks
 )

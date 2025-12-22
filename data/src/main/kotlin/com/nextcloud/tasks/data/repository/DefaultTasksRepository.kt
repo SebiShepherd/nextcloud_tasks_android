@@ -91,6 +91,7 @@ class DefaultTasksRepository
                         uid = uid,
                         etag = null,
                         href = null,
+                        parentUid = null,
                     )
 
                 // Generate iCalendar VTODO
@@ -122,6 +123,7 @@ class DefaultTasksRepository
                         uid = uid,
                         etag = etag,
                         href = href,
+                        parentUid = null,
                     )
 
                 database.withTransaction {
@@ -164,6 +166,7 @@ class DefaultTasksRepository
                         uid = task.uid,
                         etag = newEtag,
                         href = task.href,
+                        parentUid = task.parentUid,
                     )
 
                 database.withTransaction {
@@ -224,6 +227,7 @@ class DefaultTasksRepository
                 }
 
                 val collections = collectionsResult.getOrThrow()
+                    .filter { !it.href.contains("/trash/", ignoreCase = true) } // Exclude trash collections
                 Timber.d("Found ${collections.size} calendar collections with VTODO support")
 
                 // Convert collections to TaskListEntity
@@ -267,6 +271,10 @@ class DefaultTasksRepository
 
                 // Update database
                 database.withTransaction {
+                    // Delete local-only (demo) tasks and lists before syncing
+                    tasksDao.deleteTasksWithoutHref()
+                    taskListsDao.deleteListsWithoutHref()
+
                     upsertTaskLists(taskLists)
                     upsertTasksFromCalDav(allTasks)
                 }
@@ -312,6 +320,7 @@ class DefaultTasksRepository
                         uid = null,
                         etag = null,
                         href = null,
+                        parentUid = null,
                     )
 
                 database.withTransaction {

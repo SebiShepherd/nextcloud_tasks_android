@@ -833,7 +833,11 @@ class TaskListViewModel
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         init {
-            viewModelScope.launch { loadTasksUseCase.seedSample() }
+            viewModelScope.launch {
+                loadTasksUseCase.seedSample()
+                // Auto-refresh on app start to fetch tasks from server
+                refresh()
+            }
         }
 
         fun selectList(listId: String?) {

@@ -40,6 +40,10 @@ class VTodoParser
                 val lastModified =
                     vtodo.lastModified?.date?.toInstant() ?: Instant.now()
 
+                // Parse RELATED-TO property for sub-task support
+                val relatedTo = vtodo.getProperty<net.fortuna.ical4j.model.property.RelatedTo>("RELATED-TO")
+                val parentUid = relatedTo?.value
+
                 TaskEntity(
                     id = generateTaskId(uid, listId),
                     listId = listId,
@@ -54,6 +58,7 @@ class VTodoParser
                     uid = uid,
                     etag = etag,
                     href = href,
+                    parentUid = parentUid,
                 )
             } catch (e: Exception) {
                 // Log error and return null for malformed data
@@ -105,6 +110,10 @@ class VTodoParser
                 val lastModified =
                     vtodo.lastModified?.date?.toInstant() ?: Instant.now()
 
+                // Parse RELATED-TO property for sub-task support
+                val relatedTo = vtodo.getProperty<net.fortuna.ical4j.model.property.RelatedTo>("RELATED-TO")
+                val parentUid = relatedTo?.value
+
                 TaskEntity(
                     id = generateTaskId(uid, listId),
                     listId = listId,
@@ -119,6 +128,7 @@ class VTodoParser
                     uid = uid,
                     etag = etag,
                     href = href,
+                    parentUid = parentUid,
                 )
             } catch (e: Exception) {
                 timber.log.Timber.w(e, "Failed to parse VTODO component")
