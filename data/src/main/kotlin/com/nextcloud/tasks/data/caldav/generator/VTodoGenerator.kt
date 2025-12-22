@@ -39,10 +39,8 @@ class VTodoGenerator
             // DTSTAMP - current timestamp
             vtodo.properties.add(DtStamp(DateTime()))
 
-            // SUMMARY - task title
-            if (task.title.isNotEmpty()) {
-                vtodo.properties.add(net.fortuna.ical4j.model.property.Summary(task.title))
-            }
+            // SUMMARY - task title (always include for CalDAV compatibility)
+            vtodo.properties.add(net.fortuna.ical4j.model.property.Summary(task.title))
 
             // DESCRIPTION
             task.description?.let {
