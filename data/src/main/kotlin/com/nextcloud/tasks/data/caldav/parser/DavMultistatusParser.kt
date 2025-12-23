@@ -233,6 +233,9 @@ class DavMultistatusParser
                 val supportedComponentsStr =
                     response.properties[DavProperty.SUPPORTED_CALENDAR_COMPONENT_SET] ?: ""
 
+                // Log all properties for debugging deleted calendars
+                Timber.d("Collection ${response.href}: properties=${response.properties}")
+
                 // Only include collections that are calendars and support VTODO
                 if (resourceType.contains("calendar") && supportedComponentsStr.contains("VTODO")) {
                     CalendarCollectionInfo(

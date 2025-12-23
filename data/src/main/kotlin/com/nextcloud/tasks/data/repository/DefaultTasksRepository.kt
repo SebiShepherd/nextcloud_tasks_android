@@ -227,8 +227,7 @@ class DefaultTasksRepository
                 }
 
                 val collections = collectionsResult.getOrThrow()
-                    .filter { !it.href.contains("/trash/", ignoreCase = true) } // Exclude trash collections
-                Timber.d("Found ${collections.size} calendar collections with VTODO support")
+                Timber.d("Found ${collections.size} calendar collections with VTODO support (before filtering)")
 
                 // Convert collections to TaskListEntity
                 val taskLists =
@@ -253,14 +252,15 @@ class DefaultTasksRepository
                         Timber.d("Found ${todos.size} todos in ${collection.displayName}")
 
                         todos.forEach { todo ->
-                            val taskEntity =
-                                vTodoParser.parseVTodo(
+                            // Use parseVTodos (plural) to handle multiple VTODOs in one calendar
+                            val taskEntities =
+                                vTodoParser.parseVTodos(
                                     icalData = todo.calendarData,
                                     listId = collection.href,
                                     href = todo.href,
                                     etag = todo.etag,
                                 )
-                            taskEntity?.let { allTasks.add(it) }
+                            allTasks.addAll(taskEntities)
                         }
                     } else {
                         Timber.w(todosResult.exceptionOrNull(), "Failed to fetch todos from ${collection.displayName}")
