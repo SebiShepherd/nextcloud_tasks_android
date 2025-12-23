@@ -9,6 +9,7 @@ import com.nextcloud.tasks.data.caldav.models.DavProperty
 import com.nextcloud.tasks.data.caldav.models.DavResourceResponse
 import com.nextcloud.tasks.data.caldav.models.PrincipalInfo
 import org.xmlpull.v1.XmlPullParser
+import timber.log.Timber
 import java.io.StringReader
 import javax.inject.Inject
 
