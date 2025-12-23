@@ -118,6 +118,13 @@ fun NextcloudTasksApp(
 
     var showCreateDialog by remember { mutableStateOf(false) }
 
+    // Auto-refresh when account becomes active (after login or account switch)
+    androidx.compose.runtime.LaunchedEffect(loginState.activeAccount) {
+        if (loginState.activeAccount != null) {
+            taskListViewModel.refresh()
+        }
+    }
+
     if (loginState.activeAccount == null) {
         LoginScreen(
             state = loginState,
@@ -833,11 +840,8 @@ class TaskListViewModel
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         init {
-            viewModelScope.launch {
-                loadTasksUseCase.seedSample()
-                // Auto-refresh on app start to fetch tasks from server
-                refresh()
-            }
+            // Auto-refresh is handled by LaunchedEffect in NextcloudTasksApp
+            // when account becomes active (after login or account switch)
         }
 
         fun selectList(listId: String?) {
