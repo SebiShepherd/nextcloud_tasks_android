@@ -69,6 +69,7 @@ class VTodoParser
 
         /**
          * Parse multiple VTODOs from iCalendar data
+         * Handles both single VCALENDAR with multiple VTODOs and multiple VCALENDAR blocks
          */
         fun parseVTodos(
             icalData: String,
@@ -76,20 +77,85 @@ class VTodoParser
             href: String,
             etag: String,
         ): List<TaskEntity> {
-            return try {
+            // First try to parse as a single calendar with multiple VTODOs
+            try {
                 val builder = CalendarBuilder()
                 val calendar = builder.build(StringReader(icalData))
 
                 @Suppress("UNCHECKED_CAST")
                 val vtodos = calendar.getComponents<VToDo>("VTODO") as? List<VToDo> ?: emptyList()
 
-                vtodos.mapNotNull { vtodo ->
-                    parseVTodoComponent(vtodo, listId, href, etag)
+                val tasks =
+                    vtodos.mapNotNull { vtodo ->
+                        parseVTodoComponent(vtodo, listId, href, etag)
+                    }
+
+                if (tasks.isNotEmpty()) {
+                    return tasks
                 }
             } catch (e: Exception) {
-                timber.log.Timber.w(e, "Failed to parse VTODOs")
+                timber.log.Timber.d(e, "Failed to parse as single calendar, trying to split into multiple calendars")
+            }
+
+            // Fallback: Split into separate VCALENDAR blocks and parse each
+            return try {
+                val calendarBlocks = splitVCalendarBlocks(icalData)
+                timber.log.Timber.d("Split iCalendar data into ${calendarBlocks.size} blocks")
+
+                calendarBlocks.flatMap { block ->
+                    try {
+                        val builder = CalendarBuilder()
+                        val calendar = builder.build(StringReader(block))
+
+                        @Suppress("UNCHECKED_CAST")
+                        val vtodos = calendar.getComponents<VToDo>("VTODO") as? List<VToDo> ?: emptyList()
+
+                        vtodos.mapNotNull { vtodo ->
+                            parseVTodoComponent(vtodo, listId, href, etag)
+                        }
+                    } catch (e: Exception) {
+                        timber.log.Timber.w(e, "Failed to parse calendar block")
+                        emptyList()
+                    }
+                }
+            } catch (e: Exception) {
+                timber.log.Timber.w(e, "Failed to parse VTODOs with fallback")
                 emptyList()
             }
+        }
+
+        /**
+         * Split iCalendar data into separate VCALENDAR blocks
+         */
+        private fun splitVCalendarBlocks(icalData: String): List<String> {
+            val blocks = mutableListOf<String>()
+            val lines = icalData.lines()
+            var currentBlock = mutableListOf<String>()
+            var inCalendar = false
+
+            for (line in lines) {
+                when {
+                    line.startsWith("BEGIN:VCALENDAR") -> {
+                        inCalendar = true
+                        currentBlock = mutableListOf(line)
+                    }
+
+                    line.startsWith("END:VCALENDAR") -> {
+                        if (inCalendar) {
+                            currentBlock.add(line)
+                            blocks.add(currentBlock.joinToString("\n"))
+                            currentBlock = mutableListOf()
+                            inCalendar = false
+                        }
+                    }
+
+                    inCalendar -> {
+                        currentBlock.add(line)
+                    }
+                }
+            }
+
+            return blocks
         }
 
         private fun parseVTodoComponent(
