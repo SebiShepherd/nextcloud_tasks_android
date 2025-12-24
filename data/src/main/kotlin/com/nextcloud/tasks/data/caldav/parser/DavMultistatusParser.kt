@@ -167,11 +167,12 @@ class DavMultistatusParser
                 if (eventType == XmlPullParser.START_TAG) {
                     // Extract tag name without namespace prefix
                     val tagName = parser.name
-                    val cleanName = if (tagName.contains(":")) {
-                        tagName.substringAfter(":")
-                    } else {
-                        tagName
-                    }
+                    val cleanName =
+                        if (tagName.contains(":")) {
+                            tagName.substringAfter(":")
+                        } else {
+                            tagName
+                        }
                     types.add(cleanName)
                 }
             }

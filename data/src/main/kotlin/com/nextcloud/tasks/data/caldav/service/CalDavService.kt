@@ -3,7 +3,6 @@ package com.nextcloud.tasks.data.caldav.service
 import com.nextcloud.tasks.data.caldav.models.CalendarCollectionInfo
 import com.nextcloud.tasks.data.caldav.models.CalendarHomeInfo
 import com.nextcloud.tasks.data.caldav.models.CalendarObjectInfo
-import com.nextcloud.tasks.data.caldav.models.DavProperty
 import com.nextcloud.tasks.data.caldav.models.PrincipalInfo
 import com.nextcloud.tasks.data.caldav.parser.DavMultistatusParser
 import okhttp3.MediaType.Companion.toMediaType

@@ -466,17 +466,20 @@ private fun TaskListsDrawer(
                     onSelectList(taskList.id)
                     onCloseDrawer()
                 },
-                badge = taskList.color?.let {
-                    {
-                        Surface(
-                            shape = MaterialTheme.shapes.small,
-                            color = androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(it)),
-                            modifier = Modifier.padding(4.dp),
-                        ) {
-                            Spacer(modifier = Modifier.width(16.dp))
+                badge =
+                    taskList.color?.let {
+                        {
+                            Surface(
+                                shape = MaterialTheme.shapes.small,
+                                color =
+                                    androidx.compose.ui.graphics
+                                        .Color(android.graphics.Color.parseColor(it)),
+                                modifier = Modifier.padding(4.dp),
+                            ) {
+                                Spacer(modifier = Modifier.width(16.dp))
+                            }
                         }
-                    }
-                },
+                    },
             )
         }
     }
@@ -672,7 +675,9 @@ private fun TaskCard(
                 ) {
                     task.due?.let { due ->
                         Text(
-                            text = "Due: ${java.time.format.DateTimeFormatter.ofPattern("MMM dd").format(due.atZone(java.time.ZoneId.systemDefault()))}",
+                            text = "Due: ${java.time.format.DateTimeFormatter.ofPattern(
+                                "MMM dd",
+                            ).format(due.atZone(java.time.ZoneId.systemDefault()))}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -790,7 +795,8 @@ class TaskListViewModel
 
         // Task lists from repository
         val taskLists =
-            tasksRepository.observeLists()
+            tasksRepository
+                .observeLists()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         // UI state for selected list, filter, and sort
@@ -824,11 +830,11 @@ class TaskListViewModel
                         when (sort) {
                             com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE ->
                                 compareBy(
-                                    nullsLast()
+                                    nullsLast(),
                                 ) { it.due }
                             com.nextcloud.tasks.domain.model.TaskSort.PRIORITY ->
                                 compareBy(
-                                    nullsLast()
+                                    nullsLast(),
                                 ) { it.priority }
                             com.nextcloud.tasks.domain.model.TaskSort.TITLE -> compareBy { it.title }
                             com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT ->

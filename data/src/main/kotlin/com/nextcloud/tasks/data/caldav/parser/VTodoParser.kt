@@ -94,7 +94,10 @@ class VTodoParser
                     return tasks
                 }
             } catch (ignored: Exception) {
-                timber.log.Timber.d(ignored, "Failed to parse as single calendar, trying to split into multiple calendars")
+                timber.log.Timber.d(
+                    ignored,
+                    "Failed to parse as single calendar, trying to split into multiple calendars",
+                )
             }
 
             // Fallback: Split into separate VCALENDAR blocks and parse each

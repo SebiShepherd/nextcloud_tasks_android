@@ -40,11 +40,17 @@ class VTodoGenerator
             vtodo.properties.add(DtStamp(DateTime()))
 
             // SUMMARY - task title (always include for CalDAV compatibility)
-            vtodo.properties.add(net.fortuna.ical4j.model.property.Summary(task.title))
+            vtodo.properties.add(
+                net.fortuna.ical4j.model.property
+                    .Summary(task.title),
+            )
 
             // DESCRIPTION
             task.description?.let {
-                vtodo.properties.add(net.fortuna.ical4j.model.property.Description(it))
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .Description(it),
+                )
             }
 
             // STATUS and COMPLETED
@@ -59,17 +65,25 @@ class VTodoGenerator
 
             // PRIORITY
             task.priority?.let { priority ->
-                vtodo.properties.add(net.fortuna.ical4j.model.property.Priority(priority))
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .Priority(priority),
+                )
             }
 
             // DUE
             task.due?.let { due ->
-                vtodo.properties.add(net.fortuna.ical4j.model.property.Due(DateTime(java.util.Date.from(due))))
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .Due(DateTime(java.util.Date.from(due))),
+                )
             }
 
             // CATEGORIES (tags)
             if (task.tags.isNotEmpty()) {
-                val categories = net.fortuna.ical4j.model.property.Categories()
+                val categories =
+                    net.fortuna.ical4j.model.property
+                        .Categories()
                 task.tags.forEach { tag ->
                     categories.categories.add(tag.name)
                 }
@@ -78,7 +92,10 @@ class VTodoGenerator
 
             // RELATED-TO (parent task for sub-tasks)
             task.parentUid?.let { parentUid ->
-                vtodo.properties.add(net.fortuna.ical4j.model.property.RelatedTo(parentUid))
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .RelatedTo(parentUid),
+                )
             }
 
             calendar.components.add(vtodo)

@@ -69,7 +69,10 @@ class DefaultTasksRepository
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
 
                 // Generate UID and create task domain model
-                val uid = java.util.UUID.randomUUID().toString()
+                val uid =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString()
                 val now = Instant.now()
                 val task =
                     Task(
@@ -195,10 +198,11 @@ class DefaultTasksRepository
 
         override suspend fun refresh() =
             withContext(ioDispatcher) {
-                val baseUrl = authTokenProvider.activeServerUrl() ?: run {
-                    Timber.w("No active server URL, skipping refresh")
-                    return@withContext
-                }
+                val baseUrl =
+                    authTokenProvider.activeServerUrl() ?: run {
+                        Timber.w("No active server URL, skipping refresh")
+                        return@withContext
+                    }
 
                 // CalDAV discovery
                 val principalResult = calDavService.discoverPrincipal(baseUrl)
