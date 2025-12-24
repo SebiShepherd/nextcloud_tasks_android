@@ -125,37 +125,51 @@ class VTodoParser
         }
 
         /**
-         * Split iCalendar data into separate VCALENDAR blocks
+         * Extract VTODO blocks from iCalendar data and wrap each in a minimal VCALENDAR
+         * This handles nested/complex VCALENDAR structures
          */
         private fun splitVCalendarBlocks(icalData: String): List<String> {
-            val blocks = mutableListOf<String>()
+            val vtodoBlocks = mutableListOf<String>()
             val lines = icalData.lines()
-            var currentBlock = mutableListOf<String>()
-            var inCalendar = false
+            var currentVTodo = mutableListOf<String>()
+            var inVTodo = false
+            var depth = 0
 
             for (line in lines) {
                 when {
-                    line.startsWith("BEGIN:VCALENDAR") -> {
-                        inCalendar = true
-                        currentBlock = mutableListOf(line)
+                    line.startsWith("BEGIN:VTODO") -> {
+                        inVTodo = true
+                        depth++
+                        currentVTodo.add(line)
                     }
 
-                    line.startsWith("END:VCALENDAR") -> {
-                        if (inCalendar) {
-                            currentBlock.add(line)
-                            blocks.add(currentBlock.joinToString("\n"))
-                            currentBlock = mutableListOf()
-                            inCalendar = false
+                    line.startsWith("END:VTODO") -> {
+                        currentVTodo.add(line)
+                        depth--
+                        if (depth == 0 && inVTodo) {
+                            // Wrap VTODO in minimal VCALENDAR
+                            val wrappedVTodo =
+                                """
+                                BEGIN:VCALENDAR
+                                VERSION:2.0
+                                PRODID:-//Nextcloud Tasks Android//EN
+                                ${currentVTodo.joinToString("\n")}
+                                END:VCALENDAR
+                                """.trimIndent()
+                            vtodoBlocks.add(wrappedVTodo)
+                            currentVTodo = mutableListOf()
+                            inVTodo = false
                         }
                     }
 
-                    inCalendar -> {
-                        currentBlock.add(line)
+                    inVTodo -> {
+                        currentVTodo.add(line)
                     }
                 }
             }
 
-            return blocks
+            timber.log.Timber.d("Extracted ${vtodoBlocks.size} VTODO blocks from iCalendar data")
+            return vtodoBlocks
         }
 
         private fun parseVTodoComponent(
