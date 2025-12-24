@@ -1,14 +1,11 @@
 package com.nextcloud.tasks.data.repository
 
 import androidx.room.withTransaction
-import com.nextcloud.tasks.data.api.NextcloudTasksApi
-import com.nextcloud.tasks.data.api.dto.TaskDto
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.caldav.generator.VTodoGenerator
 import com.nextcloud.tasks.data.caldav.parser.VTodoParser
 import com.nextcloud.tasks.data.caldav.service.CalDavService
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
-import com.nextcloud.tasks.data.database.entity.TagEntity
 import com.nextcloud.tasks.data.database.entity.TaskEntity
 import com.nextcloud.tasks.data.database.entity.TaskListEntity
 import com.nextcloud.tasks.data.mapper.TagMapper
@@ -29,11 +26,10 @@ import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
 
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 class DefaultTasksRepository
     @Inject
     constructor(
-        private val api: NextcloudTasksApi,
         private val database: NextcloudTasksDatabase,
         private val taskMapper: TaskMapper,
         private val taskListMapper: TaskListMapper,
@@ -335,37 +331,12 @@ class DefaultTasksRepository
                 }
             }
 
-        private suspend fun upsertFromRemote(tasks: List<TaskDto>) {
-            tasks.forEach { dto ->
-                val entity = taskMapper.toEntity(dto)
-                if (shouldReplaceTask(entity)) {
-                    tasksDao.upsertTask(entity)
-                    tasksDao.clearTagsForTask(entity.id)
-                    if (dto.tagIds.isNotEmpty()) {
-                        tasksDao.upsertTaskTagCrossRefs(taskMapper.crossRefs(entity.id, dto.tagIds))
-                    }
-                } else {
-                    Timber.d("Skipped task %s because local version is newer", entity.id)
-                }
-            }
-        }
-
         private suspend fun upsertTaskLists(lists: List<TaskListEntity>) {
             lists.forEach { list ->
                 if (shouldReplaceList(list)) {
                     taskListsDao.upsertTaskList(list)
                 } else {
                     Timber.d("Skipped list %s because local version is newer", list.id)
-                }
-            }
-        }
-
-        private suspend fun upsertTags(tags: List<TagEntity>) {
-            tags.forEach { tag ->
-                if (shouldReplaceTag(tag)) {
-                    tagsDao.upsertTag(tag)
-                } else {
-                    Timber.d("Skipped tag %s because local version is newer", tag.id)
                 }
             }
         }
@@ -378,11 +349,6 @@ class DefaultTasksRepository
         private suspend fun shouldReplaceList(list: TaskListEntity): Boolean {
             val currentUpdatedAt = taskListsDao.getUpdatedAt(list.id)
             return currentUpdatedAt == null || !currentUpdatedAt.isAfter(list.updatedAt)
-        }
-
-        private suspend fun shouldReplaceTag(tag: TagEntity): Boolean {
-            val currentUpdatedAt = tagsDao.getUpdatedAt(tag.id)
-            return currentUpdatedAt == null || !currentUpdatedAt.isAfter(tag.updatedAt)
         }
 
         private suspend fun upsertTasksFromCalDav(tasks: List<TaskEntity>) {

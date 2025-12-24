@@ -6,15 +6,23 @@ config:
 style:
   MagicNumber:
     active: false
+  ReturnCount:
+    max: 3
+  LoopWithTooManyJumpStatements:
+    active: false
 complexity:
   LongParameterList:
     ignoreAnnotated:
       - Composable
   LongMethod:
+    threshold: 70
     ignoreAnnotated:
       - Composable
   TooManyFunctions:
     thresholdInFiles: 15
+    thresholdInClasses: 15
+  CyclomaticComplexMethod:
+    threshold: 20
 naming:
   FunctionNaming:
     ignoreAnnotated:

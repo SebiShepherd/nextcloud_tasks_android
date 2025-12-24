@@ -60,9 +60,9 @@ class VTodoParser
                     href = href,
                     parentUid = parentUid,
                 )
-            } catch (e: Exception) {
+            } catch (ignored: Exception) {
                 // Log error and return null for malformed data
-                timber.log.Timber.w(e, "Failed to parse VTODO")
+                timber.log.Timber.w(ignored, "Failed to parse VTODO")
                 null
             }
         }
@@ -93,8 +93,8 @@ class VTodoParser
                 if (tasks.isNotEmpty()) {
                     return tasks
                 }
-            } catch (e: Exception) {
-                timber.log.Timber.d(e, "Failed to parse as single calendar, trying to split into multiple calendars")
+            } catch (ignored: Exception) {
+                timber.log.Timber.d(ignored, "Failed to parse as single calendar, trying to split into multiple calendars")
             }
 
             // Fallback: Split into separate VCALENDAR blocks and parse each
@@ -113,13 +113,13 @@ class VTodoParser
                         vtodos.mapNotNull { vtodo ->
                             parseVTodoComponent(vtodo, listId, href, etag)
                         }
-                    } catch (e: Exception) {
-                        timber.log.Timber.w(e, "Failed to parse calendar block")
+                    } catch (ignored: Exception) {
+                        timber.log.Timber.w(ignored, "Failed to parse calendar block")
                         emptyList()
                     }
                 }
-            } catch (e: Exception) {
-                timber.log.Timber.w(e, "Failed to parse VTODOs with fallback")
+            } catch (ignored: Exception) {
+                timber.log.Timber.w(ignored, "Failed to parse VTODOs with fallback")
                 emptyList()
             }
         }
@@ -209,8 +209,8 @@ class VTodoParser
                     href = href,
                     parentUid = parentUid,
                 )
-            } catch (e: Exception) {
-                timber.log.Timber.w(e, "Failed to parse VTODO component")
+            } catch (ignored: Exception) {
+                timber.log.Timber.w(ignored, "Failed to parse VTODO component")
                 null
             }
         }
