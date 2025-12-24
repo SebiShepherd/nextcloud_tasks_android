@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +36,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -228,6 +232,8 @@ fun AuthenticatedHome(
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                     onRefresh = onRefresh,
                     isRefreshing = isRefreshing,
+                    taskSort = taskSort,
+                    onSetSort = onSetSort,
                 )
             },
             floatingActionButton = {
@@ -263,49 +269,198 @@ private fun AuthenticatedTopBar(
     onOpenDrawer: () -> Unit,
     onRefresh: () -> Unit,
     isRefreshing: Boolean,
+    taskSort: com.nextcloud.tasks.domain.model.TaskSort,
+    onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
 ) {
-    TopAppBar(
-        title = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(text = stringResource(id = R.string.app_name))
-                state.activeAccount?.let {
-                    Text(
-                        text = it.serverUrl,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Column {
+        // Header mit Menu und Titel
+        TopAppBar(
+            title = { Text(text = stringResource(id = R.string.app_name)) },
+            navigationIcon = {
+                IconButton(onClick = onOpenDrawer) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Menu",
                     )
                 }
-            }
-        },
-        navigationIcon = {
-            IconButton(onClick = onOpenDrawer) {
+            },
+            actions = {
+                IconButton(onClick = onRefresh, enabled = !isRefreshing) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                    )
+                }
+            },
+            colors =
+                TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+        )
+
+        // Suchleiste
+        SearchBarWithActions(
+            state = state,
+            onSwitchAccount = onSwitchAccount,
+            onLogout = onLogout,
+            taskSort = taskSort,
+            onSetSort = onSetSort,
+        )
+    }
+}
+
+@Composable
+private fun SearchBarWithActions(
+    state: LoginUiState,
+    onSwitchAccount: (String) -> Unit,
+    onLogout: (String) -> Unit,
+    taskSort: com.nextcloud.tasks.domain.model.TaskSort,
+    onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
+) {
+    var showSortDialog by remember { mutableStateOf(false) }
+    var showAccountMenu by remember { mutableStateOf(false) }
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // Suchfeld
+        OutlinedTextField(
+            value = "",
+            onValueChange = { },
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("In allen Notizen suchen") },
+            leadingIcon = {
                 Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                )
+            },
+            singleLine = true,
+            enabled = false, // Platzhalter
+        )
+
+        // Sort-Icon
+        IconButton(onClick = { showSortDialog = true }) {
+            Icon(
+                imageVector = Icons.Default.Sort,
+                contentDescription = "Sort",
+            )
+        }
+
+        // Profilbild/Account-Icon
+        IconButton(onClick = { showAccountMenu = true }) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Account",
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+
+    // Account-Menü (vorerst als Dropdown)
+    if (showAccountMenu) {
+        state.activeAccount?.let { account ->
+            AccountDropdown(
+                activeAccount = account,
+                accounts = state.accounts,
+                onSwitchAccount = onSwitchAccount,
+                onLogout = onLogout,
+                onDismiss = { showAccountMenu = false },
+            )
+        }
+    }
+
+    // Sort-Dialog
+    if (showSortDialog) {
+        SortDialog(
+            currentSort = taskSort,
+            onSetSort = onSetSort,
+            onDismiss = { showSortDialog = false },
+        )
+    }
+}
+
+@Composable
+private fun SortDialog(
+    currentSort: com.nextcloud.tasks.domain.model.TaskSort,
+    onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sortierung") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SortOption(
+                    text = "Fälligkeitsdatum",
+                    isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE,
+                    onClick = {
+                        onSetSort(com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE)
+                        onDismiss()
+                    },
+                )
+                SortOption(
+                    text = "Priorität",
+                    isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.PRIORITY,
+                    onClick = {
+                        onSetSort(com.nextcloud.tasks.domain.model.TaskSort.PRIORITY)
+                        onDismiss()
+                    },
+                )
+                SortOption(
+                    text = "Titel",
+                    isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.TITLE,
+                    onClick = {
+                        onSetSort(com.nextcloud.tasks.domain.model.TaskSort.TITLE)
+                        onDismiss()
+                    },
+                )
+                SortOption(
+                    text = "Aktualisiert",
+                    isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT,
+                    onClick = {
+                        onSetSort(com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT)
+                        onDismiss()
+                    },
                 )
             }
         },
-        actions = {
-            IconButton(onClick = onRefresh, enabled = !isRefreshing) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Refresh",
-                )
-            }
-            state.activeAccount?.let { account ->
-                AccountDropdown(
-                    activeAccount = account,
-                    accounts = state.accounts,
-                    onSwitchAccount = onSwitchAccount,
-                    onLogout = onLogout,
-                )
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Schließen")
             }
         },
-        colors =
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
     )
+}
+
+@Composable
+private fun SortOption(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.RadioButton(
+            selected = isSelected,
+            onClick = onClick,
+        )
+        Text(
+            text = text,
+            modifier = Modifier.padding(start = 8.dp),
+        )
+    }
 }
 
 @Composable
@@ -320,25 +475,18 @@ private fun TasksContent(
     onToggleTaskComplete: (Task) -> Unit,
     onDeleteTask: (String) -> Unit,
 ) {
+    var showCompletedTasks by remember { mutableStateOf(false) }
+
+    // Group tasks by completion status
+    val openTasks = tasks.filter { !it.completed }
+    val completedTasks = tasks.filter { it.completed }
+
     LazyColumn(
         modifier = Modifier.padding(padding),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        state.activeAccount?.let { account ->
-            item { AccountSummaryCard(account = account) }
-        }
-
-        item {
-            FilterAndSortControls(
-                taskFilter = taskFilter,
-                taskSort = taskSort,
-                onSetFilter = onSetFilter,
-                onSetSort = onSetSort,
-            )
-        }
-
-        if (tasks.isEmpty()) {
+        if (openTasks.isEmpty() && completedTasks.isEmpty()) {
             item {
                 Box(
                     modifier =
@@ -351,25 +499,8 @@ private fun TasksContent(
                 }
             }
         } else {
-            item {
-                Text(
-                    text = "Tasks (${tasks.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            }
-
-            // Group tasks by completion status
-            val openTasks = tasks.filter { !it.completed }
-            val completedTasks = tasks.filter { it.completed }
-
+            // Offene Tasks
             if (openTasks.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "Open (${openTasks.size})",
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
-                }
                 items(openTasks) { task ->
                     TaskCard(
                         task = task,
@@ -379,71 +510,39 @@ private fun TasksContent(
                 }
             }
 
+            // Button zum Aufklappen der erledigten Tasks
             if (completedTasks.isNotEmpty()) {
                 item {
-                    Text(
-                        text = "Completed (${completedTasks.size})",
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(top = 16.dp),
-                    )
+                    TextButton(
+                        onClick = { showCompletedTasks = !showCompletedTasks },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text =
+                                if (showCompletedTasks) {
+                                    "Erledigte Tasks ausblenden (${completedTasks.size})"
+                                } else {
+                                    "Erledigte Tasks anzeigen (${completedTasks.size})"
+                                },
+                        )
+                    }
                 }
-                items(completedTasks) { task ->
-                    TaskCard(
-                        task = task,
-                        onToggleComplete = { onToggleTaskComplete(task) },
-                        onDelete = { onDeleteTask(task.id) },
-                    )
+
+                // Erledigte Tasks (wenn aufgeklappt)
+                if (showCompletedTasks) {
+                    items(completedTasks) { task ->
+                        TaskCard(
+                            task = task,
+                            onToggleComplete = { onToggleTaskComplete(task) },
+                            onDelete = { onDeleteTask(task.id) },
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun AccountSummaryCard(account: NextcloudAccount) {
-    Card(
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 0.dp,
-            ),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = stringResource(id = R.string.active_account),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = account.displayName,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = account.serverUrl,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text =
-                    if (account.authType == AuthType.PASSWORD) {
-                        stringResource(id = R.string.login_method_password)
-                    } else {
-                        stringResource(id = R.string.login_method_oauth)
-                    },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
 
 @Composable
 private fun TaskListsDrawer(
@@ -499,69 +598,6 @@ private fun TaskListsDrawer(
     }
 }
 
-@Composable
-private fun FilterAndSortControls(
-    taskFilter: com.nextcloud.tasks.domain.model.TaskFilter,
-    taskSort: com.nextcloud.tasks.domain.model.TaskSort,
-    onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
-    onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Filter controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "Filter:",
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.align(Alignment.CenterVertically),
-            )
-            FilterChip(
-                selected = taskFilter == com.nextcloud.tasks.domain.model.TaskFilter.ALL,
-                onClick = { onSetFilter(com.nextcloud.tasks.domain.model.TaskFilter.ALL) },
-                label = { Text("All") },
-            )
-            FilterChip(
-                selected = taskFilter == com.nextcloud.tasks.domain.model.TaskFilter.CURRENT,
-                onClick = { onSetFilter(com.nextcloud.tasks.domain.model.TaskFilter.CURRENT) },
-                label = { Text("Current") },
-            )
-            FilterChip(
-                selected = taskFilter == com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED,
-                onClick = { onSetFilter(com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED) },
-                label = { Text("Completed") },
-            )
-        }
-
-        // Sort controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = "Sort:",
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.align(Alignment.CenterVertically),
-            )
-            FilterChip(
-                selected = taskSort == com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE,
-                onClick = { onSetSort(com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE) },
-                label = { Text("Due") },
-            )
-            FilterChip(
-                selected = taskSort == com.nextcloud.tasks.domain.model.TaskSort.PRIORITY,
-                onClick = { onSetSort(com.nextcloud.tasks.domain.model.TaskSort.PRIORITY) },
-                label = { Text("Priority") },
-            )
-            FilterChip(
-                selected = taskSort == com.nextcloud.tasks.domain.model.TaskSort.TITLE,
-                onClick = { onSetSort(com.nextcloud.tasks.domain.model.TaskSort.TITLE) },
-                label = { Text("Title") },
-            )
-        }
-    }
-}
 
 @Composable
 private fun AccountDropdown(
@@ -569,18 +605,18 @@ private fun AccountDropdown(
     accounts: List<NextcloudAccount>,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
+    onDismiss: () -> Unit = {},
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(true) }
 
     Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "Account Menu",
-            )
-        }
-
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+                onDismiss()
+            },
+        ) {
             accounts.forEach { account ->
                 DropdownMenuItem(
                     text = {
