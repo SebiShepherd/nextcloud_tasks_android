@@ -147,15 +147,14 @@ class VTodoParser
                         currentVTodo.add(line)
                         depth--
                         if (depth == 0 && inVTodo) {
-                            // Wrap VTODO in minimal VCALENDAR
+                            // Wrap VTODO in minimal VCALENDAR with proper line breaks
+                            val vtodoContent = currentVTodo.joinToString("\n")
                             val wrappedVTodo =
-                                """
-                                BEGIN:VCALENDAR
-                                VERSION:2.0
-                                PRODID:-//Nextcloud Tasks Android//EN
-                                ${currentVTodo.joinToString("\n")}
-                                END:VCALENDAR
-                                """.trimIndent()
+                                "BEGIN:VCALENDAR\n" +
+                                    "VERSION:2.0\n" +
+                                    "PRODID:-//Nextcloud Tasks Android//EN\n" +
+                                    vtodoContent + "\n" +
+                                    "END:VCALENDAR"
                             vtodoBlocks.add(wrappedVTodo)
                             currentVTodo = mutableListOf()
                             inVTodo = false
