@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,9 +16,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -35,14 +39,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
@@ -55,6 +60,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -318,7 +324,7 @@ private fun SearchBarWithActions(
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
 ) {
     var showSortDialog by remember { mutableStateOf(false) }
-    var showAccountMenu by remember { mutableStateOf(false) }
+    var showAccountSheet by remember { mutableStateOf(false) }
 
     Row(
         modifier =
@@ -326,51 +332,72 @@ private fun SearchBarWithActions(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Suchfeld
-        OutlinedTextField(
-            value = "",
-            onValueChange = { },
-            modifier = Modifier.weight(1f),
-            placeholder = { Text("In allen Notizen suchen") },
-            leadingIcon = {
+        // Flache Search Bar (wie NC Notes)
+        Surface(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .height(48.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            },
-            singleLine = true,
-            enabled = false, // Platzhalter
-        )
+                Text(
+                    text = "In allen Notizen suchen",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
 
         // Sort-Icon
         IconButton(onClick = { showSortDialog = true }) {
             Icon(
                 imageVector = Icons.Default.Sort,
                 contentDescription = "Sort",
+                tint = MaterialTheme.colorScheme.onSurface,
             )
         }
 
-        // Profilbild/Account-Icon
-        IconButton(onClick = { showAccountMenu = true }) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Account",
-                modifier = Modifier.fillMaxSize(),
+        // Rundes Profilbild (Placeholder)
+        Box(
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape,
+                    ).clickable { showAccountSheet = true },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = state.activeAccount?.displayName?.firstOrNull()?.uppercase() ?: "?",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimary,
             )
         }
     }
 
-    // Account-Menü (vorerst als Dropdown)
-    if (showAccountMenu) {
+    // Account Bottom Sheet
+    if (showAccountSheet) {
         state.activeAccount?.let { account ->
-            AccountDropdown(
+            AccountBottomSheet(
                 activeAccount = account,
                 accounts = state.accounts,
                 onSwitchAccount = onSwitchAccount,
                 onLogout = onLogout,
-                onDismiss = { showAccountMenu = false },
+                onDismiss = { showAccountSheet = false },
             )
         }
     }
@@ -599,60 +626,172 @@ private fun TaskListsDrawer(
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AccountDropdown(
+private fun AccountBottomSheet(
     activeAccount: NextcloudAccount,
     accounts: List<NextcloudAccount>,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
-    onDismiss: () -> Unit = {},
+    onDismiss: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(true) }
+    val sheetState = rememberModalBottomSheetState()
 
-    Box {
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = {
-                expanded = false
-                onDismiss()
-            },
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 16.dp),
         ) {
+            // Account-Liste
             accounts.forEach { account ->
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(text = account.displayName)
-                            Text(
-                                text = account.serverUrl,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
+                AccountItem(
+                    account = account,
+                    isActive = account.id == activeAccount.id,
                     onClick = {
-                        expanded = false
-                        onSwitchAccount(account.id)
+                        if (account.id != activeAccount.id) {
+                            onSwitchAccount(account.id)
+                        }
+                        onDismiss()
                     },
-                    trailingIcon =
-                        if (account.id == activeAccount.id) {
-                            {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Active Account",
-                                )
-                            }
-                        } else {
-                            null
-                        },
                 )
             }
-            DropdownMenuItem(
-                text = { Text(text = stringResource(id = R.string.logout)) },
-                onClick = {
-                    expanded = false
-                    onLogout(activeAccount.id)
-                },
-            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Konto hinzufügen
+            Surface(
+                onClick = { /* TODO: Add account */ },
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PersonAdd,
+                        contentDescription = "Add Account",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "Konto hinzufügen",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            // Konten verwalten
+            Surface(
+                onClick = { /* TODO: Manage accounts */ },
+                color = MaterialTheme.colorScheme.surface,
+            ) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Manage Accounts",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = "Konten verwalten",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun AccountItem(
+    account: NextcloudAccount,
+    isActive: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // Profilbild (Placeholder mit Initialen)
+            Box(
+                modifier =
+                    Modifier
+                        .size(48.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape,
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = account.displayName.firstOrNull()?.uppercase() ?: "?",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+
+            // Name und Server
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = account.displayName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = account.serverUrl,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Checkmark für aktiven Account
+            if (isActive) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(32.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = CircleShape,
+                            ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Active Account",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
         }
     }
 }
