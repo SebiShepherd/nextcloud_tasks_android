@@ -29,6 +29,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +46,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -53,7 +61,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -225,7 +232,10 @@ fun AuthenticatedHome(
             },
             floatingActionButton = {
                 FloatingActionButton(onClick = onCreateTask) {
-                    Text("+", style = MaterialTheme.typography.headlineMedium)
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Create Task",
+                    )
                 }
             },
         ) { padding ->
@@ -270,7 +280,7 @@ private fun AuthenticatedTopBar(
         navigationIcon = {
             IconButton(onClick = onOpenDrawer) {
                 Icon(
-                    painter = painterResource(android.R.drawable.ic_menu_sort_by_size),
+                    imageVector = Icons.Default.Menu,
                     contentDescription = "Menu",
                 )
             }
@@ -278,7 +288,7 @@ private fun AuthenticatedTopBar(
         actions = {
             IconButton(onClick = onRefresh, enabled = !isRefreshing) {
                 Icon(
-                    painter = painterResource(android.R.drawable.ic_menu_rotate),
+                    imageVector = Icons.Default.Refresh,
                     contentDescription = "Refresh",
                 )
             }
@@ -293,7 +303,7 @@ private fun AuthenticatedTopBar(
         },
         colors =
             TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
+                containerColor = MaterialTheme.colorScheme.surface,
             ),
     )
 }
@@ -394,12 +404,16 @@ private fun AccountSummaryCard(account: NextcloudAccount) {
     Card(
         colors =
             CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 0.dp,
             ),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
                 text = stringResource(id = R.string.active_account),
@@ -559,17 +573,10 @@ private fun AccountDropdown(
     var expanded by remember { mutableStateOf(false) }
 
     Box {
-        TextButton(onClick = { expanded = true }) {
+        IconButton(onClick = { expanded = true }) {
             Icon(
-                painter = painterResource(android.R.drawable.ic_menu_manage),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = activeAccount.displayName,
-                modifier = Modifier.padding(start = 8.dp),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Account Menu",
             )
         }
 
@@ -594,8 +601,8 @@ private fun AccountDropdown(
                         if (account.id == activeAccount.id) {
                             {
                                 Icon(
-                                    painter = painterResource(android.R.drawable.checkbox_on_background),
-                                    contentDescription = null,
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Active Account",
                                 )
                             }
                         } else {
@@ -620,10 +627,17 @@ private fun TaskCard(
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Surface(
-        tonalElevation = 1.dp,
+    Card(
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = 0.dp,
+            ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shape = MaterialTheme.shapes.medium,
-        shadowElevation = 0.5.dp,
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -695,7 +709,7 @@ private fun TaskCard(
             // Delete button
             IconButton(onClick = onDelete) {
                 Icon(
-                    painter = painterResource(android.R.drawable.ic_menu_delete),
+                    imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.error,
                 )
