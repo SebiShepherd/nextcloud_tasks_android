@@ -6,6 +6,10 @@ import com.nextcloud.tasks.data.BuildConfig
 import com.nextcloud.tasks.data.api.NextcloudTasksApi
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.auth.PersistentAuthTokenProvider
+import com.nextcloud.tasks.data.caldav.generator.VTodoGenerator
+import com.nextcloud.tasks.data.caldav.parser.DavMultistatusParser
+import com.nextcloud.tasks.data.caldav.parser.VTodoParser
+import com.nextcloud.tasks.data.caldav.service.CalDavService
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
 import com.nextcloud.tasks.data.database.migrations.DatabaseMigrations
 import com.nextcloud.tasks.data.repository.DefaultAuthRepository
@@ -79,4 +83,23 @@ object DataModule {
     @Provides
     @Singleton
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @Singleton
+    fun provideCalDavService(
+        @Named("authenticated") okHttpClient: OkHttpClient,
+        parser: DavMultistatusParser,
+    ): CalDavService = CalDavService(okHttpClient, parser)
+
+    @Provides
+    @Singleton
+    fun provideDavMultistatusParser(): DavMultistatusParser = DavMultistatusParser()
+
+    @Provides
+    @Singleton
+    fun provideVTodoParser(): VTodoParser = VTodoParser()
+
+    @Provides
+    @Singleton
+    fun provideVTodoGenerator(): VTodoGenerator = VTodoGenerator()
 }

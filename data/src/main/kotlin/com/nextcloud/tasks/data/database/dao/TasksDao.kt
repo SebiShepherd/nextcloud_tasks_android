@@ -36,6 +36,9 @@ interface TasksDao {
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun deleteTask(taskId: String)
 
+    @Query("DELETE FROM tasks WHERE href IS NULL")
+    suspend fun deleteTasksWithoutHref()
+
     @Query("SELECT updated_at FROM tasks WHERE id = :taskId LIMIT 1")
     suspend fun getTaskUpdatedAt(taskId: String): Instant?
 

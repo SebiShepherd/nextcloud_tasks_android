@@ -14,4 +14,7 @@ data class TaskListEntity(
     val color: String?,
     @ColumnInfo(name = "updated_at")
     val updatedAt: Instant,
+    val etag: String?,
+    val href: String?,
+    val order: Int?,
 )

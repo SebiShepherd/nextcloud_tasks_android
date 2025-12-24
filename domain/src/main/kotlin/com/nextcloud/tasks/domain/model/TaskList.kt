@@ -7,4 +7,7 @@ data class TaskList(
     val name: String,
     val color: String? = null,
     val updatedAt: Instant,
+    val etag: String? = null,
+    val href: String? = null,
+    val order: Int? = null,
 )

@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.ical4j.core)
     kapt(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
     detektPlugins(libs.detekt.formatting)
