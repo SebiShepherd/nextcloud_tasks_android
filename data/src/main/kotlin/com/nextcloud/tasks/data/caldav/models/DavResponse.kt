@@ -1,10 +1,6 @@
 package com.nextcloud.tasks.data.caldav.models
 
 /**
- * Models for CalDAV/WebDAV responses
- */
-
-/**
  * A multistatus response containing multiple resource responses
  */
 data class DavMultistatus(

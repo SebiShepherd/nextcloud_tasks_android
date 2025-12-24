@@ -6,10 +6,21 @@ config:
 style:
   MagicNumber:
     active: false
+  LongParameterList:
+    ignoreAnnotated:
+      - Composable
+  LongMethod:
+    ignoreAnnotated:
+      - Composable
+  TooManyFunctions:
+    thresholdInFiles: 15
 naming:
   FunctionNaming:
     ignoreAnnotated:
       - Composable
+exceptions:
+  TooGenericExceptionCaught:
+    allowedExceptionNameRegex: '_|(ignore|expected).*'
 formatting:
   active: true
   android: true

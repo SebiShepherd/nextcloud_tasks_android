@@ -166,8 +166,8 @@ fun NextcloudTasksApp(
                 CreateTaskDialog(
                     listId = defaultListId,
                     onDismiss = { showCreateDialog = false },
-                    onCreate = { title, description ->
-                        taskListViewModel.createTask(title, description, defaultListId)
+                    onCreate = { title, description, listId ->
+                        taskListViewModel.createTask(title, description, listId)
                         showCreateDialog = false
                     },
                 )
@@ -703,7 +703,7 @@ private fun TaskCard(
 private fun CreateTaskDialog(
     listId: String,
     onDismiss: () -> Unit,
-    onCreate: (String, String?) -> Unit,
+    onCreate: (String, String?, String) -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -733,7 +733,7 @@ private fun CreateTaskDialog(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onCreate(title.trim(), description.ifBlank { null })
+                        onCreate(title.trim(), description.ifBlank { null }, listId)
                     }
                 },
                 enabled = title.isNotBlank(),
@@ -861,8 +861,8 @@ class TaskListViewModel
                 _isRefreshing.value = true
                 try {
                     tasksRepository.refresh()
-                } catch (e: Exception) {
-                    timber.log.Timber.e(e, "Failed to refresh tasks")
+                } catch (ignored: Exception) {
+                    timber.log.Timber.e(ignored, "Failed to refresh tasks")
                 } finally {
                     _isRefreshing.value = false
                 }
@@ -887,8 +887,8 @@ class TaskListViewModel
                         )
                     tasksRepository.createTask(draft)
                     timber.log.Timber.d("Task created successfully")
-                } catch (e: Exception) {
-                    timber.log.Timber.e(e, "Failed to create task")
+                } catch (ignored: Exception) {
+                    timber.log.Timber.e(ignored, "Failed to create task")
                 }
             }
         }
@@ -904,8 +904,8 @@ class TaskListViewModel
                         )
                     tasksRepository.updateTask(updated)
                     timber.log.Timber.d("Task completion toggled")
-                } catch (e: Exception) {
-                    timber.log.Timber.e(e, "Failed to toggle task completion")
+                } catch (ignored: Exception) {
+                    timber.log.Timber.e(ignored, "Failed to toggle task completion")
                 }
             }
         }
@@ -915,8 +915,8 @@ class TaskListViewModel
                 try {
                     tasksRepository.deleteTask(taskId)
                     timber.log.Timber.d("Task deleted successfully")
-                } catch (e: Exception) {
-                    timber.log.Timber.e(e, "Failed to delete task")
+                } catch (ignored: Exception) {
+                    timber.log.Timber.e(ignored, "Failed to delete task")
                 }
             }
         }
