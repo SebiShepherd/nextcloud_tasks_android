@@ -252,15 +252,17 @@ class DefaultTasksRepository
                         Timber.d("Found ${todos.size} todos in ${collection.displayName}")
 
                         todos.forEach { todo ->
-                            // Use parseVTodos (plural) to handle multiple VTODOs in one calendar
-                            val taskEntities =
-                                vTodoParser.parseVTodos(
+                            // Each server response contains one complete VCALENDAR with one VTODO
+                            val taskEntity =
+                                vTodoParser.parseVTodo(
                                     icalData = todo.calendarData,
                                     listId = collection.href,
                                     href = todo.href,
                                     etag = todo.etag,
                                 )
-                            allTasks.addAll(taskEntities)
+                            if (taskEntity != null) {
+                                allTasks.add(taskEntity)
+                            }
                         }
                     } else {
                         Timber.w(todosResult.exceptionOrNull(), "Failed to fetch todos from ${collection.displayName}")
