@@ -6,6 +6,7 @@ config:
 style:
   MagicNumber:
     active: false
+complexity:
   LongParameterList:
     ignoreAnnotated:
       - Composable
