@@ -90,6 +90,7 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.material)
     implementation(libs.timber)
+    implementation(libs.coil.compose)
 
     kapt(libs.hilt.compiler)
 

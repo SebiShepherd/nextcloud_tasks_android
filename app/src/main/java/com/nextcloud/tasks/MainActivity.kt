@@ -80,6 +80,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.nextcloud.tasks.auth.LoginCallbacks
 import com.nextcloud.tasks.auth.LoginScreen
 import com.nextcloud.tasks.auth.LoginUiState
@@ -136,15 +139,17 @@ fun NextcloudTasksApp(
     val isRefreshing by taskListViewModel.isRefreshing.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
+    var forceShowLogin by remember { mutableStateOf(false) }
 
     // Auto-refresh when account becomes active (after login or account switch)
     androidx.compose.runtime.LaunchedEffect(loginState.activeAccount) {
         if (loginState.activeAccount != null) {
             taskListViewModel.refresh()
+            forceShowLogin = false
         }
     }
 
-    if (loginState.activeAccount == null) {
+    if (loginState.activeAccount == null || forceShowLogin) {
         LoginScreen(
             state = loginState,
             callbacks =
@@ -176,6 +181,7 @@ fun NextcloudTasksApp(
             onCreateTask = { showCreateDialog = true },
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
             onDeleteTask = taskListViewModel::deleteTask,
+            onAddAccount = { forceShowLogin = true },
         )
 
         // Create task dialog
@@ -214,6 +220,7 @@ fun AuthenticatedHome(
     onCreateTask: () -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
     onDeleteTask: (String) -> Unit,
+    onAddAccount: () -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -250,6 +257,7 @@ fun AuthenticatedHome(
                     onLogout = onLogout,
                     taskSort = taskSort,
                     onSetSort = onSetSort,
+                    onAddAccount = onAddAccount,
                 )
 
                 // Pull-to-Refresh Content
@@ -283,6 +291,7 @@ private fun UnifiedSearchBar(
     onLogout: (String) -> Unit,
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
+    onAddAccount: () -> Unit,
 ) {
     var showSortDialog by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
@@ -329,22 +338,11 @@ private fun UnifiedSearchBar(
             }
 
             // Rundes Profilbild
-            Box(
-                modifier =
-                    Modifier
-                        .size(32.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape,
-                        ).clickable { showAccountSheet = true },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = state.activeAccount?.displayName?.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
+            ProfilePicture(
+                account = state.activeAccount,
+                size = 32.dp,
+                onClick = { showAccountSheet = true },
+            )
         }
     }
 
@@ -356,6 +354,7 @@ private fun UnifiedSearchBar(
                 accounts = state.accounts,
                 onSwitchAccount = onSwitchAccount,
                 onLogout = onLogout,
+                onAddAccount = onAddAccount,
                 onDismiss = { showAccountSheet = false },
             )
         }
@@ -467,6 +466,9 @@ private fun TasksContent(
     val openTasks = tasks.filter { !it.completed }
     val completedTasks = tasks.filter { it.completed }
 
+    // Group open tasks by list
+    val openTasksByList = openTasks.groupBy { it.listId }
+
     LazyColumn(
         modifier = Modifier.padding(padding),
         contentPadding = PaddingValues(16.dp),
@@ -485,14 +487,49 @@ private fun TasksContent(
                 }
             }
         } else {
-            // Offene Tasks
+            // Offene Tasks gruppiert nach Listen
             if (openTasks.isNotEmpty()) {
-                items(openTasks) { task ->
-                    TaskCard(
-                        task = task,
-                        onToggleComplete = { onToggleTaskComplete(task) },
-                        onDelete = { onDeleteTask(task.id) },
-                    )
+                openTasksByList.forEach { (listId, listTasks) ->
+                    // Get list name and color from task
+                    val firstTask = listTasks.firstOrNull()
+
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(top = if (openTasksByList.keys.first() != listId) 8.dp else 0.dp),
+                        ) {
+                            // Color dot
+                            firstTask?.listColor?.let { colorHex ->
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color =
+                                                    androidx.compose.ui.graphics.Color(
+                                                        android.graphics.Color.parseColor(colorHex),
+                                                    ),
+                                                shape = CircleShape,
+                                            ),
+                                )
+                            }
+                            Text(
+                                text = firstTask?.listName ?: "Unbekannte Liste",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+
+                    items(listTasks) { task ->
+                        TaskCard(
+                            task = task,
+                            onToggleComplete = { onToggleTaskComplete(task) },
+                            onDelete = { onDeleteTask(task.id) },
+                        )
+                    }
                 }
             }
 
@@ -559,26 +596,34 @@ private fun TaskListsDrawer(
 
         taskLists.forEach { taskList ->
             NavigationDrawerItem(
-                label = { Text(taskList.name) },
+                label = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        // Color indicator (dot)
+                        taskList.color?.let { colorHex ->
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(12.dp)
+                                        .background(
+                                            color =
+                                                androidx.compose.ui.graphics.Color(
+                                                    android.graphics.Color.parseColor(colorHex),
+                                                ),
+                                            shape = CircleShape,
+                                        ),
+                            )
+                        }
+                        Text(taskList.name)
+                    }
+                },
                 selected = selectedListId == taskList.id,
                 onClick = {
                     onSelectList(taskList.id)
                     onCloseDrawer()
                 },
-                badge =
-                    taskList.color?.let {
-                        {
-                            Surface(
-                                shape = MaterialTheme.shapes.small,
-                                color =
-                                    androidx.compose.ui.graphics
-                                        .Color(android.graphics.Color.parseColor(it)),
-                                modifier = Modifier.padding(4.dp),
-                            ) {
-                                Spacer(modifier = Modifier.width(16.dp))
-                            }
-                        }
-                    },
             )
         }
     }
@@ -592,9 +637,11 @@ private fun AccountBottomSheet(
     accounts: List<NextcloudAccount>,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
+    onAddAccount: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
+    var showManageMenu by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -622,7 +669,10 @@ private fun AccountBottomSheet(
 
             // Konto hinzufügen
             Surface(
-                onClick = { /* TODO: Add account */ },
+                onClick = {
+                    onDismiss()
+                    onAddAccount()
+                },
                 color = MaterialTheme.colorScheme.surface,
             ) {
                 Row(
@@ -648,7 +698,7 @@ private fun AccountBottomSheet(
 
             // Konten verwalten
             Surface(
-                onClick = { /* TODO: Manage accounts */ },
+                onClick = { showManageMenu = true },
                 color = MaterialTheme.colorScheme.surface,
             ) {
                 Row(
@@ -675,6 +725,93 @@ private fun AccountBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+
+    // Manage Account Dialog
+    if (showManageMenu) {
+        AlertDialog(
+            onDismissRequest = { showManageMenu = false },
+            title = { Text("Konten verwalten") },
+            text = {
+                Column {
+                    Text("Account: ${activeAccount.displayName}")
+                    Text("Server: ${activeAccount.serverUrl}")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showManageMenu = false
+                        onLogout(activeAccount.id)
+                        onDismiss()
+                    },
+                ) {
+                    Text("Logout", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showManageMenu = false }) {
+                    Text("Abbrechen")
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun ProfilePicture(
+    account: NextcloudAccount?,
+    size: androidx.compose.ui.unit.Dp,
+    onClick: (() -> Unit)? = null,
+) {
+    val avatarUrl =
+        account?.let {
+            "${it.serverUrl}/index.php/avatar/${it.username}/64"
+        }
+
+    Box(
+        modifier =
+            Modifier
+                .size(size)
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+    ) {
+        if (avatarUrl != null) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "Profile Picture",
+                modifier =
+                    Modifier
+                        .size(size)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape,
+                        ).then(
+                            Modifier.matchParentSize(),
+                        ),
+            )
+        } else {
+            Box(
+                modifier =
+                    Modifier
+                        .size(size)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape,
+                        ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = account?.displayName?.firstOrNull()?.uppercase() ?: "?",
+                    style =
+                        if (size > 40.dp) {
+                            MaterialTheme.typography.titleLarge
+                        } else {
+                            MaterialTheme.typography.bodyMedium
+                        },
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -695,23 +832,11 @@ private fun AccountItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Profilbild (Placeholder mit Initialen)
-            Box(
-                modifier =
-                    Modifier
-                        .size(48.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = CircleShape,
-                        ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = account.displayName.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-            }
+            // Profilbild
+            ProfilePicture(
+                account = account,
+                size = 48.dp,
+            )
 
             // Name und Server
             Column(
