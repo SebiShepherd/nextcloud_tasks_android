@@ -34,6 +34,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -230,18 +232,6 @@ fun AuthenticatedHome(
         },
     ) {
         Scaffold(
-            topBar = {
-                AuthenticatedTopBar(
-                    state = state,
-                    onSwitchAccount = onSwitchAccount,
-                    onLogout = onLogout,
-                    onOpenDrawer = { scope.launch { drawerState.open() } },
-                    onRefresh = onRefresh,
-                    isRefreshing = isRefreshing,
-                    taskSort = taskSort,
-                    onSetSort = onSetSort,
-                )
-            },
             floatingActionButton = {
                 FloatingActionButton(onClick = onCreateTask) {
                     Icon(
@@ -251,73 +241,44 @@ fun AuthenticatedHome(
                 }
             },
         ) { padding ->
-            TasksContent(
-                padding = padding,
-                state = state,
-                tasks = tasks,
-                taskFilter = taskFilter,
-                taskSort = taskSort,
-                onSetFilter = onSetFilter,
-                onSetSort = onSetSort,
-                onToggleTaskComplete = onToggleTaskComplete,
-                onDeleteTask = onDeleteTask,
-            )
+            Column(modifier = Modifier.padding(padding)) {
+                // Durchgehende Search Bar mit allen Elementen
+                UnifiedSearchBar(
+                    state = state,
+                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onSwitchAccount = onSwitchAccount,
+                    onLogout = onLogout,
+                    taskSort = taskSort,
+                    onSetSort = onSetSort,
+                )
+
+                // Pull-to-Refresh Content
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    TasksContent(
+                        padding = PaddingValues(0.dp),
+                        state = state,
+                        tasks = tasks,
+                        taskFilter = taskFilter,
+                        taskSort = taskSort,
+                        onSetFilter = onSetFilter,
+                        onSetSort = onSetSort,
+                        onToggleTaskComplete = onToggleTaskComplete,
+                        onDeleteTask = onDeleteTask,
+                    )
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AuthenticatedTopBar(
+private fun UnifiedSearchBar(
     state: LoginUiState,
-    onSwitchAccount: (String) -> Unit,
-    onLogout: (String) -> Unit,
     onOpenDrawer: () -> Unit,
-    onRefresh: () -> Unit,
-    isRefreshing: Boolean,
-    taskSort: com.nextcloud.tasks.domain.model.TaskSort,
-    onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
-) {
-    Column {
-        // Header mit Menu und Titel
-        TopAppBar(
-            title = { Text(text = stringResource(id = R.string.app_name)) },
-            navigationIcon = {
-                IconButton(onClick = onOpenDrawer) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Menu",
-                    )
-                }
-            },
-            actions = {
-                IconButton(onClick = onRefresh, enabled = !isRefreshing) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                    )
-                }
-            },
-            colors =
-                TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-        )
-
-        // Suchleiste
-        SearchBarWithActions(
-            state = state,
-            onSwitchAccount = onSwitchAccount,
-            onLogout = onLogout,
-            taskSort = taskSort,
-            onSetSort = onSetSort,
-        )
-    }
-}
-
-@Composable
-private fun SearchBarWithActions(
-    state: LoginUiState,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
@@ -326,66 +287,64 @@ private fun SearchBarWithActions(
     var showSortDialog by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
 
-    Row(
+    // EINE durchgehende Pille mit allen Elementen
+    Surface(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .height(48.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
     ) {
-        // Flache Search Bar (wie NC Notes)
-        Surface(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .height(48.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
+            // Hamburger-Menü (links)
+            IconButton(onClick = onOpenDrawer) {
                 Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Menu",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    text = "In allen Notizen suchen",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            }
+
+            // Suchtext (Mitte, expandiert)
+            Text(
+                text = "In allen Notizen suchen",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+
+            // Sort-Icon
+            IconButton(onClick = { showSortDialog = true }) {
+                Icon(
+                    imageVector = Icons.Default.Sort,
+                    contentDescription = "Sort",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
 
-        // Sort-Icon
-        IconButton(onClick = { showSortDialog = true }) {
-            Icon(
-                imageVector = Icons.Default.Sort,
-                contentDescription = "Sort",
-                tint = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-
-        // Rundes Profilbild (Placeholder)
-        Box(
-            modifier =
-                Modifier
-                    .size(40.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = CircleShape,
-                    ).clickable { showAccountSheet = true },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = state.activeAccount?.displayName?.firstOrNull()?.uppercase() ?: "?",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
+            // Rundes Profilbild
+            Box(
+                modifier =
+                    Modifier
+                        .size(32.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = CircleShape,
+                        ).clickable { showAccountSheet = true },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = state.activeAccount?.displayName?.firstOrNull()?.uppercase() ?: "?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                )
+            }
         }
     }
 
