@@ -270,6 +270,7 @@ fun AuthenticatedHome(
                         padding = PaddingValues(0.dp),
                         state = state,
                         tasks = tasks,
+                        taskLists = taskLists,
                         taskFilter = taskFilter,
                         taskSort = taskSort,
                         onSetFilter = onSetFilter,
@@ -453,6 +454,7 @@ private fun TasksContent(
     padding: PaddingValues,
     state: LoginUiState,
     tasks: List<Task>,
+    taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
     taskFilter: com.nextcloud.tasks.domain.model.TaskFilter,
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
@@ -461,6 +463,9 @@ private fun TasksContent(
     onDeleteTask: (String) -> Unit,
 ) {
     var showCompletedTasks by remember { mutableStateOf(false) }
+
+    // Create a map for quick lookup of task list info
+    val taskListMap = remember(taskLists) { taskLists.associateBy { it.id } }
 
     // Group tasks by completion status
     val openTasks = tasks.filter { !it.completed }
@@ -490,8 +495,8 @@ private fun TasksContent(
             // Offene Tasks gruppiert nach Listen
             if (openTasks.isNotEmpty()) {
                 openTasksByList.forEach { (listId, listTasks) ->
-                    // Get list name and color from task
-                    val firstTask = listTasks.firstOrNull()
+                    // Get list info from map
+                    val taskList = taskListMap[listId]
 
                     item {
                         Row(
@@ -500,7 +505,7 @@ private fun TasksContent(
                             modifier = Modifier.padding(top = if (openTasksByList.keys.first() != listId) 8.dp else 0.dp),
                         ) {
                             // Color dot
-                            firstTask?.listColor?.let { colorHex ->
+                            taskList?.color?.let { colorHex ->
                                 Box(
                                     modifier =
                                         Modifier
@@ -515,7 +520,7 @@ private fun TasksContent(
                                 )
                             }
                             Text(
-                                text = firstTask?.listName ?: "Unbekannte Liste",
+                                text = taskList?.name ?: "Unbekannte Liste",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
