@@ -1071,6 +1071,7 @@ class TaskListViewModel
     constructor(
         private val loadTasksUseCase: LoadTasksUseCase,
         private val tasksRepository: com.nextcloud.tasks.domain.repository.TasksRepository,
+        private val observeActiveAccountUseCase: com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase,
     ) : ViewModel() {
         // Raw tasks from repository
         private val allTasks =
@@ -1132,6 +1133,19 @@ class TaskListViewModel
         init {
             // Auto-refresh is handled by LaunchedEffect in NextcloudTasksApp
             // when account becomes active (after login or account switch)
+
+            // Reset selected list when account changes
+            viewModelScope.launch {
+                var previousAccountId: String? = null
+                observeActiveAccountUseCase().collect { account ->
+                    val currentAccountId = account?.id
+                    if (previousAccountId != null && previousAccountId != currentAccountId) {
+                        // Account changed, reset to "All Tasks" view
+                        _selectedListId.value = null
+                    }
+                    previousAccountId = currentAccountId
+                }
+            }
         }
 
         fun selectList(listId: String?) {
