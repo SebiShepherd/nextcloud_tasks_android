@@ -910,7 +910,7 @@ private fun TaskCard(
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = if (hasAdditionalContent) Alignment.Top else Alignment.CenterVertically,
         ) {
             // Checkbox
@@ -920,10 +920,11 @@ private fun TaskCard(
             )
 
             // Task content
-            Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+            Column(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = task.title,
@@ -952,26 +953,28 @@ private fun TaskCard(
                     )
                 }
 
-                // Show due date and tags
-                Row(
-                    modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    task.due?.let { due ->
-                        Text(
-                            text = "Due: ${java.time.format.DateTimeFormatter.ofPattern(
-                                "MMM dd",
-                            ).format(due.atZone(java.time.ZoneId.systemDefault()))}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (task.tags.isNotEmpty()) {
-                        Text(
-                            text = task.tags.joinToString { it.name },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary,
-                        )
+                // Show due date and tags only if they exist
+                if (hasDueOrTags) {
+                    Row(
+                        modifier = Modifier.padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        task.due?.let { due ->
+                            Text(
+                                text = "Due: ${java.time.format.DateTimeFormatter.ofPattern(
+                                    "MMM dd",
+                                ).format(due.atZone(java.time.ZoneId.systemDefault()))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (task.tags.isNotEmpty()) {
+                            Text(
+                                text = task.tags.joinToString { it.name },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
                     }
                 }
             }
