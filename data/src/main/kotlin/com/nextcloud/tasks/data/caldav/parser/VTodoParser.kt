@@ -75,6 +75,7 @@ class VTodoParser
          */
         fun parseVTodos(
             icalData: String,
+            accountId: String,
             listId: String,
             href: String,
             etag: String,
@@ -89,7 +90,7 @@ class VTodoParser
 
                 val tasks =
                     vtodos.mapNotNull { vtodo ->
-                        parseVTodoComponent(vtodo, listId, href, etag)
+                        parseVTodoComponent(vtodo, accountId, listId, href, etag)
                     }
 
                 if (tasks.isNotEmpty()) {
@@ -116,7 +117,7 @@ class VTodoParser
                         val vtodos = calendar.getComponents<VToDo>("VTODO") as? List<VToDo> ?: emptyList()
 
                         vtodos.mapNotNull { vtodo ->
-                            parseVTodoComponent(vtodo, listId, href, etag)
+                            parseVTodoComponent(vtodo, accountId, listId, href, etag)
                         }
                     } catch (ignored: Exception) {
                         timber.log.Timber.w(ignored, "Failed to parse calendar block")
@@ -178,6 +179,7 @@ class VTodoParser
 
         private fun parseVTodoComponent(
             vtodo: VToDo,
+            accountId: String,
             listId: String,
             href: String,
             etag: String,
@@ -200,6 +202,7 @@ class VTodoParser
 
                 TaskEntity(
                     id = generateTaskId(uid, listId),
+                    accountId = accountId,
                     listId = listId,
                     title = summary,
                     description = description,

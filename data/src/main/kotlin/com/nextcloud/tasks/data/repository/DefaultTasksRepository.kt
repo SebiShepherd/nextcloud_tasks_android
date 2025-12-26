@@ -313,53 +313,9 @@ class DefaultTasksRepository
 
         override suspend fun addSampleTasksIfEmpty() =
             withContext(ioDispatcher) {
-                if (tasksDao.countTasks() > 0) {
-                    return@withContext
-                }
-
-                val now = Instant.now()
-                val defaultList =
-                    TaskListEntity(
-                        id = "inbox",
-                        name = "Inbox",
-                        color = null,
-                        updatedAt = now,
-                        etag = null,
-                        href = null,
-                        order = null,
-                    )
-                val sampleTag =
-                    TagEntity(
-                        id = "personal",
-                        name = "Personal",
-                        updatedAt = now,
-                    )
-                val sampleTask =
-                    TaskEntity(
-                        id = "sample-task",
-                        listId = defaultList.id,
-                        title = "Welcome to Nextcloud Tasks",
-                        description = "Use the refresh action to fetch tasks from your Nextcloud server.",
-                        completed = false,
-                        due = null,
-                        updatedAt = now,
-                        priority = null,
-                        status = null,
-                        completedAt = null,
-                        uid = null,
-                        etag = null,
-                        href = null,
-                        parentUid = null,
-                    )
-
-                database.withTransaction {
-                    taskListsDao.upsertTaskList(defaultList)
-                    tagsDao.upsertTag(sampleTag)
-                    tasksDao.upsertTask(sampleTask)
-                    tasksDao.upsertTaskTagCrossRefs(
-                        taskMapper.crossRefs(sampleTask.id, listOf(sampleTag.id)),
-                    )
-                }
+                // Sample tasks are disabled in multi-account mode
+                // Users need to log in with a real account and sync from server
+                Timber.d("Sample tasks disabled - multi-account mode requires real login")
             }
 
         private suspend fun upsertTaskLists(lists: List<TaskListEntity>) {

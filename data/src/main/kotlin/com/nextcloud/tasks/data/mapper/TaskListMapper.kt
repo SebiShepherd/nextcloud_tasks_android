@@ -9,9 +9,13 @@ import javax.inject.Inject
 class TaskListMapper
     @Inject
     constructor() {
-        fun toEntity(dto: TaskListDto): TaskListEntity =
+        fun toEntity(
+            dto: TaskListDto,
+            accountId: String,
+        ): TaskListEntity =
             TaskListEntity(
                 id = dto.id,
+                accountId = accountId,
                 name = dto.name,
                 color = dto.color,
                 updatedAt = Instant.ofEpochMilli(dto.updatedAt),
