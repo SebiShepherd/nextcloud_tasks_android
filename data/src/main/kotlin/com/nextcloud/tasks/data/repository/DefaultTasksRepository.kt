@@ -77,7 +77,7 @@ class DefaultTasksRepository
                 val now = Instant.now()
                 val task =
                     Task(
-                        id = "$draft.listId/$uid", // Temporary ID
+                        id = uid, // Use UID as ID for consistency
                         listId = draft.listId,
                         title = draft.title,
                         description = draft.description,
@@ -110,7 +110,7 @@ class DefaultTasksRepository
                 // Save to local database
                 val taskEntity =
                     TaskEntity(
-                        id = "$draft.listId/$uid",
+                        id = uid, // Use UID as ID for consistency
                         listId = draft.listId,
                         title = draft.title,
                         description = draft.description,

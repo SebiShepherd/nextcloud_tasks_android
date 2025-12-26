@@ -221,5 +221,5 @@ class VTodoParser
         private fun generateTaskId(
             uid: String,
             listId: String,
-        ): String = "$listId/$uid"
+        ): String = uid  // Use only UID for consistent IDs across list moves and syncs
     }
