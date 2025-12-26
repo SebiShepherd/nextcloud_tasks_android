@@ -20,6 +20,8 @@ import com.nextcloud.tasks.domain.repository.TasksRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -54,7 +56,7 @@ class DefaultTasksRepository
                             tasks.map(taskMapper::toDomain)
                         }
                     } else {
-                        kotlinx.coroutines.flow.flowOf(emptyList())
+                        flowOf(emptyList())
                     }
                 }
 
@@ -67,7 +69,7 @@ class DefaultTasksRepository
                             lists.map(taskListMapper::toDomain)
                         }
                     } else {
-                        kotlinx.coroutines.flow.flowOf(emptyList())
+                        flowOf(emptyList())
                     }
                 }
 
@@ -154,6 +156,7 @@ class DefaultTasksRepository
         override suspend fun updateTask(task: Task): Task =
             withContext(ioDispatcher) {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
                 val href = task.href ?: throw IOException("Cannot update task without href")
 
@@ -172,6 +175,7 @@ class DefaultTasksRepository
                 val taskEntity =
                     TaskEntity(
                         id = task.id,
+                        accountId = accountId,
                         listId = task.listId,
                         title = task.title,
                         description = task.description,
