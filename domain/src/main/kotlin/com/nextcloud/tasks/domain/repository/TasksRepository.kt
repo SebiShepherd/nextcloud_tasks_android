@@ -26,4 +26,6 @@ interface TasksRepository {
     suspend fun syncOnAppStart()
 
     suspend fun addSampleTasksIfEmpty()
+
+    suspend fun clearAccountData(accountId: String)
 }

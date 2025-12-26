@@ -14,8 +14,8 @@ import java.time.Instant
 @Dao
 interface TasksDao {
     @Transaction
-    @Query("SELECT * FROM tasks")
-    fun observeTasks(): Flow<List<TaskWithRelations>>
+    @Query("SELECT * FROM tasks WHERE account_id = :accountId")
+    fun observeTasks(accountId: String): Flow<List<TaskWithRelations>>
 
     @Transaction
     @Query("SELECT * FROM tasks WHERE id = :taskId")
@@ -38,6 +38,9 @@ interface TasksDao {
 
     @Query("DELETE FROM tasks WHERE href IS NULL")
     suspend fun deleteTasksWithoutHref()
+
+    @Query("DELETE FROM tasks WHERE account_id = :accountId")
+    suspend fun deleteTasksByAccount(accountId: String)
 
     @Query("SELECT updated_at FROM tasks WHERE id = :taskId LIMIT 1")
     suspend fun getTaskUpdatedAt(taskId: String): Instant?

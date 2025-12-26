@@ -18,6 +18,7 @@ class VTodoParser
          */
         fun parseVTodo(
             icalData: String,
+            accountId: String,
             listId: String,
             href: String,
             etag: String,
@@ -46,6 +47,7 @@ class VTodoParser
 
                 TaskEntity(
                     id = generateTaskId(uid, listId),
+                    accountId = accountId,
                     listId = listId,
                     title = summary,
                     description = description,

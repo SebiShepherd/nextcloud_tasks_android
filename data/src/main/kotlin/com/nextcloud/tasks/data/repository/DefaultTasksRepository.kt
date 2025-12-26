@@ -46,14 +46,30 @@ class DefaultTasksRepository
         private val tagsDao get() = database.tagsDao()
 
         override fun observeTasks(): Flow<List<Task>> =
-            tasksDao.observeTasks().map { tasks ->
-                tasks.map(taskMapper::toDomain)
-            }
+            authTokenProvider
+                .observeActiveAccountId()
+                .flatMapLatest { accountId ->
+                    if (accountId != null) {
+                        tasksDao.observeTasks(accountId).map { tasks ->
+                            tasks.map(taskMapper::toDomain)
+                        }
+                    } else {
+                        kotlinx.coroutines.flow.flowOf(emptyList())
+                    }
+                }
 
         override fun observeLists(): Flow<List<TaskList>> =
-            taskListsDao.observeTaskLists().map { lists ->
-                lists.map(taskListMapper::toDomain)
-            }
+            authTokenProvider
+                .observeActiveAccountId()
+                .flatMapLatest { accountId ->
+                    if (accountId != null) {
+                        taskListsDao.observeTaskLists(accountId).map { lists ->
+                            lists.map(taskListMapper::toDomain)
+                        }
+                    } else {
+                        kotlinx.coroutines.flow.flowOf(emptyList())
+                    }
+                }
 
         override fun observeTags(): Flow<List<Tag>> =
             tagsDao.observeTags().map { tags ->
@@ -68,6 +84,7 @@ class DefaultTasksRepository
         override suspend fun createTask(draft: TaskDraft): Task =
             withContext(ioDispatcher) {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
                 // Generate UID and create task domain model
                 val uid =
@@ -111,6 +128,7 @@ class DefaultTasksRepository
                 val taskEntity =
                     TaskEntity(
                         id = uid, // Use UID as ID for consistency
+                        accountId = accountId,
                         listId = draft.listId,
                         title = draft.title,
                         description = draft.description,
@@ -205,6 +223,12 @@ class DefaultTasksRepository
                         return@withContext
                     }
 
+                val accountId =
+                    authTokenProvider.activeAccountId() ?: run {
+                        Timber.w("No active account, skipping refresh")
+                        return@withContext
+                    }
+
                 // CalDAV discovery
                 val principalResult = calDavService.discoverPrincipal(baseUrl)
                 if (principalResult.isFailure) {
@@ -235,6 +259,7 @@ class DefaultTasksRepository
                     collections.map { collection ->
                         TaskListEntity(
                             id = collection.href,
+                            accountId = accountId,
                             name = collection.displayName,
                             color = collection.color,
                             updatedAt = Instant.now(),
@@ -257,6 +282,7 @@ class DefaultTasksRepository
                             val taskEntity =
                                 vTodoParser.parseVTodo(
                                     icalData = todo.calendarData,
+                                    accountId = accountId,
                                     listId = collection.href,
                                     href = todo.href,
                                     etag = todo.etag,
@@ -368,4 +394,13 @@ class DefaultTasksRepository
                 }
             }
         }
+
+        override suspend fun clearAccountData(accountId: String) =
+            withContext(ioDispatcher) {
+                database.withTransaction {
+                    tasksDao.deleteTasksByAccount(accountId)
+                    taskListsDao.deleteListsByAccount(accountId)
+                    Timber.d("Cleared all data for account: $accountId")
+                }
+            }
     }
