@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Suppress("TooGenericExceptionCaught", "SwallowedException")
 @Singleton
 class SecureAuthStorage
     @Inject
@@ -31,7 +32,11 @@ class SecureAuthStorage
                 )
             } catch (e: Exception) {
                 // If encrypted preferences are corrupted, delete them and recreate
-                context.getSharedPreferences("auth_store", Context.MODE_PRIVATE).edit().clear().commit()
+                context
+                    .getSharedPreferences("auth_store", Context.MODE_PRIVATE)
+                    .edit()
+                    .clear()
+                    .commit()
                 context.deleteSharedPreferences("auth_store")
 
                 EncryptedSharedPreferences.create(

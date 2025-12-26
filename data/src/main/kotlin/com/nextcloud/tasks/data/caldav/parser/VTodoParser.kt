@@ -46,7 +46,7 @@ class VTodoParser
                 val parentUid = relatedTo?.value
 
                 TaskEntity(
-                    id = generateTaskId(uid, listId),
+                    id = generateTaskId(uid),
                     accountId = accountId,
                     listId = listId,
                     title = summary,
@@ -201,7 +201,7 @@ class VTodoParser
                 val parentUid = relatedTo?.value
 
                 TaskEntity(
-                    id = generateTaskId(uid, listId),
+                    id = generateTaskId(uid),
                     accountId = accountId,
                     listId = listId,
                     title = summary,
@@ -223,8 +223,5 @@ class VTodoParser
             }
         }
 
-        private fun generateTaskId(
-            uid: String,
-            listId: String,
-        ): String = uid  // Use only UID for consistent IDs across list moves and syncs
+        private fun generateTaskId(uid: String): String = uid // Use only UID for consistent IDs across list moves and syncs
     }

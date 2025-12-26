@@ -11,6 +11,7 @@ import com.nextcloud.tasks.data.database.model.TaskWithRelations
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
+@Suppress("TooManyFunctions")
 @Dao
 interface TasksDao {
     @Transaction

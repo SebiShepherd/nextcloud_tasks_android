@@ -6,7 +6,6 @@ import com.nextcloud.tasks.data.caldav.generator.VTodoGenerator
 import com.nextcloud.tasks.data.caldav.parser.VTodoParser
 import com.nextcloud.tasks.data.caldav.service.CalDavService
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
-import com.nextcloud.tasks.data.database.entity.TagEntity
 import com.nextcloud.tasks.data.database.entity.TaskEntity
 import com.nextcloud.tasks.data.database.entity.TaskListEntity
 import com.nextcloud.tasks.data.mapper.TagMapper
@@ -219,6 +218,7 @@ class DefaultTasksRepository
                 }
             }
 
+        @Suppress("LongMethod")
         override suspend fun refresh() =
             withContext(ioDispatcher) {
                 val baseUrl =
