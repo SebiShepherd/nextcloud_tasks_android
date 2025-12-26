@@ -783,14 +783,14 @@ private fun ProfilePicture(
             AsyncImage(
                 model = avatarUrl,
                 contentDescription = "Profile Picture",
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                 modifier =
                     Modifier
                         .size(size)
+                        .clip(CircleShape)
                         .background(
                             color = MaterialTheme.colorScheme.primary,
                             shape = CircleShape,
-                        ).then(
-                            Modifier.matchParentSize(),
                         ),
             )
         } else {
@@ -891,6 +891,11 @@ private fun TaskCard(
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    // Dynamische vertikale Ausrichtung basierend auf Inhalt
+    val hasDescription = task.description != null
+    val hasDueOrTags = task.due != null || task.tags.isNotEmpty()
+    val hasAdditionalContent = hasDescription || hasDueOrTags
+
     Card(
         colors =
             CardDefaults.cardColors(
@@ -905,7 +910,7 @@ private fun TaskCard(
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = if (hasAdditionalContent) Alignment.Top else Alignment.CenterVertically,
         ) {
             // Checkbox
             Checkbox(
