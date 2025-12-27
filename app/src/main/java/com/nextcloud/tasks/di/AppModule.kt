@@ -8,7 +8,9 @@ import com.nextcloud.tasks.domain.repository.TasksRepository
 import com.nextcloud.tasks.domain.usecase.InitiateLoginFlowV2UseCase
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.domain.usecase.LoginWithAppPasswordUseCase
+@Suppress("DEPRECATION")
 import com.nextcloud.tasks.domain.usecase.LoginWithOAuthUseCase
+@Suppress("DEPRECATION")
 import com.nextcloud.tasks.domain.usecase.LoginWithPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveAccountsUseCase
@@ -35,10 +37,12 @@ object AppModule {
 
     @Provides
     @Singleton
+    @Suppress("DEPRECATION")
     fun provideLoginWithPasswordUseCase(repository: AuthRepository): LoginWithPasswordUseCase = LoginWithPasswordUseCase(repository)
 
     @Provides
     @Singleton
+    @Suppress("DEPRECATION")
     fun provideLoginWithOAuthUseCase(repository: AuthRepository): LoginWithOAuthUseCase = LoginWithOAuthUseCase(repository)
 
     @Provides
@@ -75,6 +79,7 @@ object AppModule {
 
     @Provides
     @Singleton
+    @Suppress("DEPRECATION")
     fun provideLoginUseCases(
         authRepository: AuthRepository,
         validateServerUrlUseCase: ValidateServerUrlUseCase,

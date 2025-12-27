@@ -7,7 +7,9 @@ import com.nextcloud.tasks.R
 import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
+@Suppress("DEPRECATION")
 import com.nextcloud.tasks.domain.usecase.LoginWithOAuthUseCase
+@Suppress("DEPRECATION")
 import com.nextcloud.tasks.domain.usecase.LoginWithPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveAccountsUseCase
@@ -28,11 +30,16 @@ import javax.inject.Inject
 
 private const val DEFAULT_REDIRECT_URI = "nc://login"
 
+/**
+ * @deprecated Use ServerInputScreen with LoginFlowViewModel instead (Login Flow v2)
+ */
+@Deprecated("Use ServerInputScreen with LoginFlowViewModel")
 @HiltViewModel
 class LoginViewModel
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
+        @Suppress("DEPRECATION")
         private val useCases: LoginUseCases,
     ) : ViewModel() {
         private val exceptionHandler =
@@ -226,6 +233,10 @@ private fun Throwable.toLoginMessage(context: Context): String =
         else -> message ?: context.getString(R.string.error_unknown)
     }
 
+/**
+ * @deprecated Use Login Flow v2 instead
+ */
+@Deprecated("Use Login Flow v2")
 data class LoginUseCases(
     val loginWithPassword: LoginWithPasswordUseCase,
     val loginWithOAuth: LoginWithOAuthUseCase,
