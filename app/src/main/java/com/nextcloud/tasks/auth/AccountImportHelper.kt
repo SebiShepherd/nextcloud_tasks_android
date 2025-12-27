@@ -1,58 +1,64 @@
 package com.nextcloud.tasks.auth
 
-import android.app.Activity
-import com.nextcloud.android.sso.AccountImporter
-import com.nextcloud.android.sso.exceptions.AndroidGetAccountsPermissionNotGranted
-import com.nextcloud.android.sso.exceptions.NextcloudFilesAppNotInstalledException
-import com.nextcloud.android.sso.model.SingleSignOnAccount
+import android.accounts.AccountManager
+import android.content.Context
 import timber.log.Timber
 
 /**
  * Helper for importing Nextcloud accounts from the Nextcloud Files app.
- * Uses Android-SingleSignOn library's system account picker.
+ * Based on the approach used by Nextcloud Talk app.
  */
 object AccountImportHelper {
-    /**
-     * Show system account picker to select a Nextcloud account.
-     * This is the recommended approach for Android 8.0+ due to account visibility restrictions.
-     *
-     * Returns the selected account info or null if cancelled/failed.
-     */
-    fun pickAccount(
-        activity: Activity,
-        onAccountSelected: (NextcloudFileAccount) -> Unit,
-        onError: (String) -> Unit,
-    ) {
-        try {
-            Timber.d("Launching system account picker for Nextcloud accounts")
+    private const val ACCOUNT_TYPE_NEXTCLOUD = "nextcloud"
 
-            // Use SSO library's account picker
-            // This shows a system dialog and grants access to the selected account
-            AccountImporter.pickNewAccount(activity) { account: SingleSignOnAccount? ->
-                if (account != null) {
-                    Timber.i("Account selected via picker: ${account.name}")
-                    onAccountSelected(
-                        NextcloudFileAccount(
-                            name = account.name,
-                            url = account.url,
-                        ),
+    /**
+     * Find available Nextcloud accounts on the device.
+     *
+     * Note: This approach works for apps signed with the same certificate as
+     * Nextcloud Files app. For other apps, this may return empty list due to
+     * Android 8.0+ account visibility restrictions.
+     */
+    fun findAvailableAccounts(context: Context): List<NextcloudFileAccount> {
+        return try {
+            val accountManager = AccountManager.get(context)
+            val accounts = accountManager.getAccountsByType(ACCOUNT_TYPE_NEXTCLOUD)
+
+            Timber.d("Found ${accounts.size} Nextcloud accounts")
+
+            accounts.mapNotNull { account ->
+                // Extract account information like Talk app does
+                val lastAtPos = account.name.lastIndexOf("@")
+                if (lastAtPos > 0) {
+                    val serverUrl = account.name.substring(lastAtPos + 1)
+                    val normalizedUrl = if (serverUrl.endsWith("/")) {
+                        serverUrl.substring(0, serverUrl.length - 1)
+                    } else {
+                        serverUrl
+                    }
+
+                    // Add https:// if no protocol specified
+                    val fullUrl = if (!normalizedUrl.startsWith("http")) {
+                        "https://$normalizedUrl"
+                    } else {
+                        normalizedUrl
+                    }
+
+                    Timber.d("Account: ${account.name} -> $fullUrl")
+                    NextcloudFileAccount(
+                        name = account.name,
+                        url = fullUrl,
                     )
                 } else {
-                    Timber.d("Account picker cancelled by user")
+                    Timber.w("Account ${account.name} has invalid format (missing @)")
+                    null
                 }
             }
-        } catch (e: NextcloudFilesAppNotInstalledException) {
-            val message = "Nextcloud Files app not installed"
-            Timber.e(e, message)
-            onError(message)
-        } catch (e: AndroidGetAccountsPermissionNotGranted) {
-            val message = "Permission to access accounts not granted"
-            Timber.e(e, message)
-            onError(message)
+        } catch (e: SecurityException) {
+            Timber.e(e, "Permission denied - app not signed with Nextcloud certificate")
+            emptyList()
         } catch (e: Exception) {
-            val message = "Failed to pick account: ${e.message}"
-            Timber.e(e, message)
-            onError(message)
+            Timber.e(e, "Failed to query Nextcloud accounts")
+            emptyList()
         }
     }
 }

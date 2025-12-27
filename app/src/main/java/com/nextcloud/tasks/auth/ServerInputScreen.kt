@@ -58,10 +58,10 @@ fun ServerInputScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val activity = context as? Activity
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    // State for account import dialog
+    var showImportDialog by remember { mutableStateOf(false) }
+    var availableAccounts by remember { mutableStateOf<List<NextcloudFileAccount>>(emptyList()) }
 
     // Handle back button - navigate back instead of closing app
     androidx.activity.compose.BackHandler {
@@ -81,13 +81,29 @@ fun ServerInputScreen(
         onLoginSuccess()
     }
 
+    // Show account import dialog
+    if (showImportDialog) {
+        AccountImportDialog(
+            accounts = availableAccounts,
+            onAccountSelected = { account ->
+                showImportDialog = false
+                // Extract username from account name (typically "username@server.com")
+                val username = account.name.substringBefore("@")
+                viewModel.startLoginFlowWithPrefill(
+                    serverUrl = account.url,
+                    username = username,
+                )
+            },
+            onDismiss = { showImportDialog = false },
+        )
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         ServerInputContent(
             padding = padding,
@@ -96,25 +112,9 @@ fun ServerInputScreen(
             onSubmit = viewModel::startLoginFlow,
             onCancel = viewModel::cancelLogin,
             onImportAccount = {
-                // Use system account picker via SSO library
-                activity?.let { act ->
-                    AccountImportHelper.pickAccount(
-                        activity = act,
-                        onAccountSelected = { account ->
-                            // Extract username from account name (typically "username@server.com")
-                            val username = account.name.substringBefore("@")
-                            viewModel.startLoginFlowWithPrefill(
-                                serverUrl = account.url,
-                                username = username,
-                            )
-                        },
-                        onError = { error ->
-                            scope.launch {
-                                snackbarHostState.showSnackbar(error)
-                            }
-                        },
-                    )
-                }
+                // Find accounts like Talk app does
+                availableAccounts = AccountImportHelper.findAvailableAccounts(context)
+                showImportDialog = true
             },
         )
     }
