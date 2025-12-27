@@ -184,9 +184,11 @@ Create a list of changes since the last release:
 
 **Tip:** The release script automatically generates a changelog from git commits, but you can manually edit it afterwards.
 
-#### 3. Create Version Tag
+#### 3. Create Version Tag and Trigger Release
 
-**Local Tags:**
+**Recommended: Push Tag via CLI**
+
+This is the cleanest approach - the workflow will automatically create the GitHub Release:
 
 ```bash
 # Checkout main branch
@@ -196,17 +198,33 @@ git pull origin main
 # Create a tag (e.g., for version 1.0.0)
 git tag -a v1.0.0 -m "Release version 1.0.0"
 
-# Push the tag to GitHub
+# Push the tag to GitHub → This triggers the release workflow
 git push origin v1.0.0
 ```
 
-**Or via GitHub UI:**
+The workflow will:
+1. Build APK and AAB
+2. Run all quality checks and tests
+3. **Automatically create a GitHub Release** with the tag
+4. Upload APK and AAB as release assets
+5. Generate release notes from commits
+
+**Alternative: Create Release via GitHub UI**
+
+If you prefer using the GitHub UI:
 
 1. Go to **Releases** → **Create a new release**
 2. Click **"Choose a tag"** → **"Create new tag"**
 3. Enter the tag name: `v1.0.0` (format: `v` + version number)
 4. Select the `main` branch as target
-5. **IMPORTANT:** Don't click "Publish" yet! The workflow will create the release automatically.
+5. Click **"Publish release"**
+
+**Important:** When you publish the release, GitHub creates the tag, which triggers the workflow. However, the workflow will try to create a release too (since it sees the new tag). This means:
+- The workflow will **fail** to create a duplicate release (GitHub prevents it)
+- But it will still build APK/AAB successfully
+- You'll need to **manually upload** the APK/AAB from the workflow artifacts to your release
+
+**Recommendation:** Use the CLI approach (push tag first) to let the workflow handle everything automatically.
 
 #### 4. Monitor the Release Workflow
 
@@ -343,8 +361,11 @@ Examples:
 - ❌ `release-1.0.0` (wrong format)
 
 **Automatic Build Trigger:**
-- Only tags matching `v[0-9]+.[0-9]+.[0-9]+` trigger automatic builds
+- Only tags matching `v[0-9]*.[0-9]*.[0-9]*` trigger automatic builds
+  - Examples: `v1.0.0`, `v1.10.0`, `v12.3.4`, `v100.200.300` ✅
+  - Pattern uses glob syntax (not regex): `[0-9]*` = starts with digit, followed by any characters until `.`
 - Pre-release tags (with suffixes like `-beta`, `-rc.1`) do not trigger automatically
+  - Examples: `v1.0.0-beta`, `v1.10.0-rc.1` ❌ (require manual workflow)
 - See "Creating Pre-Releases" section above for manual workflow
 
 ---
@@ -354,7 +375,9 @@ Examples:
 ### Release Workflow (`.github/workflows/release.yml`)
 
 **Triggers:**
-- On push of tags matching `v*.*.*` (e.g., `v1.0.0`)
+- On push of tags matching `v[0-9]*.[0-9]*.[0-9]*` (e.g., `v1.0.0`, `v1.10.0`, `v12.3.4`)
+  - Matches: Stable releases starting with a digit in each segment
+  - Excludes: Pre-releases with suffixes (e.g., `v1.0.0-beta`)
 - Manually via "Run workflow" button
 
 **Steps:**
