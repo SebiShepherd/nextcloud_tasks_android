@@ -49,10 +49,12 @@ fun ServerInputScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // Reset login success state when screen appears
-    // This prevents old loginSuccess=true state from previous login causing immediate navigation
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        viewModel.resetLoginSuccess()
+    // Reset loginSuccess when screen is disposed (not when it appears!)
+    // This prevents stale loginSuccess=true from previous login
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            viewModel.resetLoginSuccess()
+        }
     }
 
     // Navigate away on successful login
