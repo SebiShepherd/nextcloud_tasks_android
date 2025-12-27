@@ -144,21 +144,11 @@ fun NextcloudTasksApp(
     var forceShowLogin by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
-    // Track last refreshed account to detect actual account switches
-    var lastRefreshedAccountId by remember { mutableStateOf<String?>(null) }
-
-    // Auto-refresh when account becomes active (after login or account switch)
-    // Only refresh on ACTUAL account changes, not on every recompose
-    androidx.compose.runtime.LaunchedEffect(loginState.activeAccount?.id) {
-        val currentAccountId = loginState.activeAccount?.id
-        if (currentAccountId != null && currentAccountId != lastRefreshedAccountId) {
-            taskListViewModel.refresh()
-            // Only reset forceShowLogin if this was an actual account switch (not initial load)
-            if (lastRefreshedAccountId != null) {
-                forceShowLogin = false
-            }
-            lastRefreshedAccountId = currentAccountId
-        }
+    // Handle account switching with automatic refresh
+    val handleSwitchAccount: (String) -> Unit = { accountId ->
+        loginViewModel.switchAccount(accountId)
+        taskListViewModel.refresh()
+        forceShowLogin = false
     }
 
     if (loginState.activeAccount == null || forceShowLogin) {
@@ -184,7 +174,7 @@ fun NextcloudTasksApp(
             taskSort = taskSort,
             isRefreshing = isRefreshing,
             onLogout = loginViewModel::logout,
-            onSwitchAccount = loginViewModel::switchAccount,
+            onSwitchAccount = handleSwitchAccount,
             onSelectList = taskListViewModel::selectList,
             onSetFilter = taskListViewModel::setFilter,
             onSetSort = taskListViewModel::setSort,
