@@ -7,6 +7,10 @@ import timber.log.Timber
 /**
  * Helper for importing Nextcloud accounts from the Nextcloud Files app.
  * Based on the approach used by Nextcloud Talk app.
+ *
+ * NOTE: Currently not used. Account import only works for apps signed with the
+ * same certificate as Nextcloud Files app (official NC apps like Talk, Notes).
+ * Kept for future development if app becomes officially signed.
  */
 object AccountImportHelper {
     private const val ACCOUNT_TYPE_NEXTCLOUD = "nextcloud"

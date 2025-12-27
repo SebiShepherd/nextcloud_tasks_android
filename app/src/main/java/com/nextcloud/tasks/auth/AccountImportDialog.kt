@@ -1,5 +1,10 @@
 package com.nextcloud.tasks.auth
 
+/**
+ * NOTE: Currently not used. Account import only works for apps signed with the
+ * same certificate as Nextcloud Files app. Kept for future development.
+ */
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
