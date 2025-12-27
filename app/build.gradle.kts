@@ -9,6 +9,60 @@ plugins {
     kotlin("kapt")
 }
 
+/**
+ * Get version name from environment variable (set by CI) or git tag.
+ * Falls back to default version if neither is available.
+ */
+fun getVersionName(): String {
+    // First check if VERSION_NAME is set by CI
+    val envVersion = System.getenv("VERSION_NAME")
+    if (!envVersion.isNullOrBlank()) {
+        return envVersion
+    }
+
+    // Try to get version from git tag
+    try {
+        val tagVersion = Runtime.getRuntime()
+            .exec("git describe --tags --abbrev=0")
+            .inputStream
+            .bufferedReader()
+            .readText()
+            .trim()
+            .removePrefix("v")
+
+        if (tagVersion.isNotBlank()) {
+            return tagVersion
+        }
+    } catch (e: Exception) {
+        // Git command failed, use default
+    }
+
+    // Fallback to default version
+    return "1.0.0"
+}
+
+/**
+ * Get version code from environment variable or calculate from version name.
+ * Version code format: MAJOR * 10000 + MINOR * 100 + PATCH
+ * Example: 1.2.3 -> 10203
+ */
+fun getVersionCode(): Int {
+    val versionName = getVersionName()
+
+    // Parse version string (e.g., "1.2.3" or "1.2.3-beta")
+    val versionParts = versionName.split("-")[0].split(".")
+
+    return try {
+        val major = versionParts.getOrNull(0)?.toIntOrNull() ?: 1
+        val minor = versionParts.getOrNull(1)?.toIntOrNull() ?: 0
+        val patch = versionParts.getOrNull(2)?.toIntOrNull() ?: 0
+
+        major * 10000 + minor * 100 + patch
+    } catch (e: Exception) {
+        1  // Fallback version code
+    }
+}
+
 android {
     namespace = "com.nextcloud.tasks"
     compileSdk = 36
@@ -17,8 +71,8 @@ android {
         applicationId = "com.nextcloud.tasks"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = getVersionCode()
+        versionName = getVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["applicationId"] = "com.nextcloud.tasks.test"
