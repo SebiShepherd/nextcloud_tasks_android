@@ -236,6 +236,7 @@ class DefaultAuthRepository
             return account.toDomain()
         }
 
+        @Suppress("ForbiddenComment") // Intentional TODO for future SSO implementation
         override suspend fun importAccountFromFilesApp(accountName: String): NextcloudAccount {
             Timber.d("Importing account from Files app: %s", accountName)
 
