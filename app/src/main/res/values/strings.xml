@@ -5,6 +5,9 @@
     <!-- Login Screen -->
     <string name="welcome_message">Welcome to your Nextcloud Tasks</string>
     <string name="server_url_label">Nextcloud URL</string>
+    <string name="server_url_hint">Nextcloud server https://</string>
+    <string name="server_url_description">The link to your Nextcloud website when you open it in a browser</string>
+    <string name="waiting_for_login">Waiting for login in browser…</string>
     <string name="username_label">Username</string>
     <string name="password_label">Password or app password</string>
     <string name="authorization_code_label">OAuth2 / OCS code</string>
@@ -12,6 +15,8 @@
     <string name="login_method_password">Password login</string>
     <string name="login_method_oauth">OAuth2 / OCS</string>
     <string name="login_action">Sign in now</string>
+    <string name="existing_accounts">Existing accounts</string>
+    <string name="import_account">Import account from Nextcloud app</string>
 
     <!-- Task List -->
     <string name="task_list_title">Tasks overview</string>

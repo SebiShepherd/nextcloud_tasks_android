@@ -77,6 +77,7 @@ import com.nextcloud.tasks.auth.LoginCallbacks
 import com.nextcloud.tasks.auth.LoginScreen
 import com.nextcloud.tasks.auth.LoginUiState
 import com.nextcloud.tasks.auth.LoginViewModel
+import com.nextcloud.tasks.auth.ServerInputScreen
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
@@ -152,18 +153,12 @@ fun NextcloudTasksApp(
     }
 
     if (loginState.activeAccount == null || forceShowLogin) {
-        LoginScreen(
-            state = loginState,
-            callbacks =
-                LoginCallbacks(
-                    onServerUrlChange = loginViewModel::updateServerUrl,
-                    onUsernameChange = loginViewModel::updateUsername,
-                    onPasswordChange = loginViewModel::updatePassword,
-                    onAuthorizationCodeChange = loginViewModel::updateAuthorizationCode,
-                    onRedirectUriChange = loginViewModel::updateRedirectUri,
-                    onAuthMethodChange = loginViewModel::switchAuthMethod,
-                    onSubmit = loginViewModel::submit,
-                ),
+        ServerInputScreen(
+            onLoginSuccess = {
+                // Refresh tasks after successful login
+                taskListViewModel.refresh()
+                forceShowLogin = false
+            },
         )
     } else if (showSettings) {
         // Settings Screen
