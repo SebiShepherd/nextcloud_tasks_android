@@ -499,7 +499,10 @@ private fun TasksContent(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = if (openTasksByList.keys.first() != listId) 8.dp else 0.dp),
+                            modifier =
+                                Modifier.padding(
+                                    top = if (openTasksByList.keys.first() != listId) 8.dp else 0.dp,
+                                ),
                         ) {
                             // Color dot
                             taskList?.color?.let { colorHex ->
