@@ -111,10 +111,12 @@ private fun ServerInputContent(
             value = state.serverUrl,
             onValueChange = onServerUrlChange,
             label = { Text(stringResource(R.string.server_url_hint), color = Color.White) },
-            placeholder = { Text(
-                stringResource(R.string.server_url_placeholder),
-                color = Color.White.copy(alpha = 0.6f)
-            ) },
+            placeholder = {
+                Text(
+                    stringResource(R.string.server_url_placeholder),
+                    color = Color.White.copy(alpha = 0.6f),
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !state.isLoading,
