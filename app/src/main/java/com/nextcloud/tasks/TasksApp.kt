@@ -1,16 +1,11 @@
 package com.nextcloud.tasks
 
 import android.app.Application
-import com.nextcloud.tasks.preferences.LocaleHelper
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
-import javax.inject.Inject
 
 @HiltAndroidApp
 class TasksApp : Application() {
-    @Inject
-    lateinit var localeHelper: LocaleHelper
-
     override fun onCreate() {
         super.onCreate()
 
@@ -18,7 +13,9 @@ class TasksApp : Application() {
             Timber.plant(Timber.DebugTree())
         }
 
-        // Initialize locale/language preferences
-        localeHelper.initialize()
+        // Note: Locale initialization is NOT needed here.
+        // AppCompatDelegate automatically persists and restores the selected
+        // locale in SharedPreferences. It will be applied automatically when
+        // MainActivity starts.
     }
 }
