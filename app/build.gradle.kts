@@ -171,8 +171,15 @@ dependencies {
 }
 
 play {
-    serviceAccountCredentials.set(file(System.getenv("PLAY_SERVICE_ACCOUNT_JSON") ?: "play-service-account.json"))
-    track.set("internal")
-    defaultToAppBundles.set(true)
-    resolutionStrategy.set(com.github.triplet.gradle.androidpublisher.ResolutionStrategy.AUTO)
+    // Only configure if service account JSON exists
+    val serviceAccountPath = System.getenv("PLAY_SERVICE_ACCOUNT_JSON")
+    if (!serviceAccountPath.isNullOrBlank() && file(serviceAccountPath).exists()) {
+        serviceAccountCredentials.set(file(serviceAccountPath))
+        track.set("internal")
+        defaultToAppBundles.set(true)
+        resolutionStrategy.set(com.github.triplet.gradle.androidpublisher.ResolutionStrategy.AUTO)
+    } else {
+        // Disable Play Publisher when service account is not available
+        enabled.set(false)
+    }
 }
