@@ -22,6 +22,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["applicationId"] = "com.nextcloud.tasks.test"
+
+        // Supported languages
+        resourceConfigurations += listOf("en", "de")
+    }
+
+    androidResources {
+        // Auto-generate locale config for Android 13+ Per-App Language Preferences
+        generateLocaleConfig = true
     }
 
     signingConfigs {
@@ -91,6 +99,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.timber)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.datastore.preferences)
 
     kapt(libs.hilt.compiler)
 

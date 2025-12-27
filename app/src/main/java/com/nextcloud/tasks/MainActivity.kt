@@ -127,6 +127,7 @@ fun NextcloudTasksApp(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var forceShowLogin by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     // Auto-refresh when account becomes active (after login or account switch)
     androidx.compose.runtime.LaunchedEffect(loginState.activeAccount) {
@@ -150,6 +151,11 @@ fun NextcloudTasksApp(
                     onSubmit = loginViewModel::submit,
                 ),
         )
+    } else if (showSettings) {
+        // Settings Screen
+        com.nextcloud.tasks.settings.SettingsScreen(
+            onNavigateBack = { showSettings = false },
+        )
     } else {
         AuthenticatedHome(
             state = loginState,
@@ -169,6 +175,7 @@ fun NextcloudTasksApp(
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
             onDeleteTask = taskListViewModel::deleteTask,
             onAddAccount = { forceShowLogin = true },
+            onOpenSettings = { showSettings = true },
         )
 
         // Create task dialog
@@ -208,6 +215,7 @@ fun AuthenticatedHome(
     onToggleTaskComplete: (Task) -> Unit,
     onDeleteTask: (String) -> Unit,
     onAddAccount: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -221,6 +229,10 @@ fun AuthenticatedHome(
                     selectedListId = selectedListId,
                     onSelectList = onSelectList,
                     onCloseDrawer = { scope.launch { drawerState.close() } },
+                    onOpenSettings = {
+                        onOpenSettings()
+                        scope.launch { drawerState.close() }
+                    },
                 )
             }
         },
@@ -230,7 +242,7 @@ fun AuthenticatedHome(
                 FloatingActionButton(onClick = onCreateTask) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Create Task",
+                        contentDescription = stringResource(R.string.create_task_description),
                     )
                 }
             },
@@ -303,14 +315,14 @@ private fun UnifiedSearchBar(
             IconButton(onClick = onOpenDrawer) {
                 Icon(
                     imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu",
+                    contentDescription = stringResource(R.string.menu_description),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             // Suchtext (Mitte, expandiert)
             Text(
-                text = "In allen Notizen suchen",
+                text = stringResource(R.string.search_all_notes),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
@@ -320,7 +332,7 @@ private fun UnifiedSearchBar(
             IconButton(onClick = { showSortDialog = true }) {
                 Icon(
                     imageVector = Icons.Default.Sort,
-                    contentDescription = "Sort",
+                    contentDescription = stringResource(R.string.sort_description),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -366,11 +378,11 @@ private fun SortDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Sortierung") },
+        title = { Text(stringResource(R.string.sort_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SortOption(
-                    text = "Fälligkeitsdatum",
+                    text = stringResource(R.string.sort_by_due_date),
                     isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE,
                     onClick = {
                         onSetSort(com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE)
@@ -378,7 +390,7 @@ private fun SortDialog(
                     },
                 )
                 SortOption(
-                    text = "Priorität",
+                    text = stringResource(R.string.sort_by_priority),
                     isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.PRIORITY,
                     onClick = {
                         onSetSort(com.nextcloud.tasks.domain.model.TaskSort.PRIORITY)
@@ -386,7 +398,7 @@ private fun SortDialog(
                     },
                 )
                 SortOption(
-                    text = "Titel",
+                    text = stringResource(R.string.sort_by_title),
                     isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.TITLE,
                     onClick = {
                         onSetSort(com.nextcloud.tasks.domain.model.TaskSort.TITLE)
@@ -394,7 +406,7 @@ private fun SortDialog(
                     },
                 )
                 SortOption(
-                    text = "Aktualisiert",
+                    text = stringResource(R.string.sort_by_updated),
                     isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT,
                     onClick = {
                         onSetSort(com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT)
@@ -405,7 +417,7 @@ private fun SortDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Schließen")
+                Text(stringResource(R.string.close))
             }
         },
     )
@@ -511,7 +523,7 @@ private fun TasksContent(
                                 )
                             }
                             Text(
-                                text = taskList?.name ?: "Unbekannte Liste",
+                                text = taskList?.name ?: stringResource(R.string.unknown_list),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -539,9 +551,9 @@ private fun TasksContent(
                         Text(
                             text =
                                 if (showCompletedTasks) {
-                                    "Erledigte Tasks ausblenden (${completedTasks.size})"
+                                    stringResource(R.string.hide_completed_tasks, completedTasks.size)
                                 } else {
-                                    "Erledigte Tasks anzeigen (${completedTasks.size})"
+                                    stringResource(R.string.show_completed_tasks, completedTasks.size)
                                 },
                         )
                     }
@@ -568,16 +580,17 @@ private fun TaskListsDrawer(
     selectedListId: String?,
     onSelectList: (String?) -> Unit,
     onCloseDrawer: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text(
-            text = "Task Lists",
+            text = stringResource(R.string.task_lists_title),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 16.dp),
         )
 
         NavigationDrawerItem(
-            label = { Text("All Tasks") },
+            label = { Text(stringResource(R.string.all_tasks)) },
             selected = selectedListId == null,
             onClick = {
                 onSelectList(null)
@@ -621,6 +634,28 @@ private fun TaskListsDrawer(
                 },
             )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider()
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Settings
+        NavigationDrawerItem(
+            label = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                    )
+                    Text(stringResource(R.string.settings_title))
+                }
+            },
+            selected = false,
+            onClick = onOpenSettings,
+        )
     }
 }
 
@@ -679,11 +714,11 @@ private fun AccountBottomSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Default.PersonAdd,
-                        contentDescription = "Add Account",
+                        contentDescription = stringResource(R.string.add_account_description),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Konto hinzufügen",
+                        text = stringResource(R.string.add_account),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -705,11 +740,11 @@ private fun AccountBottomSheet(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = "Manage Accounts",
+                        contentDescription = stringResource(R.string.manage_accounts_description),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Konten verwalten",
+                        text = stringResource(R.string.manage_accounts),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -724,11 +759,11 @@ private fun AccountBottomSheet(
     if (showManageMenu) {
         AlertDialog(
             onDismissRequest = { showManageMenu = false },
-            title = { Text("Konten verwalten") },
+            title = { Text(stringResource(R.string.manage_accounts_title)) },
             text = {
                 Column {
-                    Text("Account: ${activeAccount.displayName}")
-                    Text("Server: ${activeAccount.serverUrl}")
+                    Text(stringResource(R.string.account_info, activeAccount.displayName))
+                    Text(stringResource(R.string.server_info, activeAccount.serverUrl))
                 }
             },
             confirmButton = {
@@ -739,12 +774,12 @@ private fun AccountBottomSheet(
                         onDismiss()
                     },
                 ) {
-                    Text("Logout", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.logout_button), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showManageMenu = false }) {
-                    Text("Abbrechen")
+                    Text(stringResource(R.string.cancel))
                 }
             },
         )
@@ -771,7 +806,7 @@ private fun ProfilePicture(
         if (avatarUrl != null) {
             AsyncImage(
                 model = avatarUrl,
-                contentDescription = "Profile Picture",
+                contentDescription = stringResource(R.string.profile_picture_description),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                 modifier =
                     Modifier
@@ -864,7 +899,7 @@ private fun AccountItem(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Active Account",
+                        contentDescription = stringResource(R.string.active_account_description),
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(20.dp),
                     )
@@ -971,7 +1006,7 @@ private fun TaskCard(
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
+                    contentDescription = stringResource(R.string.delete_description),
                     tint = MaterialTheme.colorScheme.error,
                 )
             }
@@ -990,20 +1025,20 @@ private fun CreateTaskDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Create New Task") },
+        title = { Text(stringResource(R.string.create_task_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text(stringResource(R.string.task_title_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
+                    label = { Text(stringResource(R.string.task_description_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3,
                 )
@@ -1018,12 +1053,12 @@ private fun CreateTaskDialog(
                 },
                 enabled = title.isNotBlank(),
             ) {
-                Text("Create")
+                Text(stringResource(R.string.create))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         },
     )

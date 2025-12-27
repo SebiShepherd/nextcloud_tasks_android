@@ -1,0 +1,82 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Nextcloud Aufgaben</string>
+
+    <!-- Login Screen -->
+    <string name="welcome_message">Willkommen zu Ihren Nextcloud Aufgaben</string>
+    <string name="server_url_label">Nextcloud URL</string>
+    <string name="username_label">Benutzername</string>
+    <string name="password_label">Passwort oder App-Passwort</string>
+    <string name="authorization_code_label">OAuth2 / OCS Code</string>
+    <string name="redirect_uri_label">Weiterleitungs-URI</string>
+    <string name="login_method_password">Passwort-Login</string>
+    <string name="login_method_oauth">OAuth2 / OCS</string>
+    <string name="login_action">Jetzt anmelden</string>
+
+    <!-- Task List -->
+    <string name="task_list_title">Aufgabenübersicht</string>
+    <string name="empty_task_hint">Fügen Sie Ihre erste Aufgabe hinzu, um organisiert zu bleiben.</string>
+    <string name="all_tasks">Alle Aufgaben</string>
+    <string name="task_lists_title">Aufgabenlisten</string>
+    <string name="unknown_list">Unbekannte Liste</string>
+
+    <!-- Search & Sort -->
+    <string name="search_all_notes">In allen Notizen suchen</string>
+    <string name="sort_dialog_title">Sortierung</string>
+    <string name="sort_by_due_date">Fälligkeitsdatum</string>
+    <string name="sort_by_priority">Priorität</string>
+    <string name="sort_by_title">Titel</string>
+    <string name="sort_by_updated">Zuletzt aktualisiert</string>
+
+    <!-- Completed Tasks -->
+    <string name="hide_completed_tasks">Erledigte Aufgaben ausblenden (%1$d)</string>
+    <string name="show_completed_tasks">Erledigte Aufgaben anzeigen (%1$d)</string>
+
+    <!-- Create Task Dialog -->
+    <string name="create_task_dialog_title">Neue Aufgabe erstellen</string>
+    <string name="task_title_label">Titel</string>
+    <string name="task_description_label">Beschreibung (optional)</string>
+    <string name="create">Erstellen</string>
+
+    <!-- Account Management -->
+    <string name="active_account">Aktives Konto</string>
+    <string name="add_account">Konto hinzufügen</string>
+    <string name="manage_accounts">Konten verwalten</string>
+    <string name="manage_accounts_title">Konten verwalten</string>
+    <string name="account_info">Konto: %1$s</string>
+    <string name="server_info">Server: %1$s</string>
+    <string name="logout">Abmelden</string>
+    <string name="logout_button">Abmelden</string>
+    <string name="switch_account">Konto wechseln</string>
+    <string name="account_connection_success">Verbindung hergestellt</string>
+
+    <!-- Common Actions -->
+    <string name="cancel">Abbrechen</string>
+    <string name="close">Schließen</string>
+    <string name="delete">Löschen</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="menu_description">Menü</string>
+    <string name="sort_description">Sortieren</string>
+    <string name="add_account_description">Konto hinzufügen</string>
+    <string name="manage_accounts_description">Konten verwalten</string>
+    <string name="profile_picture_description">Profilbild</string>
+    <string name="create_task_description">Aufgabe erstellen</string>
+    <string name="delete_description">Löschen</string>
+    <string name="active_account_description">Aktives Konto</string>
+
+    <!-- Error Messages -->
+    <string name="invalid_certificate">Das Zertifikat konnte nicht verifiziert werden.</string>
+    <string name="invalid_url">Bitte geben Sie eine gültige HTTPS-URL an.</string>
+    <string name="error_invalid_credentials">Benutzername, Passwort oder Code ist ungültig</string>
+    <string name="error_unexpected">Unerwarteter Fehler</string>
+    <string name="error_unknown">Unbekannter Fehler</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_language">Sprache</string>
+    <string name="language_system_default">Systemstandard</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_dialog_title">Sprache auswählen</string>
+</resources>

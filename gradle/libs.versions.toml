@@ -27,6 +27,7 @@ ical4j = "3.2.18"
 nextcloudAndroidLibrary = "2.22.2"
 nextcloudAndroidCommon = "1.0.0"
 coil = "2.7.0"
+datastore = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -63,6 +64,7 @@ ical4j-core = { module = "org.mnode.ical4j:ical4j", version.ref = "ical4j" }
 nextcloud-android-library = { module = "com.github.nextcloud:android-library", version.ref = "nextcloudAndroidLibrary" }
 nextcloud-android-common-ui = { module = "com.github.nextcloud.android-common:ui", version.ref = "nextcloudAndroidCommon" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 
 [bundles]
 compose = [

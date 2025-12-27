@@ -1,7 +1,9 @@
 package com.nextcloud.tasks.auth
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nextcloud.tasks.R
 import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
@@ -14,6 +16,7 @@ import com.nextcloud.tasks.domain.usecase.SwitchAccountUseCase
 import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
 import com.nextcloud.tasks.domain.usecase.ValidationResult
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +32,7 @@ private const val DEFAULT_REDIRECT_URI = "nc://login"
 class LoginViewModel
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val useCases: LoginUseCases,
     ) : ViewModel() {
         private val exceptionHandler =
@@ -37,7 +41,7 @@ class LoginViewModel
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
-                        error = throwable.toLoginMessage(),
+                        error = throwable.toLoginMessage(context),
                     )
                 }
             }
@@ -116,6 +120,7 @@ class LoginViewModel
                             state = state,
                             normalizedServer = normalizedServer,
                             uiState = _uiState,
+                            context = context,
                         )
                     }
             }
@@ -195,6 +200,7 @@ private fun handleLoginFailure(
     state: LoginUiState,
     normalizedServer: String,
     uiState: MutableStateFlow<LoginUiState>,
+    context: Context,
 ) {
     Timber.e(
         throwable,
@@ -205,19 +211,19 @@ private fun handleLoginFailure(
     uiState.update {
         it.copy(
             isLoading = false,
-            error = throwable.toLoginMessage(),
+            error = throwable.toLoginMessage(context),
         )
     }
 }
 
-private fun Throwable.toLoginMessage(): String =
+private fun Throwable.toLoginMessage(context: Context): String =
     when (this) {
         is AuthFailure.InvalidServerUrl -> this.reason
-        is AuthFailure.InvalidCredentials -> "Username, password, or code is not valid"
+        is AuthFailure.InvalidCredentials -> context.getString(R.string.error_invalid_credentials)
         is AuthFailure.Network -> this.reason
         is AuthFailure.Certificate -> this.reason
-        is AuthFailure.Unexpected -> this.message ?: "Unexpected error"
-        else -> message ?: "Unknown error"
+        is AuthFailure.Unexpected -> this.message ?: context.getString(R.string.error_unexpected)
+        else -> message ?: context.getString(R.string.error_unknown)
     }
 
 data class LoginUseCases(
