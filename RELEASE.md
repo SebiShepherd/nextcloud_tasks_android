@@ -67,34 +67,43 @@ The app uses an automated release process based on **Git Tags**. When you create
 
 **Who can approve PRs?**
 
-By default, **anyone with write access** to the repository can approve pull requests. GitHub doesn't have a built-in setting to restrict PR approvals to specific people in the free/standard tier.
+By default, anyone can comment on pull requests in public repositories, but you can control who can formally approve them using GitHub's **Code review limits** feature.
 
-**Options for controlling PR approvals:**
+**How to restrict PR approvals (Recommended):**
 
-**Option 1: Control Repository Access (Recommended)**
-- Go to **Settings** → **Collaborators and teams**
-- Only give **read access** to contributors
-- Give **write access** only to yourself (and trusted maintainers)
-- Result: Only people with write access can approve PRs
+1. In the **same Branch protection rule**, scroll down to find:
+
+   **"Code review limits"** section
+
+2. ✅ Enable: **"Limit to users explicitly granted read or higher access"**
+
+   This means:
+   - Only users you explicitly add as collaborators can approve PRs
+   - Random contributors from the public can submit PRs but **cannot approve** them
+   - Everyone can still comment and participate in discussions
+
+3. Control who can approve:
+   - Go to **Settings** → **Collaborators and teams**
+   - Add only yourself (and trusted maintainers if needed)
+   - Don't add regular contributors as collaborators
+   - Result: **Only you can approve and merge PRs**
+
+**Complete Setup for Solo Maintainer:**
+1. Enable "Require a pull request before merging" with 1 approval
+2. Enable "Code review limits" → "Limit to users explicitly granted read or higher access"
+3. Don't add other collaborators (only you have explicit access)
+4. Result: ✅ Only you can approve and merge PRs, even though the repo is public!
+
+**Alternative Options (if needed):**
 
 **Option 2: Code Owners (GitHub Pro/Teams/Enterprise)**
-- Create a `.github/CODEOWNERS` file
-- Specify that you must approve changes
-- Example:
-  ```
-  * @YourGitHubUsername
-  ```
-- **Limitation**: Requires GitHub Pro or GitHub Teams
+- Create a `.github/CODEOWNERS` file to require specific reviewers
+- Requires paid GitHub subscription
 
-**Option 3: Manual Process (Free tier)**
-- Use branch protection to require 1 approval
-- Trust that you'll be the one approving (social contract)
-- Anyone with write access can technically approve, but you control who has write access
-
-**Recommended Setup for Solo Maintainer:**
-1. Enable "Require a pull request before merging" with 1 approval
-2. Don't add other collaborators with write access (only read access)
-3. You'll be the only one who can approve and merge PRs
+**Option 3: Control via Write Access**
+- Only give write access to trusted maintainers
+- Everyone else gets read-only access
+- Works, but "Code review limits" is cleaner
 
 ---
 
