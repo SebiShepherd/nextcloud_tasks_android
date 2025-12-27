@@ -17,6 +17,8 @@
     <string name="login_action">Jetzt anmelden</string>
     <string name="existing_accounts">Vorhandene Konten</string>
     <string name="import_account">Ein Konto aus der App Nextcloud importieren</string>
+    <string name="select_account">Konto auswählen</string>
+    <string name="no_accounts_found">Keine Nextcloud-Konten gefunden.\n\nBitte installieren Sie zunächst die Nextcloud Files-App und fügen Sie ein Konto hinzu.</string>
 
     <!-- Task List -->
     <string name="task_list_title">Aufgabenübersicht</string>

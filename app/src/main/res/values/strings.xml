@@ -17,6 +17,8 @@
     <string name="login_action">Sign in now</string>
     <string name="existing_accounts">Existing accounts</string>
     <string name="import_account">Import account from Nextcloud app</string>
+    <string name="select_account">Select account</string>
+    <string name="no_accounts_found">No Nextcloud accounts found.\n\nPlease install the Nextcloud Files app and add an account first.</string>
 
     <!-- Task List -->
     <string name="task_list_title">Tasks overview</string>

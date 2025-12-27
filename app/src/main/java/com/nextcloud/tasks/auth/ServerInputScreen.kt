@@ -31,7 +31,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -48,6 +52,11 @@ fun ServerInputScreen(
     viewModel: LoginFlowViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // State for account import dialog
+    var showImportDialog by remember { mutableStateOf(false) }
+    var availableAccounts by remember { mutableStateOf<List<NextcloudFileAccount>>(emptyList()) }
 
     // Handle back button - navigate back instead of closing app
     androidx.activity.compose.BackHandler {
@@ -67,6 +76,23 @@ fun ServerInputScreen(
         onLoginSuccess()
     }
 
+    // Show account import dialog
+    if (showImportDialog) {
+        AccountImportDialog(
+            accounts = availableAccounts,
+            onAccountSelected = { account ->
+                showImportDialog = false
+                // Extract username from account name (typically "username@server.com")
+                val username = account.name.substringBefore("@")
+                viewModel.startLoginFlowWithPrefill(
+                    serverUrl = account.url,
+                    username = username,
+                )
+            },
+            onDismiss = { showImportDialog = false },
+        )
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -80,7 +106,11 @@ fun ServerInputScreen(
             onServerUrlChange = viewModel::updateServerUrl,
             onSubmit = viewModel::startLoginFlow,
             onCancel = viewModel::cancelLogin,
-            onImportAccount = { /* TODO: Implement import */ },
+            onImportAccount = {
+                // Query accounts and show dialog
+                availableAccounts = AccountImportHelper.getNextcloudAccounts(context)
+                showImportDialog = true
+            },
         )
     }
 }

@@ -60,6 +60,19 @@ class LoginFlowViewModel
             _uiState.update { it.copy(serverUrl = url, error = null) }
         }
 
+        /**
+         * Start login flow with pre-filled server URL and username.
+         * Used when importing an account from Nextcloud Files app.
+         */
+        fun startLoginFlowWithPrefill(
+            serverUrl: String,
+            username: String,
+        ) {
+            Timber.i("Starting login flow with pre-filled data: $username @ $serverUrl")
+            _uiState.update { it.copy(serverUrl = serverUrl, error = null) }
+            startLoginFlow()
+        }
+
         fun startLoginFlow() {
             // Cancel any existing polling
             pollingJob?.cancel()
