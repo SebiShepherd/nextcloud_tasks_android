@@ -171,6 +171,12 @@ fun NextcloudTasksApp(
                 forceShowLogin = false
                 // Refresh will be triggered by LaunchedEffect above when account becomes active
             },
+            onBack = {
+                // Only allow back if there's an existing account
+                if (loginState.activeAccount != null) {
+                    forceShowLogin = false
+                }
+            },
         )
     } else if (showSettings) {
         // Settings Screen

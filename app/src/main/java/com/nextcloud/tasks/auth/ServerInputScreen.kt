@@ -39,15 +39,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nextcloud.tasks.R
-import com.nextcloud.tasks.domain.model.NextcloudAccount
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerInputScreen(
     onLoginSuccess: () -> Unit,
+    onBack: () -> Unit = {},
     viewModel: LoginFlowViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // Handle back button - navigate back instead of closing app
+    androidx.activity.compose.BackHandler {
+        onBack()
+    }
 
     // Reset loginSuccess when screen is disposed (not when it appears!)
     // This prevents stale loginSuccess=true from previous login
@@ -75,8 +80,7 @@ fun ServerInputScreen(
             onServerUrlChange = viewModel::updateServerUrl,
             onSubmit = viewModel::startLoginFlow,
             onCancel = viewModel::cancelLogin,
-            onSwitchAccount = viewModel::onSwitchAccount,
-            onLogout = viewModel::onLogout,
+            onImportAccount = { /* TODO: Implement import */ },
         )
     }
 }
@@ -88,8 +92,7 @@ private fun ServerInputContent(
     onServerUrlChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onCancel: () -> Unit,
-    onSwitchAccount: (String) -> Unit,
-    onLogout: (String) -> Unit,
+    onImportAccount: () -> Unit,
 ) {
     Column(
         modifier =
@@ -143,15 +146,11 @@ private fun ServerInputContent(
             textAlign = TextAlign.Start,
         )
 
-        // Account import button (placeholder for future implementation)
+        // Account import button
         if (!state.isLoading) {
             Spacer(modifier = Modifier.height(8.dp))
             TextButton(
-                onClick = {
-                    // TODO: Implement account import
-                    // For now, this is disabled until full SSO integration is complete
-                },
-                enabled = false, // Disabled for now
+                onClick = onImportAccount,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(stringResource(R.string.import_account))
@@ -189,58 +188,6 @@ private fun ServerInputContent(
             }
         }
 
-        // Existing accounts
-        if (state.accounts.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.existing_accounts),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            state.accounts.forEach { account ->
-                AccountCard(
-                    account = account,
-                    onSwitch = { onSwitchAccount(account.id) },
-                    onLogout = { onLogout(account.id) },
-                )
-            }
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun AccountCard(
-    account: NextcloudAccount,
-    onSwitch: () -> Unit,
-    onLogout: () -> Unit,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                text = account.displayName,
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = account.serverUrl,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(onClick = onSwitch) {
-                    Text(stringResource(R.string.switch_account))
-                }
-                TextButton(onClick = onLogout) {
-                    Text(stringResource(R.string.logout))
-                }
-            }
-        }
     }
 }
