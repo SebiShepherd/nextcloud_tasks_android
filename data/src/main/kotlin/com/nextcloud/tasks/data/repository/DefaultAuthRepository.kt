@@ -15,6 +15,7 @@ import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
 import com.nextcloud.tasks.domain.usecase.ValidationResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import retrofit2.HttpException
 import timber.log.Timber
@@ -199,6 +200,19 @@ class DefaultAuthRepository
 
             if (loginName.isBlank() || appPassword.isBlank()) {
                 throw AuthFailure.InvalidCredentials
+            }
+
+            // Check for duplicate account (same server + username)
+            val existingAccounts = secureAuthStorage.observeAccounts().first()
+            val duplicateAccount =
+                existingAccounts.firstOrNull { existing ->
+                    existing.serverUrl == normalizedServer && existing.username == loginName
+                }
+            if (duplicateAccount != null) {
+                Timber.w("Account already exists for %s@%s", loginName, normalizedServer)
+                // Instead of creating a new account, switch to the existing one
+                secureAuthStorage.setActiveAccount(duplicateAccount.id)
+                return duplicateAccount.toDomain()
             }
 
             // Authenticate with app password (using Basic Auth)

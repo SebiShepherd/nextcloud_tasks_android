@@ -144,19 +144,31 @@ fun NextcloudTasksApp(
     var forceShowLogin by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
+    // Track whether we've loaded tasks for the current account
+    // This ensures refresh happens after initial login when account becomes active
+    var lastLoadedAccountId by remember { mutableStateOf<String?>(null) }
+
+    // Auto-refresh when account becomes active (initial login or account switch from another source)
+    LaunchedEffect(loginState.activeAccount?.id) {
+        val currentAccountId = loginState.activeAccount?.id
+        if (currentAccountId != null && currentAccountId != lastLoadedAccountId) {
+            taskListViewModel.refresh()
+            lastLoadedAccountId = currentAccountId
+        }
+    }
+
     // Handle account switching with automatic refresh
     val handleSwitchAccount: (String) -> Unit = { accountId ->
         loginViewModel.switchAccount(accountId)
-        taskListViewModel.refresh()
         forceShowLogin = false
+        // Refresh will be triggered by LaunchedEffect above
     }
 
     if (loginState.activeAccount == null || forceShowLogin) {
         ServerInputScreen(
             onLoginSuccess = {
-                // Refresh tasks after successful login
-                taskListViewModel.refresh()
                 forceShowLogin = false
+                // Refresh will be triggered by LaunchedEffect above when account becomes active
             },
         )
     } else if (showSettings) {
