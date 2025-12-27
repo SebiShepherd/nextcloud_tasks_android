@@ -114,6 +114,10 @@ class LoginFlowViewModel
             }
         }
 
+        fun resetLoginSuccess() {
+            _uiState.update { it.copy(loginSuccess = false) }
+        }
+
         fun onSwitchAccount(accountId: String) {
             viewModelScope.launch {
                 runCatching {
