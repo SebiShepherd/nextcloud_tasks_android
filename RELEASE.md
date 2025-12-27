@@ -1,364 +1,396 @@
-# Release Guide für Nextcloud Tasks Android
+# Release Guide for Nextcloud Tasks Android
 
-Dieses Dokument beschreibt den kompletten Prozess für die Veröffentlichung von Releases der Nextcloud Tasks Android App.
-
----
-
-## 📋 Übersicht
-
-Die App verwendet einen automatisierten Release-Prozess basierend auf **Git Tags**. Sobald ein Version-Tag (z.B. `v1.0.0`) erstellt wird, baut GitHub Actions automatisch APK und AAB Dateien und erstellt ein GitHub Release mit Download-Links.
-
-### Was wird automatisch gemacht:
-✅ APK-Build (signiert, für direkten Download)
-✅ AAB-Build (signiert, für Google Play Store)
-✅ Quality Checks (ktlint, detekt, lint, tests)
-✅ Automatische Versionierung
-✅ GitHub Release mit Release Notes
-✅ Download-URLs für APK und AAB
+This document describes the complete release process for publishing new versions of the Nextcloud Tasks Android app.
 
 ---
 
-## 🔧 Einmalige Setup-Schritte in GitHub
+## 📋 Overview
 
-### 1. Branch Protection für `main` einrichten
+The app uses an automated release process based on **Git Tags**. When you create a version tag (e.g., `v1.0.0`), GitHub Actions automatically builds APK and AAB files and creates a GitHub Release with download links.
 
-**Schritte:**
-1. Gehe zu deinem Repository auf GitHub
-2. Klicke auf **Settings** → **Branches** (links in der Sidebar)
-3. Unter "Branch protection rules" klicke auf **Add rule**
-4. Konfiguriere folgende Einstellungen:
+### What's Automated:
+✅ APK build (signed, for direct download)
+✅ AAB build (signed, for Google Play Store)
+✅ Quality checks (ktlint, detekt, lint, tests)
+✅ Automatic versioning
+✅ GitHub Release creation with release notes
+✅ Download URLs for APK and AAB
+
+---
+
+## 🔧 One-Time Setup in GitHub
+
+### 1. Configure Branch Protection for `main`
+
+**Steps:**
+1. Go to your repository on GitHub
+2. Click **Settings** → **Branches** (left sidebar)
+3. Under "Branch protection rules" click **Add rule**
+4. Configure the following settings:
 
    **Branch name pattern:**
    ```
    main
    ```
 
-   **Protect matching branches - Aktiviere folgende Checkboxen:**
+   **Protect matching branches - Enable these checkboxes:**
 
    - ✅ **Require a pull request before merging**
-     - ✅ Require approvals: `1` (oder mehr)
+     - ✅ Require approvals: `1` (or more)
      - ✅ Dismiss stale pull request approvals when new commits are pushed
+     - ✅ **Restrict who can dismiss pull request reviews**
+       - Add yourself (and trusted maintainers) to the allowlist
 
    - ✅ **Require status checks to pass before merging**
      - ✅ Require branches to be up to date before merging
-     - Wähle folgende Status Checks (erscheinen nach dem ersten CI-Run):
-       - `quality` (von .github/workflows/ci.yml)
+     - Select the following status checks (appear after first CI run):
+       - `quality` (from .github/workflows/ci.yml)
 
    - ✅ **Require conversation resolution before merging**
 
    - ✅ **Do not allow bypassing the above settings**
-     - Optional: Erlaube Admins das Bypassen (für Notfälle)
+     - Optional: Allow admins to bypass (for emergencies)
+     - **Important**: Even if you're an admin, this means YOU also can't bypass the rules unless you explicitly check "Allow specified actors to bypass"
 
    - ✅ **Restrict who can push to matching branches**
-     - Optional: Nur bestimmte Personen/Teams erlauben
+     - **IMPORTANT FOR YOUR QUESTION**: This controls who can push directly (without PR)
+     - Leave empty or add only yourself
+     - **Note**: This does NOT control who can approve PRs - see note below
 
-   - ✅ **Block force pushes** (sehr wichtig!)
+   - ✅ **Block force pushes** (very important!)
 
-   - ✅ **Require linear history** (empfohlen)
+   - ✅ **Require linear history** (recommended)
 
-5. Klicke auf **Create** oder **Save changes**
+5. Click **Create** or **Save changes**
 
-**Wichtig:** Ab jetzt können nur noch PRs nach `main` gemerged werden, die:
-- Von dir approved wurden
-- Alle Quality Checks bestanden haben
-- Keine offenen Diskussionen haben
-- Keine Force-Pushes erlauben
+#### 📝 Important Note About PR Approvals
 
----
+**Who can approve PRs?**
 
-### 2. Repository Secrets prüfen
+By default, **anyone with write access** to the repository can approve pull requests. GitHub doesn't have a built-in setting to restrict PR approvals to specific people in the free/standard tier.
 
-Die folgenden Secrets müssen in deinem Repository hinterlegt sein (scheinen bereits vorhanden zu sein):
+**Options for controlling PR approvals:**
 
-**Gehe zu:** Settings → Secrets and variables → Actions → Repository secrets
+**Option 1: Control Repository Access (Recommended)**
+- Go to **Settings** → **Collaborators and teams**
+- Only give **read access** to contributors
+- Give **write access** only to yourself (and trusted maintainers)
+- Result: Only people with write access can approve PRs
 
-Erforderliche Secrets:
-- `SIGNING_KEYSTORE_BASE64` - Base64-kodiertes Android Keystore
-- `SIGNING_KEYSTORE_PASSWORD` - Passwort für den Keystore
-- `SIGNING_KEY_ALIAS` - Alias des Signing Keys
-- `SIGNING_KEY_PASSWORD` - Passwort für den Signing Key
+**Option 2: Code Owners (GitHub Pro/Teams/Enterprise)**
+- Create a `.github/CODEOWNERS` file
+- Specify that you must approve changes
+- Example:
+  ```
+  * @YourGitHubUsername
+  ```
+- **Limitation**: Requires GitHub Pro or GitHub Teams
 
-**Diese Secrets sind bereits konfiguriert ✅**
+**Option 3: Manual Process (Free tier)**
+- Use branch protection to require 1 approval
+- Trust that you'll be the one approving (social contract)
+- Anyone with write access can technically approve, but you control who has write access
 
-Optional (für Play Store Publishing):
-- `PLAY_SERVICE_ACCOUNT_JSON` - Service Account JSON für Play Store API
-
----
-
-### 3. Workflow Permissions prüfen
-
-**Schritte:**
-1. Gehe zu **Settings** → **Actions** → **General**
-2. Scrolle zu "Workflow permissions"
-3. Stelle sicher, dass **"Read and write permissions"** aktiviert ist
-4. ✅ Aktiviere "Allow GitHub Actions to create and approve pull requests"
-
-Dies ist nötig, damit der Release-Workflow GitHub Releases erstellen kann.
+**Recommended Setup for Solo Maintainer:**
+1. Enable "Require a pull request before merging" with 1 approval
+2. Don't add other collaborators with write access (only read access)
+3. You'll be the only one who can approve and merge PRs
 
 ---
 
-### 4. Repository auf Public stellen
+### 2. Verify Repository Secrets
 
-**⚠️ Wichtig: Mache das erst NACH dem Branch Protection Setup!**
+The following secrets must be configured in your repository (they appear to already exist):
 
-**Schritte:**
-1. Gehe zu **Settings** (Repository-Settings, nicht Account-Settings)
-2. Scrolle ganz nach unten zu **"Danger Zone"**
-3. Klicke auf **"Change visibility"**
-4. Wähle **"Make public"**
-5. Bestätige die Aktion
+**Go to:** Settings → Secrets and variables → Actions → Repository secrets
 
-**Vorher prüfen:**
-- ✅ Branch Protection ist aktiv
-- ✅ Keine Secrets/Credentials im Code committed
-- ✅ .gitignore ist korrekt konfiguriert
-- ✅ README.md ist aktuell und aussagekräftig
-- ✅ LICENSE Datei ist vorhanden
+Required secrets:
+- `SIGNING_KEYSTORE_BASE64` - Base64-encoded Android keystore
+- `SIGNING_KEYSTORE_PASSWORD` - Keystore password
+- `SIGNING_KEY_ALIAS` - Signing key alias
+- `SIGNING_KEY_PASSWORD` - Signing key password
+
+**These secrets are already configured ✅**
+
+Optional (for Play Store publishing):
+- `PLAY_SERVICE_ACCOUNT_JSON` - Service Account JSON for Play Store API
 
 ---
 
-## 🚀 Einen Release veröffentlichen
+### 3. Configure Workflow Permissions
 
-### Schritt-für-Schritt Anleitung
+**Steps:**
+1. Go to **Settings** → **Actions** → **General**
+2. Scroll to "Workflow permissions"
+3. Ensure **"Read and write permissions"** is enabled
+4. ✅ Enable "Allow GitHub Actions to create and approve pull requests"
 
-#### 1. Code vorbereiten
+This is required for the release workflow to create GitHub Releases.
 
-Stelle sicher, dass:
-- ✅ Alle gewünschten Features/Fixes gemerged sind
-- ✅ Der `main` Branch auf dem neuesten Stand ist
-- ✅ Alle CI Checks erfolgreich durchlaufen
+---
 
-#### 2. Changelog vorbereiten (optional)
+### 4. Make Repository Public
 
-Erstelle eine Liste der Änderungen seit dem letzten Release:
-- Neue Features
-- Bug Fixes
-- Breaking Changes
-- Bekannte Issues
+**⚠️ Important: Do this AFTER setting up branch protection!**
 
-**Tipp:** Das Release-Script generiert automatisch ein Changelog aus Git-Commits, aber du kannst es manuell nachbearbeiten.
+**Steps:**
+1. Go to **Settings** (repository settings, not account settings)
+2. Scroll down to **"Danger Zone"**
+3. Click **"Change visibility"**
+4. Select **"Make public"**
+5. Confirm the action
 
-#### 3. Version Tag erstellen
+**Pre-flight checklist:**
+- ✅ Branch protection is active
+- ✅ No secrets/credentials committed in code
+- ✅ .gitignore is properly configured
+- ✅ README.md is up to date and informative
+- ✅ LICENSE file exists
 
-**Lokale Tags:**
+---
+
+## 🚀 Publishing a Release
+
+### Step-by-Step Guide
+
+#### 1. Prepare the Code
+
+Ensure that:
+- ✅ All desired features/fixes are merged
+- ✅ The `main` branch is up to date
+- ✅ All CI checks pass successfully
+
+#### 2. Prepare Changelog (Optional)
+
+Create a list of changes since the last release:
+- New features
+- Bug fixes
+- Breaking changes
+- Known issues
+
+**Tip:** The release script automatically generates a changelog from git commits, but you can manually edit it afterwards.
+
+#### 3. Create Version Tag
+
+**Local Tags:**
 
 ```bash
 # Checkout main branch
 git checkout main
 git pull origin main
 
-# Erstelle einen Tag (z.B. für Version 1.0.0)
+# Create a tag (e.g., for version 1.0.0)
 git tag -a v1.0.0 -m "Release version 1.0.0"
 
-# Push den Tag zu GitHub
+# Push the tag to GitHub
 git push origin v1.0.0
 ```
 
-**Oder über GitHub UI:**
+**Or via GitHub UI:**
 
-1. Gehe zu **Releases** → **Create a new release**
-2. Klicke auf **"Choose a tag"** → **"Create new tag"**
-3. Gib den Tag-Namen ein: `v1.0.0` (Format: `v` + Versionsnummer)
-4. Wähle den `main` Branch als Target
-5. **WICHTIG:** Noch nicht auf "Publish" klicken! Der Workflow erstellt das Release automatisch.
+1. Go to **Releases** → **Create a new release**
+2. Click **"Choose a tag"** → **"Create new tag"**
+3. Enter the tag name: `v1.0.0` (format: `v` + version number)
+4. Select the `main` branch as target
+5. **IMPORTANT:** Don't click "Publish" yet! The workflow will create the release automatically.
 
-#### 4. Release-Workflow beobachten
+#### 4. Monitor the Release Workflow
 
-1. Gehe zu **Actions** in deinem Repository
-2. Der "Release Build" Workflow sollte automatisch gestartet sein
-3. Beobachte den Fortschritt (dauert ca. 10-15 Minuten):
-   - Quality Checks (ktlint, detekt, lint)
-   - Unit Tests
-   - APK Build
-   - AAB Build
-   - Release Creation
+1. Go to **Actions** in your repository
+2. The "Release Build" workflow should start automatically
+3. Monitor the progress (takes ~10-15 minutes):
+   - Quality checks (ktlint, detekt, lint)
+   - Unit tests
+   - APK build
+   - AAB build
+   - Release creation
 
-#### 5. Release überprüfen
+#### 5. Verify the Release
 
-Nach erfolgreichem Workflow-Run:
+After successful workflow run:
 
-1. Gehe zu **Releases** in deinem Repository
-2. Du solltest einen neuen Release mit Tag `v1.0.0` sehen
-3. Überprüfe die Downloads:
-   - ✅ `nextcloud-tasks-1.0.0.apk` - Für direkten Download
-   - ✅ `nextcloud-tasks-1.0.0.aab` - Für Play Store Upload
-4. Überprüfe die Release Notes
+1. Go to **Releases** in your repository
+2. You should see a new release with tag `v1.0.0`
+3. Verify the downloads:
+   - ✅ `nextcloud-tasks-1.0.0.apk` - For direct download
+   - ✅ `nextcloud-tasks-1.0.0.aab` - For Play Store upload
+4. Check the release notes
 
-#### 6. Release Notes anpassen (optional)
+#### 6. Edit Release Notes (Optional)
 
-1. Klicke auf **Edit** beim Release
-2. Passe die automatisch generierten Release Notes an:
-   - Füge Highlights hinzu
-   - Gruppiere Änderungen (Features, Bug Fixes, etc.)
-   - Füge Screenshots hinzu (falls vorhanden)
-   - Füge Breaking Changes oder Migration Notes hinzu
-3. Klicke auf **Update release**
+1. Click **Edit** on the release
+2. Customize the automatically generated release notes:
+   - Add highlights
+   - Group changes (Features, Bug Fixes, etc.)
+   - Add screenshots (if available)
+   - Add breaking changes or migration notes
+3. Click **Update release**
 
 ---
 
 ## 📝 Versioning Schema
 
-Die App verwendet **Semantic Versioning** (SemVer):
+The app uses **Semantic Versioning** (SemVer):
 
 ```
 MAJOR.MINOR.PATCH
 
-Beispiel: 1.2.3
-- MAJOR (1): Breaking Changes / Große neue Features
-- MINOR (2): Neue Features (rückwärtskompatibel)
-- PATCH (3): Bug Fixes (rückwärtskompatibel)
+Example: 1.2.3
+- MAJOR (1): Breaking changes / Major new features
+- MINOR (2): New features (backwards compatible)
+- PATCH (3): Bug fixes (backwards compatible)
 ```
 
-**Version Code Berechnung:**
+**Version Code Calculation:**
 ```
 versionCode = MAJOR * 10000 + MINOR * 100 + PATCH
 
-Beispiele:
+Examples:
 1.0.0  → 10000
 1.2.3  → 10203
 2.0.0  → 20000
 ```
 
 **Git Tag Format:**
-- ✅ `v1.0.0` (mit "v" Prefix)
-- ❌ `1.0.0` (ohne Prefix)
+- ✅ `v1.0.0` (with "v" prefix)
+- ❌ `1.0.0` (without prefix)
 - ❌ `release-1.0.0`
 
 ---
 
-## 🔄 Workflow-Details
+## 🔄 Workflow Details
 
 ### Release Workflow (`.github/workflows/release.yml`)
 
-**Trigger:**
-- Bei Push von Tags im Format `v*.*.*` (z.B. `v1.0.0`)
-- Manuell über "Run workflow" Button
+**Triggers:**
+- On push of tags matching `v*.*.*` (e.g., `v1.0.0`)
+- Manually via "Run workflow" button
 
-**Schritte:**
-1. **Checkout** - Code auschecken
-2. **Setup** - JDK 17, Android SDK, Gradle Cache
-3. **Version Extraction** - Version aus Git Tag extrahieren
+**Steps:**
+1. **Checkout** - Check out code
+2. **Setup** - JDK 17, Android SDK, Gradle cache
+3. **Version Extraction** - Extract version from git tag
 4. **Quality Checks** - ktlint, detekt, lint (release variant)
-5. **Tests** - Unit Tests laufen lassen
-6. **Build APK** - Signierte Release-APK bauen
-7. **Build AAB** - Signiertes Release-Bundle bauen
-8. **Rename** - Dateien mit Version umbenennen
-9. **Release Notes** - Automatische Release Notes generieren
-10. **Create Release** - GitHub Release mit APK und AAB erstellen
+5. **Tests** - Run unit tests
+6. **Build APK** - Build signed release APK
+7. **Build AAB** - Build signed release bundle
+8. **Rename** - Rename files with version number
+9. **Release Notes** - Generate automatic release notes
+10. **Create Release** - Create GitHub Release with APK and AAB
 
 **Outputs:**
-- GitHub Release mit Downloads
-- Automatische Release Notes aus Git-Commits
-- APK und AAB als Release Assets
+- GitHub Release with downloads
+- Automatic release notes from git commits
+- APK and AAB as release assets
 
 ---
 
-## 🧪 Testen vor dem Release
+## 🧪 Testing Before Release
 
-### Lokales Testen
+### Local Testing
 
 ```bash
-# Quality Checks lokal durchführen
+# Run quality checks locally
 ./gradlew ktlintCheck detekt :app:lintRelease testReleaseUnitTest
 
-# Signed APK lokal bauen (erfordert Signing Secrets als Env Variables)
+# Build signed APK locally (requires signing secrets as env variables)
 export SIGNING_KEYSTORE_BASE64="..."
 export SIGNING_KEYSTORE_PASSWORD="..."
 export SIGNING_KEY_ALIAS="..."
 export SIGNING_KEY_PASSWORD="..."
 ./gradlew assembleRelease
 
-# APK ist dann hier: app/build/outputs/apk/release/app-release.apk
+# APK will be at: app/build/outputs/apk/release/app-release.apk
 ```
 
-### Test-Release (ohne Tag)
+### Test Release (Without Tag)
 
-Du kannst den Release-Workflow auch manuell triggern ohne einen Tag zu erstellen:
+You can manually trigger the release workflow without creating a tag:
 
-1. Gehe zu **Actions** → **Release Build**
-2. Klicke auf **"Run workflow"**
-3. Wähle den Branch (z.B. `main`)
-4. Klicke auf **"Run workflow"**
+1. Go to **Actions** → **Release Build**
+2. Click **"Run workflow"**
+3. Select the branch (e.g., `main`)
+4. Click **"Run workflow"**
 
-Dies erstellt APK/AAB als **Artifacts** (nicht als Release), die du für 30 Tage herunterladen kannst.
+This creates APK/AAB as **artifacts** (not as a release), downloadable for 30 days.
 
 ---
 
-## 📱 APK Installation (für User)
+## 📱 APK Installation (For Users)
 
-Die APK kann direkt auf Android-Geräten installiert werden:
+The APK can be installed directly on Android devices:
 
-**Voraussetzungen:**
-- Android 8.0 (API 26) oder höher
-- "Installation aus unbekannten Quellen" aktiviert
+**Requirements:**
+- Android 8.0 (API 26) or higher
+- "Install from Unknown Sources" enabled
 
-**Schritte:**
-1. Gehe zum GitHub Release
-2. Lade `nextcloud-tasks-X.X.X.apk` herunter
-3. Öffne die APK-Datei auf dem Android-Gerät
-4. Bestätige die Installation
+**Steps:**
+1. Go to the GitHub Release
+2. Download `nextcloud-tasks-X.X.X.apk`
+3. Open the APK file on your Android device
+4. Confirm installation
 
 ---
 
 ## 🎯 Google Play Store Publishing
 
-Falls du die App später auf Google Play veröffentlichen möchtest:
+If you want to publish the app on Google Play Store later:
 
-1. **AAB hochladen:**
-   - Lade `nextcloud-tasks-X.X.X.aab` vom Release herunter
-   - Gehe zur Google Play Console
-   - Upload die AAB-Datei
+1. **Upload AAB:**
+   - Download `nextcloud-tasks-X.X.X.aab` from the release
+   - Go to Google Play Console
+   - Upload the AAB file
 
-2. **Automatisches Publishing (optional):**
-   - Konfiguriere `PLAY_SERVICE_ACCOUNT_JSON` Secret
-   - Der `play-internal` Job in `ci.yml` published dann automatisch zu Internal Track
+2. **Automatic Publishing (Optional):**
+   - Configure `PLAY_SERVICE_ACCOUNT_JSON` secret
+   - The `play-internal` job in `ci.yml` will automatically publish to Internal Track
 
 ---
 
 ## ❓ Troubleshooting
 
-### Problem: Workflow schlägt bei Signing fehl
+### Problem: Workflow fails at signing step
 
-**Lösung:** Überprüfe, ob alle Signing Secrets korrekt hinterlegt sind:
+**Solution:** Verify that all signing secrets are correctly configured:
 ```bash
-# Secrets müssen in GitHub Settings → Secrets vorhanden sein:
+# Secrets must exist in GitHub Settings → Secrets:
 SIGNING_KEYSTORE_BASE64
 SIGNING_KEYSTORE_PASSWORD
 SIGNING_KEY_ALIAS
 SIGNING_KEY_PASSWORD
 ```
 
-### Problem: Release wird nicht erstellt
+### Problem: Release is not created
 
-**Lösung:** Überprüfe Workflow Permissions:
+**Solution:** Check workflow permissions:
 - Settings → Actions → General → Workflow permissions
-- Muss auf "Read and write permissions" stehen
+- Must be set to "Read and write permissions"
 
-### Problem: Quality Checks schlagen fehl
+### Problem: Quality checks fail
 
-**Lösung:** Teste lokal vor dem Tag-Push:
+**Solution:** Test locally before pushing tag:
 ```bash
 ./gradlew ktlintCheck detekt :app:lintRelease testReleaseUnitTest
 ```
 
-Behebe alle Fehler und Warnings, dann erst Tag pushen.
+Fix all errors and warnings, then push the tag.
 
-### Problem: APK kann nicht installiert werden
+### Problem: APK cannot be installed
 
-**Mögliche Ursachen:**
-- Android Version zu alt (min. Android 8.0 nötig)
-- APK ist nicht korrekt signiert (überprüfe Signing Config)
-- Signature conflict mit vorheriger Installation (erst deinstallieren)
-
----
-
-## 📚 Weitere Informationen
-
-- **CI/CD Workflow:** `.github/workflows/ci.yml` - Läuft bei jedem Push/PR
-- **Release Workflow:** `.github/workflows/release.yml` - Läuft bei Version-Tags
-- **Build Config:** `app/build.gradle.kts` - Automatische Versionierung
-- **Project Docs:** `CLAUDE.md` - Vollständige Projekt-Dokumentation
+**Possible causes:**
+- Android version too old (min. Android 8.0 required)
+- APK is not correctly signed (check signing config)
+- Signature conflict with previous installation (uninstall first)
 
 ---
 
-**Bei Fragen oder Problemen:** Erstelle ein Issue auf GitHub!
+## 📚 Additional Resources
+
+- **CI/CD Workflow:** `.github/workflows/ci.yml` - Runs on every push/PR
+- **Release Workflow:** `.github/workflows/release.yml` - Runs on version tags
+- **Build Config:** `app/build.gradle.kts` - Automatic versioning
+- **Project Docs:** `CLAUDE.md` - Complete project documentation
+
+---
+
+**Questions or issues?** Open an issue on GitHub!

@@ -1,64 +1,187 @@
 # Nextcloud Tasks Android
 
-Ein modularer Android-Client für Nextcloud Tasks mit Jetpack Compose, Hilt und vorbereiteter Play-Publisher-Integration.
+A modern, native Android client for Nextcloud Tasks built with Jetpack Compose and Clean Architecture principles.
 
-## Projektaufbau
-- **app**: Android-App mit Compose UI, Hilt-Setup, Play-Publisher-Konfiguration und Basis-Theming (Light/Dark, Dynamic Color ab Android 12).
-- **data**: Android-Library mit Hilt-Modul und Repository-Implementierung.
-- **domain**: Reines Kotlin-Modul mit Business-Interfaces und Use-Cases.
+---
 
-## Entwicklung
-- Min. SDK: 24, Target/Compile SDK: 34.
-- App-ID/Paket: `com.nextcloud.tasks`.
-- Dependency Injection: Hilt (`TasksApp`, Hilt-Module in `app/di` und `data/di`).
-- UI: Jetpack Compose (Material 3) mit zugänglichem Light/Dark-Theme.
+## 📱 About
 
-### Wichtige Befehle
-- Format/Analyse: `./gradlew ktlintCheck detekt`
-- Lint: `./gradlew :app:lintDebug`
-- Tests: `./gradlew testDebugUnitTest`
-- Release-Bundle: `./gradlew bundleRelease`
-- Play-Upload (intern, setzt `PLAY_SERVICE_ACCOUNT_JSON` voraus): `./gradlew publishReleaseBundle`
+**Nextcloud Tasks Android** is a free and open-source Android application that seamlessly integrates with your Nextcloud server to manage tasks and to-do lists. Built from the ground up with modern Android development practices, the app offers a smooth, native experience while keeping your data under your control.
 
-## Sprachen / Internationalization
+---
 
-Die App unterstützt mehrere Sprachen mit Laufzeit-Sprachwechsel:
+## ✨ Features
 
-- **Englisch** (Standard)
-- **Deutsch**
+### 🔐 **Multi-Account Support**
+- Connect multiple Nextcloud accounts simultaneously
+- Easy account switching via the drawer menu
+- Each account maintains its own task lists and settings
+- Secure credential storage with encrypted preferences
 
-### Spracheinstellungen
+### 📋 **Task Management**
+- Create, edit, and delete tasks with a clean, intuitive interface
+- Organize tasks into color-coded lists
+- Mark tasks as completed with a single tap
+- Full support for CalDAV VTODO standard
+- Offline-first architecture - work without internet connection
 
-Benutzer können die Sprache in der App ändern:
-1. Öffne das Drawer-Menü (☰)
-2. Wähle "Einstellungen" / "Settings"
-3. Tippe auf "Sprache" / "Language"
-4. Wähle gewünschte Sprache: Systemstandard, English, oder Deutsch
+### 🔄 **Seamless Synchronization**
+- Real-time sync with your Nextcloud server via CalDAV
+- Pull-to-refresh for manual sync
+- Background synchronization (coming soon)
+- Optimistic locking with ETags to prevent conflicts
+- Automatic conflict resolution
 
-Die App nutzt:
-- **Android 13+**: Native Per-App Language Preferences
-- **Android 8-12**: AndroidX AppCompat Backport
+### 🎨 **Modern Material Design**
+- Material 3 design language throughout the app
+- Dynamic color theming (Android 12+)
+- Light and dark theme support
+- Adaptive layouts for tablets and large screens
+- Smooth animations and transitions
 
-### Übersetzungen beitragen
+### 🌍 **Internationalization**
+- Multi-language support with in-app language switcher
+- Currently supported languages:
+  - **English** (default)
+  - **German** (Deutsch)
+- Runtime language switching without app restart
+- Uses Android 13+ per-app language preferences (with backport for Android 8-12)
 
-Neue Übersetzungen sind willkommen! Siehe `CONTRIBUTING.md` für Details.
+### 🔒 **Privacy & Security**
+- All data stays on your Nextcloud server - no third-party tracking
+- Secure HTTPS communication with TLS certificate validation
+- Support for password-based and OAuth 2.0 authentication
+- No analytics, no ads, no data collection
+- Open-source and transparent
 
-Aktuell werden Übersetzungen direkt über String-Ressourcen verwaltet:
-- Englisch: `app/src/main/res/values/strings.xml`
-- Deutsch: `app/src/main/res/values-de/strings.xml`
+---
 
-## Debugging von Login-/Auth-Problemen
+## 📦 Installation
 
-- Verwende die **debug**-Variante der App. Timber-Logs und der OkHttp-Logging-Interceptor werden nur in Debug-Builds aktiviert.
-- Öffne in Android Studio die **Logcat**-Ansicht, während die Debug-App läuft. Filtere nach Package `com.nextcloud.tasks` oder Tag `LoginViewModel`, um Validierungs-, Submit- und Fehler-Logs zu sehen. HTTP-Anfrage-/Antwort-Header werden dort ebenfalls ausgegeben (sensibles bleibt ausgelassen).
-- Die App deklariert die **INTERNET**-Berechtigung im `app`- und `data`-Modul. Falls Logcat dennoch `SecurityException: Permission denied (missing INTERNET permission?)` zeigt, deinstalliere die vorhandene App vollständig und installiere die Debug-Variante neu, damit die Berechtigung übernommen wird. Firewalls/VPNs können ebenfalls DNS-Lookups blockieren und denselben Fehler auslösen.
-- Fehlertexte aus dem UI stammen aus `LoginUiState.error`. Wenn ein Fehler angezeigt wird, bitte einen Screenshot plus passenden Logcat-Ausschnitt anhängen.
+### Requirements
+- **Android 8.0 (API 26)** or higher
+- A **Nextcloud server** with the Tasks app installed
 
-## CI
-GitHub Actions Workflow (`.github/workflows/ci.yml`):
-1. `quality`: ktlint, detekt, Lint, Unit-Tests.
-2. `signed-build`: signiertes `bundleRelease` mit Keystore-Secrets.
-3. `play-internal`: optionaler Upload in den internen Play-Track, falls Service-Account-Secret vorhanden ist.
+### Download Options
 
-## Fastlane
-`fastlane/Fastfile` enthält eine Lane `internal`, die das Release-Bundle baut und (mit korrekten Umgebungsvariablen) über Gradle Play Publisher hochladen kann.
+#### 1. **GitHub Releases** (Recommended for now)
+Download the latest APK directly from the [Releases page](https://github.com/SebiShepherd/nextcloud_tasks_android/releases):
+
+1. Go to [Releases](https://github.com/SebiShepherd/nextcloud_tasks_android/releases)
+2. Download the latest `nextcloud-tasks-X.X.X.apk`
+3. Enable "Install from Unknown Sources" in Android settings
+4. Open the downloaded APK to install
+
+#### 2. **Google Play Store** (Coming Soon)
+The app will be available on Google Play Store soon.
+
+#### 3. **Build from Source**
+See the [CONTRIBUTING.md](CONTRIBUTING.md) guide for instructions on building the app yourself.
+
+---
+
+## 🚀 Getting Started
+
+### First Launch
+
+1. **Launch the app** - You'll be greeted with the login screen
+2. **Enter your Nextcloud server URL** (e.g., `https://cloud.example.com`)
+3. **Choose authentication method**:
+   - **Password**: Enter your username and password
+   - **OAuth 2.0**: Log in via your browser (more secure)
+4. **Grant permissions** if prompted
+5. **Start managing your tasks!**
+
+### Adding Multiple Accounts
+
+1. Open the **drawer menu** (☰ top-left)
+2. Tap the **account selector** at the top
+3. Tap **"Add Account"**
+4. Follow the login flow for the new account
+5. Switch between accounts anytime via the drawer menu
+
+### Changing Language
+
+1. Open the **drawer menu** (☰)
+2. Go to **Settings**
+3. Tap **Language**
+4. Select your preferred language:
+   - System default
+   - English
+   - Deutsch (German)
+
+---
+
+## 🛠️ Technology Stack
+
+- **Language**: Kotlin
+- **UI Framework**: Jetpack Compose (Material 3)
+- **Architecture**: Clean Architecture (3-layer: app, data, domain)
+- **Dependency Injection**: Hilt
+- **Database**: Room (SQLite)
+- **Networking**: Retrofit + OkHttp
+- **CalDAV**: iCal4j for VTODO parsing/generation
+- **Async**: Kotlin Coroutines + Flow
+- **Build System**: Gradle with Kotlin DSL
+
+---
+
+## 📚 Documentation
+
+For detailed information about the project, development, and contributing, please refer to:
+
+- **[RELEASE.md](RELEASE.md)** - Release process and versioning
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines (coming soon)
+- **[CLAUDE.md](CLAUDE.md)** - Comprehensive documentation for AI assistants and developers
+- **[AGENTS.md](AGENTS.md)** - Agent-specific guidelines
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Whether it's bug reports, feature requests, translations, or code contributions, we appreciate your help.
+
+### Ways to Contribute
+
+- **Report bugs**: Open an issue on GitHub
+- **Suggest features**: Share your ideas in the issue tracker
+- **Translate**: Add support for new languages (see `CONTRIBUTING.md`)
+- **Code**: Submit pull requests (see development guidelines in `CLAUDE.md`)
+
+### Development Setup
+
+See [CLAUDE.md](CLAUDE.md) for:
+- Complete architecture overview
+- Code conventions and patterns
+- Development workflows
+- Testing guidelines
+- Common tasks and examples
+
+---
+
+## 📄 License
+
+This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🔗 Links
+
+- **Nextcloud**: https://nextcloud.com
+- **Nextcloud Tasks App**: https://apps.nextcloud.com/apps/tasks
+- **Report Issues**: https://github.com/SebiShepherd/nextcloud_tasks_android/issues
+
+---
+
+## 🙏 Acknowledgments
+
+Built with ❤️ for the Nextcloud community.
+
+Special thanks to:
+- The Nextcloud team for creating an amazing platform
+- The Android development community for excellent libraries and tools
+- All contributors who help improve this app
+
+---
+
+**Enjoy managing your tasks with Nextcloud! 🎉**
