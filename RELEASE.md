@@ -242,6 +242,77 @@ After successful workflow run:
 
 ---
 
+## 🔬 Creating Pre-Releases (Beta, RC, etc.)
+
+Pre-release versions (beta, release candidates) can be created manually using the workflow dispatch feature.
+
+### Why Manual Pre-Releases?
+
+**Important:** Pre-release tags like `v1.0.0-beta` are **not automatically built** to prevent version code conflicts:
+- `v1.0.0-beta` → versionCode = 10000
+- `v1.0.0` → versionCode = 10000 ❌ **Collision!**
+
+This would break:
+- Play Store uploads (requires strictly increasing version codes)
+- Device updates (can't install same version code)
+
+### Creating a Pre-Release Manually:
+
+#### Option 1: Via GitHub UI (Easiest)
+
+1. Go to **Actions** → **Release Build**
+2. Click **"Run workflow"**
+3. Select branch: `main` (or your feature branch)
+4. Click **Run workflow**
+5. Wait for completion (~10-15 minutes)
+6. Download APK/AAB from **Artifacts** section
+7. Manually create a GitHub Release:
+   - Go to **Releases** → **Draft a new release**
+   - Create tag: `v1.0.0-beta` (or `-rc.1`, `-alpha`, etc.)
+   - Upload the APK/AAB from artifacts
+   - ✅ Check **"Set as a pre-release"**
+   - Publish
+
+#### Option 2: Tag + Manual Workflow (Advanced)
+
+If you want the pre-release tag in git history:
+
+```bash
+# Create and push pre-release tag
+git tag -a v1.0.0-beta -m "Beta release 1.0.0"
+git push origin v1.0.0-beta
+
+# Go to GitHub Actions → Release Build → Run workflow
+# Select the tag from dropdown
+# APK/AAB will be available as artifacts
+```
+
+**Note:** The workflow won't create a release automatically for pre-release tags - you'll need to download artifacts and create the release manually.
+
+### Pre-Release Best Practices:
+
+1. **Naming Convention:**
+   - Alpha: `v1.0.0-alpha.1`, `v1.0.0-alpha.2`
+   - Beta: `v1.0.0-beta.1`, `v1.0.0-beta.2`
+   - Release Candidate: `v1.0.0-rc.1`, `v1.0.0-rc.2`
+
+2. **Version Code Strategy:**
+   - Pre-releases use the **same versionCode** as the base version
+   - Example: Both `v1.0.0-beta` and `v1.0.0` have versionCode `10000`
+   - This means: Beta users must **uninstall** to install stable (or vice versa)
+
+3. **Testing:**
+   - Test pre-releases thoroughly before stable release
+   - Document known issues in release notes
+   - Mark clearly as pre-release on GitHub
+
+4. **Migration to Stable:**
+   - When releasing stable version after beta:
+   - Users on beta must uninstall and reinstall (due to same versionCode)
+   - Or: Bump patch version (`v1.0.1` instead of `v1.0.0`)
+
+---
+
 ## 📝 Versioning Schema
 
 The app uses **Semantic Versioning** (SemVer):
@@ -266,9 +337,15 @@ Examples:
 ```
 
 **Git Tag Format:**
-- ✅ `v1.0.0` (with "v" prefix)
-- ❌ `1.0.0` (without prefix)
-- ❌ `release-1.0.0`
+- ✅ `v1.0.0` (stable release - triggers automatic build)
+- ✅ `v1.0.0-beta` (pre-release - requires manual workflow)
+- ❌ `1.0.0` (missing "v" prefix)
+- ❌ `release-1.0.0` (wrong format)
+
+**Automatic Build Trigger:**
+- Only tags matching `v[0-9]+.[0-9]+.[0-9]+` trigger automatic builds
+- Pre-release tags (with suffixes like `-beta`, `-rc.1`) do not trigger automatically
+- See "Creating Pre-Releases" section above for manual workflow
 
 ---
 
