@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.auth
 
+import android.app.Activity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +36,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
@@ -43,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nextcloud.tasks.R
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,10 +58,10 @@ fun ServerInputScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val activity = context as? Activity
 
-    // State for account import dialog
-    var showImportDialog by remember { mutableStateOf(false) }
-    var availableAccounts by remember { mutableStateOf<List<NextcloudFileAccount>>(emptyList()) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // Handle back button - navigate back instead of closing app
     androidx.activity.compose.BackHandler {
@@ -76,29 +81,13 @@ fun ServerInputScreen(
         onLoginSuccess()
     }
 
-    // Show account import dialog
-    if (showImportDialog) {
-        AccountImportDialog(
-            accounts = availableAccounts,
-            onAccountSelected = { account ->
-                showImportDialog = false
-                // Extract username from account name (typically "username@server.com")
-                val username = account.name.substringBefore("@")
-                viewModel.startLoginFlowWithPrefill(
-                    serverUrl = account.url,
-                    username = username,
-                )
-            },
-            onDismiss = { showImportDialog = false },
-        )
-    }
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         ServerInputContent(
             padding = padding,
@@ -107,9 +96,25 @@ fun ServerInputScreen(
             onSubmit = viewModel::startLoginFlow,
             onCancel = viewModel::cancelLogin,
             onImportAccount = {
-                // Query accounts and show dialog
-                availableAccounts = AccountImportHelper.getNextcloudAccounts(context)
-                showImportDialog = true
+                // Use system account picker via SSO library
+                activity?.let { act ->
+                    AccountImportHelper.pickAccount(
+                        activity = act,
+                        onAccountSelected = { account ->
+                            // Extract username from account name (typically "username@server.com")
+                            val username = account.name.substringBefore("@")
+                            viewModel.startLoginFlowWithPrefill(
+                                serverUrl = account.url,
+                                username = username,
+                            )
+                        },
+                        onError = { error ->
+                            scope.launch {
+                                snackbarHostState.showSnackbar(error)
+                            }
+                        },
+                    )
+                }
             },
         )
     }
