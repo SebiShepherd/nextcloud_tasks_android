@@ -153,8 +153,11 @@ fun NextcloudTasksApp(
         val currentAccountId = loginState.activeAccount?.id
         if (currentAccountId != null && currentAccountId != lastRefreshedAccountId) {
             taskListViewModel.refresh()
+            // Only reset forceShowLogin if this was an actual account switch (not initial load)
+            if (lastRefreshedAccountId != null) {
+                forceShowLogin = false
+            }
             lastRefreshedAccountId = currentAccountId
-            forceShowLogin = false
         }
     }
 
