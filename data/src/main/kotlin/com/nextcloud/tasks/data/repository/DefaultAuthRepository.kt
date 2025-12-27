@@ -37,6 +37,7 @@ class DefaultAuthRepository
         private val oauthClientId = "nextcloud-tasks-android"
         private val oauthClientSecret = "local-client-secret"
 
+        @Deprecated("Use Login Flow v2", ReplaceWith("initiateLoginFlowV2(serverUrl)"))
         override suspend fun loginWithPassword(
             serverUrl: String,
             username: String,
@@ -63,6 +64,7 @@ class DefaultAuthRepository
             return account.toDomain()
         }
 
+        @Deprecated("Use Login Flow v2", ReplaceWith("initiateLoginFlowV2(serverUrl)"))
         override suspend fun loginWithOAuth(
             serverUrl: String,
             authorizationCode: String,
