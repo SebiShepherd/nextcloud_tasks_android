@@ -34,6 +34,7 @@ private const val TIMEOUT_MS = 20 * 60 * 1000L // 20 minutes
 @HiltViewModel
 class LoginFlowViewModel
     @Inject
+    @Suppress("LongParameterList") // ViewModel with Hilt DI requires many dependencies
     constructor(
         @ApplicationContext private val context: Context,
         private val initiateLoginFlowV2: InitiateLoginFlowV2UseCase,
@@ -120,7 +121,7 @@ class LoginFlowViewModel
                 CustomTabsHelper.openLoginUrl(context, initiation.loginUrl)
 
                 // Start polling
-                startPolling(initiation.pollUrl, initiation.token, normalized)
+                startPolling(initiation.pollUrl, initiation.token)
             }
         }
 
@@ -164,7 +165,6 @@ class LoginFlowViewModel
         private fun startPolling(
             pollUrl: String,
             token: String,
-            serverUrl: String,
         ) {
             pollingJob?.cancel()
             pollingJob =
@@ -193,7 +193,11 @@ class LoginFlowViewModel
 
                             is LoginFlowV2PollResult.Success -> {
                                 Timber.i("Login Flow v2 successful, completing authentication")
-                                completeLogin(result.credentials.server, result.credentials.loginName, result.credentials.appPassword)
+                                completeLogin(
+                                    result.credentials.server,
+                                    result.credentials.loginName,
+                                    result.credentials.appPassword,
+                                )
                                 break
                             }
 
