@@ -211,7 +211,7 @@ class DefaultAuthRepository
                     serverUrl = normalizedServer,
                     username = loginName,
                     displayName = user.body.data.displayName ?: loginName,
-                    authType = AuthType.OAUTH.name, // Login Flow v2 is OAuth-based
+                    authType = AuthType.PASSWORD.name, // Login Flow v2 provides app password (Basic Auth)
                     appPassword = appPassword,
                 )
 

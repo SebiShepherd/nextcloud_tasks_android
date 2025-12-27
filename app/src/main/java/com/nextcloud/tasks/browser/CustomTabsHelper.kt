@@ -32,6 +32,9 @@ object CustomTabsHelper {
                 .setUrlBarHidingEnabled(false)
                 .build()
 
+        // Add FLAG_ACTIVITY_NEW_TASK for ApplicationContext compatibility
+        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
         runCatching {
             customTabsIntent.launchUrl(context, Uri.parse(loginUrl))
             Timber.i("Launched Custom Tab successfully")
