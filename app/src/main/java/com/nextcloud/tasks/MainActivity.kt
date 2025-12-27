@@ -1,5 +1,6 @@
 package com.nextcloud.tasks
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -109,6 +110,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Compose automatically recomposes when configuration changes
+        // This includes locale/language changes, so all stringResource() calls
+        // will pick up the new language without needing to recreate the activity
     }
 }
 
