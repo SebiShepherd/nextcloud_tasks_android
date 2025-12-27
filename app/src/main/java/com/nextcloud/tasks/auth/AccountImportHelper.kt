@@ -1,11 +1,10 @@
 package com.nextcloud.tasks.auth
 
 import android.app.Activity
-import android.content.Context
 import com.nextcloud.android.sso.AccountImporter
 import com.nextcloud.android.sso.exceptions.AndroidGetAccountsPermissionNotGranted
 import com.nextcloud.android.sso.exceptions.NextcloudFilesAppNotInstalledException
-import com.nextcloud.android.sso.helper.SingleAccountHelper
+import com.nextcloud.android.sso.model.SingleSignOnAccount
 import timber.log.Timber
 
 /**
@@ -29,7 +28,7 @@ object AccountImportHelper {
 
             // Use SSO library's account picker
             // This shows a system dialog and grants access to the selected account
-            AccountImporter.pickNewAccount(activity) { account ->
+            AccountImporter.pickNewAccount(activity) { account: SingleSignOnAccount? ->
                 if (account != null) {
                     Timber.i("Account selected via picker: ${account.name}")
                     onAccountSelected(
