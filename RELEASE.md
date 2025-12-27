@@ -361,8 +361,11 @@ Examples:
 - ❌ `release-1.0.0` (wrong format)
 
 **Automatic Build Trigger:**
-- Only tags matching `v[0-9]+.[0-9]+.[0-9]+` trigger automatic builds
+- Only tags matching `v[0-9]*.[0-9]*.[0-9]*` trigger automatic builds
+  - Examples: `v1.0.0`, `v1.10.0`, `v12.3.4`, `v100.200.300` ✅
+  - Pattern uses glob syntax (not regex): `[0-9]*` = starts with digit, followed by any characters until `.`
 - Pre-release tags (with suffixes like `-beta`, `-rc.1`) do not trigger automatically
+  - Examples: `v1.0.0-beta`, `v1.10.0-rc.1` ❌ (require manual workflow)
 - See "Creating Pre-Releases" section above for manual workflow
 
 ---
@@ -372,7 +375,9 @@ Examples:
 ### Release Workflow (`.github/workflows/release.yml`)
 
 **Triggers:**
-- On push of tags matching `v*.*.*` (e.g., `v1.0.0`)
+- On push of tags matching `v[0-9]*.[0-9]*.[0-9]*` (e.g., `v1.0.0`, `v1.10.0`, `v12.3.4`)
+  - Matches: Stable releases starting with a digit in each segment
+  - Excludes: Pre-releases with suffixes (e.g., `v1.0.0-beta`)
 - Manually via "Run workflow" button
 
 **Steps:**

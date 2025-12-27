@@ -3,8 +3,9 @@ name: Release Build
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'  # Only stable releases (v1.0.0, v1.2.3, etc.)
+      - 'v[0-9]*.[0-9]*.[0-9]*'  # Only stable releases (v1.0.0, v1.10.0, v12.3.4, etc.)
       # Pre-releases (v1.0.0-beta, v1.0.0-rc.1) must be triggered manually
+      # Note: Uses glob pattern (not regex) - [0-9]* matches one or more digits
   workflow_dispatch:  # Allows manual triggering for pre-releases or testing
 
 jobs:
