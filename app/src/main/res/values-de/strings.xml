@@ -6,6 +6,7 @@
     <string name="welcome_message">Willkommen zu Ihren Nextcloud Aufgaben</string>
     <string name="server_url_label">Nextcloud URL</string>
     <string name="server_url_hint">Nextcloud-Webserver https://</string>
+    <string name="server_url_placeholder">cloud.beispiel.de</string>
     <string name="server_url_description">Der Link zu Ihrer Nextcloud Webseite, wenn Sie diese im Browser öffnen</string>
     <string name="waiting_for_login">Warte auf Anmeldung im Browser…</string>
     <string name="username_label">Benutzername</string>
@@ -78,6 +79,11 @@
     <string name="error_invalid_credentials">Benutzername, Passwort oder Code ist ungültig</string>
     <string name="error_unexpected">Unerwarteter Fehler</string>
     <string name="error_unknown">Unbekannter Fehler</string>
+    <string name="error_login_flow_failed">Fehler beim Starten des Anmeldevorgangs</string>
+    <string name="error_login_timeout">Anmeldung abgelaufen. Bitte versuchen Sie es erneut.</string>
+    <string name="error_login_failed">Anmeldung fehlgeschlagen</string>
+    <string name="error_switch_account_failed">Kontowechsel fehlgeschlagen</string>
+    <string name="error_logout_failed">Abmeldung fehlgeschlagen</string>
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>

@@ -3,6 +3,7 @@ package com.nextcloud.tasks.auth
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nextcloud.tasks.R
 import com.nextcloud.tasks.browser.CustomTabsHelper
 import com.nextcloud.tasks.domain.model.LoginFlowV2PollResult
 import com.nextcloud.tasks.domain.model.NextcloudAccount
@@ -100,7 +101,7 @@ class LoginFlowViewModel
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                error = throwable.message ?: "Failed to start login flow",
+                                error = throwable.message ?: context.getString(R.string.error_login_flow_failed),
                             )
                         }
                         return@launch
@@ -137,7 +138,7 @@ class LoginFlowViewModel
                     switchAccount(accountId)
                 }.onFailure { throwable ->
                     Timber.e(throwable, "Failed to switch account")
-                    _uiState.update { it.copy(error = "Failed to switch account") }
+                    _uiState.update { it.copy(error = context.getString(R.string.error_switch_account_failed)) }
                 }
             }
         }
@@ -148,7 +149,7 @@ class LoginFlowViewModel
                     logout(accountId)
                 }.onFailure { throwable ->
                     Timber.e(throwable, "Failed to logout")
-                    _uiState.update { it.copy(error = "Failed to logout") }
+                    _uiState.update { it.copy(error = context.getString(R.string.error_logout_failed)) }
                 }
             }
         }
@@ -170,7 +171,7 @@ class LoginFlowViewModel
                             _uiState.update {
                                 it.copy(
                                     isLoading = false,
-                                    error = "Login timeout. Please try again.",
+                                    error = context.getString(R.string.error_login_timeout),
                                 )
                             }
                             break
@@ -230,7 +231,7 @@ class LoginFlowViewModel
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = throwable.message ?: "Login failed",
+                        error = throwable.message ?: context.getString(R.string.error_login_failed),
                     )
                 }
             }

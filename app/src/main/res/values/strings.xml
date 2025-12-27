@@ -6,6 +6,7 @@
     <string name="welcome_message">Welcome to your Nextcloud Tasks</string>
     <string name="server_url_label">Nextcloud URL</string>
     <string name="server_url_hint">Nextcloud server https://</string>
+    <string name="server_url_placeholder">cloud.example.com</string>
     <string name="server_url_description">The link to your Nextcloud website when you open it in a browser</string>
     <string name="waiting_for_login">Waiting for login in browser…</string>
     <string name="username_label">Username</string>
@@ -78,6 +79,11 @@
     <string name="error_invalid_credentials">Username, password, or code is not valid</string>
     <string name="error_unexpected">Unexpected error</string>
     <string name="error_unknown">Unknown error</string>
+    <string name="error_login_flow_failed">Failed to start login flow</string>
+    <string name="error_login_timeout">Login timeout. Please try again.</string>
+    <string name="error_login_failed">Login failed</string>
+    <string name="error_switch_account_failed">Failed to switch account</string>
+    <string name="error_logout_failed">Failed to logout</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
