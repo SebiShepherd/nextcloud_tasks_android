@@ -22,14 +22,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["applicationId"] = "com.nextcloud.tasks.test"
-
-        // Supported languages
-        resourceConfigurations += listOf("en", "de")
     }
 
     androidResources {
-        // Auto-generate locale config for Android 13+ Per-App Language Preferences
-        generateLocaleConfig = true
+        // Supported languages for resource filtering
+        localeFilters += listOf("en", "de")
     }
 
     signingConfigs {

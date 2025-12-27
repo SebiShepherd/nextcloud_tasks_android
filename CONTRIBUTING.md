@@ -116,9 +116,16 @@ We welcome translations to make Nextcloud Tasks accessible to more users!
    ```
 
 3. **Update build configuration**:
-   In `app/build.gradle.kts`, add your language code to `resourceConfigurations`:
+   In `app/build.gradle.kts`, add your language code to `localeFilters`:
    ```kotlin
-   resourceConfigurations += listOf("en", "de", "fr")  // Add "fr" for French
+   androidResources {
+       localeFilters += listOf("en", "de", "fr")  // Add "fr" for French
+   }
+   ```
+
+   In `app/src/main/res/xml/locales_config.xml`, add the locale:
+   ```xml
+   <locale android:name="fr" />
    ```
 
 4. **Add to Language enum**:

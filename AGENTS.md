@@ -451,23 +451,36 @@ Locale is initialized in `TasksApp.onCreate()` via `LocaleHelper.initialize()`
 
 **In `app/build.gradle.kts`**:
 ```kotlin
-defaultConfig {
-    resourceConfigurations += listOf("en", "de")
-}
-
 androidResources {
-    generateLocaleConfig = true
+    localeFilters += listOf("en", "de")
 }
+```
+
+**In `app/src/main/res/xml/locales_config.xml`**:
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="de" />
+</locale-config>
+```
+
+**In `app/src/main/AndroidManifest.xml`**:
+```xml
+<application
+    ...
+    android:localeConfig="@xml/locales_config">
 ```
 
 ### Adding a New Language
 
 1. Create `values-{code}/strings.xml` (e.g., `values-fr/` for French)
 2. Translate all strings from `values/strings.xml`
-3. Add language to `resourceConfigurations` in `build.gradle.kts`
-4. Add enum entry to `Language` in `LanguagePreferencesManager.kt`
-5. Update `getLanguageDisplayName()` in `SettingsScreen.kt`
-6. Test language switching in Settings
+3. Add language to `localeFilters` in `build.gradle.kts`: `localeFilters += listOf("en", "de", "fr")`
+4. Add `<locale android:name="fr" />` to `res/xml/locales_config.xml`
+5. Add enum entry to `Language` in `LanguagePreferencesManager.kt`
+6. Update `getLanguageDisplayName()` in `SettingsScreen.kt`
+7. Test language switching in Settings
 
 ## Future Considerations
 
