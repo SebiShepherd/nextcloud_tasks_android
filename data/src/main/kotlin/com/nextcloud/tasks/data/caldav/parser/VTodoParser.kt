@@ -223,5 +223,6 @@ class VTodoParser
             }
         }
 
-        private fun generateTaskId(uid: String): String = uid // Use only UID for consistent IDs across list moves and syncs
+        // Use only UID for consistent IDs across list moves and syncs
+        private fun generateTaskId(uid: String): String = uid
     }
