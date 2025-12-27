@@ -6,6 +6,7 @@ import com.nextcloud.tasks.domain.model.TaskDraft
 import com.nextcloud.tasks.domain.model.TaskList
 import kotlinx.coroutines.flow.Flow
 
+@Suppress("TooManyFunctions")
 interface TasksRepository {
     fun observeTasks(): Flow<List<Task>>
 
@@ -26,4 +27,6 @@ interface TasksRepository {
     suspend fun syncOnAppStart()
 
     suspend fun addSampleTasksIfEmpty()
+
+    suspend fun clearAccountData(accountId: String)
 }

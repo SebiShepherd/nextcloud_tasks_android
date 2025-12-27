@@ -10,8 +10,8 @@ import java.time.Instant
 
 @Dao
 interface TaskListsDao {
-    @Query("SELECT * FROM task_lists")
-    fun observeTaskLists(): Flow<List<TaskListEntity>>
+    @Query("SELECT * FROM task_lists WHERE account_id = :accountId")
+    fun observeTaskLists(accountId: String): Flow<List<TaskListEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTaskLists(entities: List<TaskListEntity>)
@@ -21,6 +21,9 @@ interface TaskListsDao {
 
     @Query("DELETE FROM task_lists WHERE href IS NULL")
     suspend fun deleteListsWithoutHref()
+
+    @Query("DELETE FROM task_lists WHERE account_id = :accountId")
+    suspend fun deleteListsByAccount(accountId: String)
 
     @Query("SELECT updated_at FROM task_lists WHERE id = :listId LIMIT 1")
     suspend fun getUpdatedAt(listId: String): Instant?

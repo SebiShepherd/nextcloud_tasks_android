@@ -6,7 +6,6 @@ import com.nextcloud.tasks.data.caldav.generator.VTodoGenerator
 import com.nextcloud.tasks.data.caldav.parser.VTodoParser
 import com.nextcloud.tasks.data.caldav.service.CalDavService
 import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
-import com.nextcloud.tasks.data.database.entity.TagEntity
 import com.nextcloud.tasks.data.database.entity.TaskEntity
 import com.nextcloud.tasks.data.database.entity.TaskListEntity
 import com.nextcloud.tasks.data.mapper.TagMapper
@@ -20,6 +19,8 @@ import com.nextcloud.tasks.domain.repository.TasksRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -46,14 +47,30 @@ class DefaultTasksRepository
         private val tagsDao get() = database.tagsDao()
 
         override fun observeTasks(): Flow<List<Task>> =
-            tasksDao.observeTasks().map { tasks ->
-                tasks.map(taskMapper::toDomain)
-            }
+            authTokenProvider
+                .observeActiveAccountId()
+                .flatMapLatest { accountId ->
+                    if (accountId != null) {
+                        tasksDao.observeTasks(accountId).map { tasks ->
+                            tasks.map(taskMapper::toDomain)
+                        }
+                    } else {
+                        flowOf(emptyList())
+                    }
+                }
 
         override fun observeLists(): Flow<List<TaskList>> =
-            taskListsDao.observeTaskLists().map { lists ->
-                lists.map(taskListMapper::toDomain)
-            }
+            authTokenProvider
+                .observeActiveAccountId()
+                .flatMapLatest { accountId ->
+                    if (accountId != null) {
+                        taskListsDao.observeTaskLists(accountId).map { lists ->
+                            lists.map(taskListMapper::toDomain)
+                        }
+                    } else {
+                        flowOf(emptyList())
+                    }
+                }
 
         override fun observeTags(): Flow<List<Tag>> =
             tagsDao.observeTags().map { tags ->
@@ -68,6 +85,7 @@ class DefaultTasksRepository
         override suspend fun createTask(draft: TaskDraft): Task =
             withContext(ioDispatcher) {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
                 // Generate UID and create task domain model
                 val uid =
@@ -77,7 +95,7 @@ class DefaultTasksRepository
                 val now = Instant.now()
                 val task =
                     Task(
-                        id = "$draft.listId/$uid", // Temporary ID
+                        id = uid, // Use UID as ID for consistency
                         listId = draft.listId,
                         title = draft.title,
                         description = draft.description,
@@ -110,7 +128,8 @@ class DefaultTasksRepository
                 // Save to local database
                 val taskEntity =
                     TaskEntity(
-                        id = "$draft.listId/$uid",
+                        id = uid, // Use UID as ID for consistency
+                        accountId = accountId,
                         listId = draft.listId,
                         title = draft.title,
                         description = draft.description,
@@ -136,6 +155,7 @@ class DefaultTasksRepository
         override suspend fun updateTask(task: Task): Task =
             withContext(ioDispatcher) {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
                 val href = task.href ?: throw IOException("Cannot update task without href")
 
@@ -154,6 +174,7 @@ class DefaultTasksRepository
                 val taskEntity =
                     TaskEntity(
                         id = task.id,
+                        accountId = accountId,
                         listId = task.listId,
                         title = task.title,
                         description = task.description,
@@ -197,11 +218,18 @@ class DefaultTasksRepository
                 }
             }
 
+        @Suppress("LongMethod")
         override suspend fun refresh() =
             withContext(ioDispatcher) {
                 val baseUrl =
                     authTokenProvider.activeServerUrl() ?: run {
                         Timber.w("No active server URL, skipping refresh")
+                        return@withContext
+                    }
+
+                val accountId =
+                    authTokenProvider.activeAccountId() ?: run {
+                        Timber.w("No active account, skipping refresh")
                         return@withContext
                     }
 
@@ -235,6 +263,7 @@ class DefaultTasksRepository
                     collections.map { collection ->
                         TaskListEntity(
                             id = collection.href,
+                            accountId = accountId,
                             name = collection.displayName,
                             color = collection.color,
                             updatedAt = Instant.now(),
@@ -257,6 +286,7 @@ class DefaultTasksRepository
                             val taskEntity =
                                 vTodoParser.parseVTodo(
                                     icalData = todo.calendarData,
+                                    accountId = accountId,
                                     listId = collection.href,
                                     href = todo.href,
                                     etag = todo.etag,
@@ -287,53 +317,9 @@ class DefaultTasksRepository
 
         override suspend fun addSampleTasksIfEmpty() =
             withContext(ioDispatcher) {
-                if (tasksDao.countTasks() > 0) {
-                    return@withContext
-                }
-
-                val now = Instant.now()
-                val defaultList =
-                    TaskListEntity(
-                        id = "inbox",
-                        name = "Inbox",
-                        color = null,
-                        updatedAt = now,
-                        etag = null,
-                        href = null,
-                        order = null,
-                    )
-                val sampleTag =
-                    TagEntity(
-                        id = "personal",
-                        name = "Personal",
-                        updatedAt = now,
-                    )
-                val sampleTask =
-                    TaskEntity(
-                        id = "sample-task",
-                        listId = defaultList.id,
-                        title = "Welcome to Nextcloud Tasks",
-                        description = "Use the refresh action to fetch tasks from your Nextcloud server.",
-                        completed = false,
-                        due = null,
-                        updatedAt = now,
-                        priority = null,
-                        status = null,
-                        completedAt = null,
-                        uid = null,
-                        etag = null,
-                        href = null,
-                        parentUid = null,
-                    )
-
-                database.withTransaction {
-                    taskListsDao.upsertTaskList(defaultList)
-                    tagsDao.upsertTag(sampleTag)
-                    tasksDao.upsertTask(sampleTask)
-                    tasksDao.upsertTaskTagCrossRefs(
-                        taskMapper.crossRefs(sampleTask.id, listOf(sampleTag.id)),
-                    )
-                }
+                // Sample tasks are disabled in multi-account mode
+                // Users need to log in with a real account and sync from server
+                Timber.d("Sample tasks disabled - multi-account mode requires real login")
             }
 
         private suspend fun upsertTaskLists(lists: List<TaskListEntity>) {
@@ -368,4 +354,13 @@ class DefaultTasksRepository
                 }
             }
         }
+
+        override suspend fun clearAccountData(accountId: String) =
+            withContext(ioDispatcher) {
+                database.withTransaction {
+                    tasksDao.deleteTasksByAccount(accountId)
+                    taskListsDao.deleteListsByAccount(accountId)
+                    Timber.d("Cleared all data for account: $accountId")
+                }
+            }
     }

@@ -10,6 +10,8 @@ data class TaskEntity(
     @PrimaryKey
     @ColumnInfo(name = "id")
     val id: String,
+    @ColumnInfo(name = "account_id")
+    val accountId: String,
     @ColumnInfo(name = "list_id")
     val listId: String,
     val title: String,

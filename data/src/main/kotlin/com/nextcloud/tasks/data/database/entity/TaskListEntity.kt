@@ -10,6 +10,8 @@ data class TaskListEntity(
     @PrimaryKey
     @ColumnInfo(name = "id")
     val id: String,
+    @ColumnInfo(name = "account_id")
+    val accountId: String,
     val name: String,
     val color: String?,
     @ColumnInfo(name = "updated_at")

@@ -27,6 +27,7 @@ class DefaultAuthRepository
         private val clientFactory: NextcloudClientFactory,
         private val secureAuthStorage: SecureAuthStorage,
         private val validateServerUrlUseCase: ValidateServerUrlUseCase,
+        private val tasksRepository: com.nextcloud.tasks.domain.repository.TasksRepository,
     ) : AuthRepository {
         private val oauthClientId = "nextcloud-tasks-android"
         private val oauthClientSecret = "local-client-secret"
@@ -121,6 +122,9 @@ class DefaultAuthRepository
         }
 
         override suspend fun logout(accountId: String) {
+            // Clear all tasks and lists for this account
+            tasksRepository.clearAccountData(accountId)
+            // Remove account from storage
             secureAuthStorage.removeAccount(accountId)
         }
 

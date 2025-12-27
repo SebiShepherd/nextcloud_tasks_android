@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
@@ -16,17 +17,51 @@ import androidx.core.view.WindowCompat
 private val DarkColorScheme =
     darkColorScheme(
         primary = NextcloudBlue,
-        secondary = NextcloudLight,
+        onPrimary = Color.White,
+        primaryContainer = NextcloudBlueDark,
+        onPrimaryContainer = NextcloudBlueLight,
+        secondary = NextcloudBlueLight,
+        onSecondary = Color.White,
+        secondaryContainer = NextcloudBlueDark,
+        onSecondaryContainer = NextcloudBlueLight,
+        tertiary = NextcloudBlueLight,
+        error = NextcloudError,
+        onError = Color.White,
+        errorContainer = Color(0xFF5C1919),
+        onErrorContainer = Color(0xFFF2B8B5),
         background = NextcloudDark,
-        surface = NextcloudDark,
+        onBackground = TextPrimaryDark,
+        surface = SurfaceDark,
+        onSurface = TextPrimaryDark,
+        surfaceVariant = Color(0xFF2C2C2C),
+        onSurfaceVariant = TextSecondaryDark,
+        outline = Color(0xFF3A3A3A),
+        outlineVariant = Color(0xFF2C2C2C),
     )
 
 private val LightColorScheme =
     lightColorScheme(
         primary = NextcloudBlue,
-        secondary = NextcloudDark,
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFD3E4F4),
+        onPrimaryContainer = NextcloudBlueDark,
+        secondary = NextcloudBlueDark,
+        onSecondary = Color.White,
+        secondaryContainer = Color(0xFFD3E4F4),
+        onSecondaryContainer = NextcloudBlueDark,
+        tertiary = NextcloudInfo,
+        error = NextcloudError,
+        onError = Color.White,
+        errorContainer = Color(0xFFF9DEDC),
+        onErrorContainer = Color(0xFF410E0B),
         background = NextcloudLight,
-        surface = NextcloudLight,
+        onBackground = TextPrimaryLight,
+        surface = SurfaceLight,
+        onSurface = TextPrimaryLight,
+        surfaceVariant = Color(0xFFE7E7E7),
+        onSurfaceVariant = TextSecondaryLight,
+        outline = Color(0xFFCACACA),
+        outlineVariant = Color(0xFFE0E0E0),
     )
 
 @Composable

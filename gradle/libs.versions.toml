@@ -8,6 +8,7 @@ androidxCore = "1.17.0"
 androidxLifecycle = "2.10.0"
 composeMaterial3 = "1.4.0"
 material = "1.13.0"
+materialIcons = "1.7.7"
 hilt = "2.57.2"
 accompanist = "0.36.0"
 ktlintPlugin = "14.0.1"
@@ -23,6 +24,9 @@ room = "2.7.0-alpha04"
 serialization = "1.7.1"
 ksp = "2.1.10-1.0.29"
 ical4j = "3.2.18"
+nextcloudAndroidLibrary = "2.22.2"
+nextcloudAndroidCommon = "1.0.0"
+coil = "2.7.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -32,6 +36,7 @@ androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = 
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterial3" }
+androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIcons" }
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
@@ -55,6 +60,9 @@ androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 ical4j-core = { module = "org.mnode.ical4j:ical4j", version.ref = "ical4j" }
+nextcloud-android-library = { module = "com.github.nextcloud:android-library", version.ref = "nextcloudAndroidLibrary" }
+nextcloud-android-common-ui = { module = "com.github.nextcloud.android-common:ui", version.ref = "nextcloudAndroidCommon" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
 [bundles]
 compose = [
@@ -64,6 +72,7 @@ compose = [
     "androidx-compose-ui",
     "androidx-compose-ui-tooling-preview",
     "androidx-compose-material3",
+    "androidx-compose-material-icons-extended",
     "androidx-navigation-compose"
 ]
 

@@ -16,9 +16,13 @@ class TaskMapper
     constructor(
         private val tagMapper: TagMapper,
     ) {
-        fun toEntity(dto: TaskDto): TaskEntity =
+        fun toEntity(
+            dto: TaskDto,
+            accountId: String,
+        ): TaskEntity =
             TaskEntity(
                 id = dto.id,
+                accountId = accountId,
                 listId = dto.listId,
                 title = dto.title,
                 description = dto.description,
