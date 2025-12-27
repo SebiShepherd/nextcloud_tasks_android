@@ -12,5 +12,10 @@ class TasksApp : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+
+        // Note: Locale initialization is NOT needed here.
+        // AppCompatDelegate automatically persists and restores the selected
+        // locale in SharedPreferences. It will be applied automatically when
+        // MainActivity starts.
     }
 }

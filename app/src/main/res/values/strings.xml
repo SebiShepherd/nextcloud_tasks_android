@@ -1,7 +1,8 @@
 <resources>
+    <!-- App Name -->
     <string name="app_name">Nextcloud Tasks</string>
-    <string name="task_list_title">Tasks overview</string>
-    <string name="empty_task_hint">Add your first task to stay organized.</string>
+
+    <!-- Login Screen -->
     <string name="welcome_message">Welcome to your Nextcloud Tasks</string>
     <string name="server_url_label">Nextcloud URL</string>
     <string name="username_label">Username</string>
@@ -11,10 +12,71 @@
     <string name="login_method_password">Password login</string>
     <string name="login_method_oauth">OAuth2 / OCS</string>
     <string name="login_action">Sign in now</string>
+
+    <!-- Task List -->
+    <string name="task_list_title">Tasks overview</string>
+    <string name="empty_task_hint">Add your first task to stay organized.</string>
+    <string name="all_tasks">All Tasks</string>
+    <string name="task_lists_title">Task Lists</string>
+    <string name="unknown_list">Unknown List</string>
+
+    <!-- Search & Sort -->
+    <string name="search_all_notes">Search in all notes</string>
+    <string name="sort_dialog_title">Sort by</string>
+    <string name="sort_by_due_date">Due date</string>
+    <string name="sort_by_priority">Priority</string>
+    <string name="sort_by_title">Title</string>
+    <string name="sort_by_updated">Last updated</string>
+
+    <!-- Completed Tasks -->
+    <string name="hide_completed_tasks">Hide completed tasks (%1$d)</string>
+    <string name="show_completed_tasks">Show completed tasks (%1$d)</string>
+
+    <!-- Create Task Dialog -->
+    <string name="create_task_dialog_title">Create New Task</string>
+    <string name="task_title_label">Title</string>
+    <string name="task_description_label">Description (optional)</string>
+    <string name="create">Create</string>
+
+    <!-- Account Management -->
     <string name="active_account">Active account</string>
+    <string name="add_account">Add account</string>
+    <string name="manage_accounts">Manage accounts</string>
+    <string name="manage_accounts_title">Manage accounts</string>
+    <string name="account_info">Account: %1$s</string>
+    <string name="server_info">Server: %1$s</string>
     <string name="logout">Log out</string>
+    <string name="logout_button">Log out</string>
     <string name="switch_account">Switch account</string>
+    <string name="account_connection_success">Connection established</string>
+
+    <!-- Common Actions -->
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+    <string name="delete">Delete</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="menu_description">Menu</string>
+    <string name="sort_description">Sort</string>
+    <string name="add_account_description">Add account</string>
+    <string name="manage_accounts_description">Manage accounts</string>
+    <string name="profile_picture_description">Profile picture</string>
+    <string name="create_task_description">Create task</string>
+    <string name="delete_description">Delete</string>
+    <string name="active_account_description">Active account</string>
+
+    <!-- Error Messages -->
     <string name="invalid_certificate">The certificate could not be verified.</string>
     <string name="invalid_url">Please provide a valid HTTPS URL.</string>
-    <string name="account_connection_success">Connection established</string>
+    <string name="error_invalid_credentials">Username, password, or code is not valid</string>
+    <string name="error_unexpected">Unexpected error</string>
+    <string name="error_unknown">Unknown error</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="language_system_default">System default</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_dialog_title">Select language</string>
 </resources>

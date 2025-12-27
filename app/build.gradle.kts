@@ -24,6 +24,11 @@ android {
         testInstrumentationRunnerArguments["applicationId"] = "com.nextcloud.tasks.test"
     }
 
+    androidResources {
+        // Supported languages for resource filtering
+        localeFilters += listOf("en", "de")
+    }
+
     signingConfigs {
         create("release") {
             val keystoreBase64 = System.getenv("SIGNING_KEYSTORE_BASE64")
@@ -85,12 +90,14 @@ dependencies {
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
     implementation(libs.coroutines.android)
     implementation(libs.material)
     implementation(libs.timber)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.datastore.preferences)
 
     kapt(libs.hilt.compiler)
 

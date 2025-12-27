@@ -5,6 +5,7 @@ kotlin = "2.1.10"
 composeCompiler = "2.1.10"
 composeBom = "2025.12.00"
 androidxCore = "1.17.0"
+androidxAppCompat = "1.7.0"
 androidxLifecycle = "2.10.0"
 composeMaterial3 = "1.4.0"
 material = "1.13.0"
@@ -27,9 +28,11 @@ ical4j = "3.2.18"
 nextcloudAndroidLibrary = "2.22.2"
 nextcloudAndroidCommon = "1.0.0"
 coil = "2.7.0"
+datastore = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version = "1.9.3" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -63,6 +66,7 @@ ical4j-core = { module = "org.mnode.ical4j:ical4j", version.ref = "ical4j" }
 nextcloud-android-library = { module = "com.github.nextcloud:android-library", version.ref = "nextcloudAndroidLibrary" }
 nextcloud-android-common-ui = { module = "com.github.nextcloud.android-common:ui", version.ref = "nextcloudAndroidCommon" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 
 [bundles]
 compose = [

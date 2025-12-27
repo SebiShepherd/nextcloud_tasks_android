@@ -389,6 +389,99 @@ The app is designed with accessibility in mind:
 - Dynamic color support
 - Scalable text (using MaterialTheme.typography)
 
+## Internationalization (i18n)
+
+The app supports multiple languages with runtime language switching.
+
+### String Resources
+
+**Location**: `app/src/main/res/values*/strings.xml`
+
+**Supported Languages**:
+- **English** (default): `values/strings.xml`
+- **German**: `values-de/strings.xml`
+
+### String Management Guidelines
+
+✅ **DO's**:
+- Always use `stringResource(R.string.xyz)` in Composables
+- Use `context.getString(R.string.xyz)` in ViewModels/non-Compose code
+- Add new strings in both English (`values/`) and German (`values-de/`)
+- Use string formatting for dynamic content (e.g., `%1$s`, `%1$d`)
+- Categorize strings with XML comments (e.g., `<!-- Login Screen -->`)
+- Provide content descriptions for accessibility
+
+❌ **DON'Ts**:
+- Never hardcode strings in UI code
+- Don't use string concatenation for dynamic text
+- Don't forget to translate new strings to all supported languages
+
+### String Formatting Examples
+
+```kotlin
+// Simple string
+Text(stringResource(R.string.app_name))
+
+// String with parameters
+Text(stringResource(R.string.account_info, account.displayName))
+
+// In ViewModel with Context
+val error = context.getString(R.string.error_invalid_credentials)
+```
+
+### Language Switching
+
+**Implementation**:
+- **Android 13+ (API 33+)**: Uses native Per-App Language Preferences
+- **Android 8-12 (API 26-32)**: Uses AndroidX AppCompat backport via `AppCompatDelegate`
+
+**User Access**:
+- Settings → Language (accessible via drawer menu)
+- Options: System Default, English, Deutsch
+
+**Code Components**:
+- `LanguagePreferencesManager`: DataStore-based preference storage
+- `LocaleHelper`: Runtime locale application via AppCompatDelegate
+- `SettingsViewModel` & `SettingsScreen`: Language selection UI
+
+**Initialization**:
+Locale is initialized in `TasksApp.onCreate()` via `LocaleHelper.initialize()`
+
+### Build Configuration
+
+**In `app/build.gradle.kts`**:
+```kotlin
+androidResources {
+    localeFilters += listOf("en", "de")
+}
+```
+
+**In `app/src/main/res/xml/locales_config.xml`**:
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="de" />
+</locale-config>
+```
+
+**In `app/src/main/AndroidManifest.xml`**:
+```xml
+<application
+    ...
+    android:localeConfig="@xml/locales_config">
+```
+
+### Adding a New Language
+
+1. Create `values-{code}/strings.xml` (e.g., `values-fr/` for French)
+2. Translate all strings from `values/strings.xml`
+3. Add language to `localeFilters` in `build.gradle.kts`: `localeFilters += listOf("en", "de", "fr")`
+4. Add `<locale android:name="fr" />` to `res/xml/locales_config.xml`
+5. Add enum entry to `Language` in `LanguagePreferencesManager.kt`
+6. Update `getLanguageDisplayName()` in `SettingsScreen.kt`
+7. Test language switching in Settings
+
 ## Future Considerations
 
 - Database integration (Room) will go in `:data` module

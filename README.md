@@ -20,6 +20,33 @@ Ein modularer Android-Client für Nextcloud Tasks mit Jetpack Compose, Hilt und 
 - Release-Bundle: `./gradlew bundleRelease`
 - Play-Upload (intern, setzt `PLAY_SERVICE_ACCOUNT_JSON` voraus): `./gradlew publishReleaseBundle`
 
+## Sprachen / Internationalization
+
+Die App unterstützt mehrere Sprachen mit Laufzeit-Sprachwechsel:
+
+- **Englisch** (Standard)
+- **Deutsch**
+
+### Spracheinstellungen
+
+Benutzer können die Sprache in der App ändern:
+1. Öffne das Drawer-Menü (☰)
+2. Wähle "Einstellungen" / "Settings"
+3. Tippe auf "Sprache" / "Language"
+4. Wähle gewünschte Sprache: Systemstandard, English, oder Deutsch
+
+Die App nutzt:
+- **Android 13+**: Native Per-App Language Preferences
+- **Android 8-12**: AndroidX AppCompat Backport
+
+### Übersetzungen beitragen
+
+Neue Übersetzungen sind willkommen! Siehe `CONTRIBUTING.md` für Details.
+
+Aktuell werden Übersetzungen direkt über String-Ressourcen verwaltet:
+- Englisch: `app/src/main/res/values/strings.xml`
+- Deutsch: `app/src/main/res/values-de/strings.xml`
+
 ## Debugging von Login-/Auth-Problemen
 
 - Verwende die **debug**-Variante der App. Timber-Logs und der OkHttp-Logging-Interceptor werden nur in Debug-Builds aktiviert.
