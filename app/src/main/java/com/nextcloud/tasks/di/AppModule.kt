@@ -49,13 +49,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideInitiateLoginFlowV2UseCase(repository: AuthRepository): InitiateLoginFlowV2UseCase =
-        InitiateLoginFlowV2UseCase(repository)
+    fun provideInitiateLoginFlowV2UseCase(repository: AuthRepository): InitiateLoginFlowV2UseCase = InitiateLoginFlowV2UseCase(repository)
 
     @Provides
     @Singleton
-    fun providePollLoginFlowV2UseCase(repository: AuthRepository): PollLoginFlowV2UseCase =
-        PollLoginFlowV2UseCase(repository)
+    fun providePollLoginFlowV2UseCase(repository: AuthRepository): PollLoginFlowV2UseCase = PollLoginFlowV2UseCase(repository)
 
     @Provides
     @Singleton

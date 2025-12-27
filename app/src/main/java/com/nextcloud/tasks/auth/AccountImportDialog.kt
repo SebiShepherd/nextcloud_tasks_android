@@ -5,7 +5,6 @@ package com.nextcloud.tasks.auth
  * same certificate as Nextcloud Files app. Kept for future development.
  */
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer

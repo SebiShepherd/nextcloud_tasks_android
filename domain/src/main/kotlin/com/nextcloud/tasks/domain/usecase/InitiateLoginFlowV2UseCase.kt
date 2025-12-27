@@ -11,6 +11,5 @@ import com.nextcloud.tasks.domain.repository.AuthRepository
 class InitiateLoginFlowV2UseCase(
     private val repository: AuthRepository,
 ) {
-    suspend operator fun invoke(serverUrl: String): LoginFlowV2Initiation =
-        repository.initiateLoginFlowV2(serverUrl)
+    suspend operator fun invoke(serverUrl: String): LoginFlowV2Initiation = repository.initiateLoginFlowV2(serverUrl)
 }

@@ -22,8 +22,8 @@ object AccountImportHelper {
      * Nextcloud Files app. For other apps, this may return empty list due to
      * Android 8.0+ account visibility restrictions.
      */
-    fun findAvailableAccounts(context: Context): List<NextcloudFileAccount> {
-        return try {
+    fun findAvailableAccounts(context: Context): List<NextcloudFileAccount> =
+        try {
             val accountManager = AccountManager.get(context)
             val accounts = accountManager.getAccountsByType(ACCOUNT_TYPE_NEXTCLOUD)
 
@@ -34,18 +34,20 @@ object AccountImportHelper {
                 val lastAtPos = account.name.lastIndexOf("@")
                 if (lastAtPos > 0) {
                     val serverUrl = account.name.substring(lastAtPos + 1)
-                    val normalizedUrl = if (serverUrl.endsWith("/")) {
-                        serverUrl.substring(0, serverUrl.length - 1)
-                    } else {
-                        serverUrl
-                    }
+                    val normalizedUrl =
+                        if (serverUrl.endsWith("/")) {
+                            serverUrl.substring(0, serverUrl.length - 1)
+                        } else {
+                            serverUrl
+                        }
 
                     // Add https:// if no protocol specified
-                    val fullUrl = if (!normalizedUrl.startsWith("http")) {
-                        "https://$normalizedUrl"
-                    } else {
-                        normalizedUrl
-                    }
+                    val fullUrl =
+                        if (!normalizedUrl.startsWith("http")) {
+                            "https://$normalizedUrl"
+                        } else {
+                            normalizedUrl
+                        }
 
                     Timber.d("Account: ${account.name} -> $fullUrl")
                     NextcloudFileAccount(
@@ -64,5 +66,4 @@ object AccountImportHelper {
             Timber.e(e, "Failed to query Nextcloud accounts")
             emptyList()
         }
-    }
 }

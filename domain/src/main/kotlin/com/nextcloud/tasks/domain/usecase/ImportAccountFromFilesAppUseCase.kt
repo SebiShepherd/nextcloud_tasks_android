@@ -16,6 +16,5 @@ class ImportAccountFromFilesAppUseCase(
      * @param accountName The account name from Android's AccountManager
      * @return The imported NextcloudAccount
      */
-    suspend operator fun invoke(accountName: String): NextcloudAccount =
-        repository.importAccountFromFilesApp(accountName)
+    suspend operator fun invoke(accountName: String): NextcloudAccount = repository.importAccountFromFilesApp(accountName)
 }

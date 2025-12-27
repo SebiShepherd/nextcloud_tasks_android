@@ -32,10 +32,14 @@ sealed class LoginFlowV2PollResult {
     /**
      * Authentication successful, credentials received.
      */
-    data class Success(val credentials: LoginFlowV2Credentials) : LoginFlowV2PollResult()
+    data class Success(
+        val credentials: LoginFlowV2Credentials,
+    ) : LoginFlowV2PollResult()
 
     /**
      * An error occurred during polling or authentication.
      */
-    data class Error(val message: String) : LoginFlowV2PollResult()
+    data class Error(
+        val message: String,
+    ) : LoginFlowV2PollResult()
 }
