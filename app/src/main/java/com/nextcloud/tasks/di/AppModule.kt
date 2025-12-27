@@ -2,15 +2,15 @@
 
 package com.nextcloud.tasks.di
 
-import com.nextcloud.tasks.auth.LoginUseCases
 import com.nextcloud.tasks.domain.repository.AuthRepository
 import com.nextcloud.tasks.domain.repository.TasksRepository
+import com.nextcloud.tasks.domain.usecase.InitiateLoginFlowV2UseCase
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
-import com.nextcloud.tasks.domain.usecase.LoginWithOAuthUseCase
-import com.nextcloud.tasks.domain.usecase.LoginWithPasswordUseCase
+import com.nextcloud.tasks.domain.usecase.LoginWithAppPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveAccountsUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase
+import com.nextcloud.tasks.domain.usecase.PollLoginFlowV2UseCase
 import com.nextcloud.tasks.domain.usecase.SwitchAccountUseCase
 import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
 import dagger.Module
@@ -32,14 +32,6 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLoginWithPasswordUseCase(repository: AuthRepository): LoginWithPasswordUseCase = LoginWithPasswordUseCase(repository)
-
-    @Provides
-    @Singleton
-    fun provideLoginWithOAuthUseCase(repository: AuthRepository): LoginWithOAuthUseCase = LoginWithOAuthUseCase(repository)
-
-    @Provides
-    @Singleton
     fun provideObserveAccountsUseCase(repository: AuthRepository): ObserveAccountsUseCase = ObserveAccountsUseCase(repository)
 
     @Provides
@@ -57,17 +49,14 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideLoginUseCases(
-        authRepository: AuthRepository,
-        validateServerUrlUseCase: ValidateServerUrlUseCase,
-    ): LoginUseCases =
-        LoginUseCases(
-            loginWithPassword = LoginWithPasswordUseCase(authRepository),
-            loginWithOAuth = LoginWithOAuthUseCase(authRepository),
-            observeAccounts = ObserveAccountsUseCase(authRepository),
-            observeActiveAccount = ObserveActiveAccountUseCase(authRepository),
-            switchAccount = SwitchAccountUseCase(authRepository),
-            logout = LogoutUseCase(authRepository),
-            validateServerUrl = validateServerUrlUseCase,
-        )
+    fun provideInitiateLoginFlowV2UseCase(repository: AuthRepository): InitiateLoginFlowV2UseCase = InitiateLoginFlowV2UseCase(repository)
+
+    @Provides
+    @Singleton
+    fun providePollLoginFlowV2UseCase(repository: AuthRepository): PollLoginFlowV2UseCase = PollLoginFlowV2UseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideLoginWithAppPasswordUseCase(repository: AuthRepository): LoginWithAppPasswordUseCase =
+        LoginWithAppPasswordUseCase(repository)
 }

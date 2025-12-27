@@ -5,6 +5,10 @@
     <!-- Login Screen -->
     <string name="welcome_message">Willkommen zu Ihren Nextcloud Aufgaben</string>
     <string name="server_url_label">Nextcloud URL</string>
+    <string name="server_url_hint">Nextcloud-Webserver https://</string>
+    <string name="server_url_placeholder">cloud.beispiel.de</string>
+    <string name="server_url_description">Der Link zu Ihrer Nextcloud Webseite, wenn Sie diese im Browser öffnen</string>
+    <string name="waiting_for_login">Warte auf Anmeldung im Browser…</string>
     <string name="username_label">Benutzername</string>
     <string name="password_label">Passwort oder App-Passwort</string>
     <string name="authorization_code_label">OAuth2 / OCS Code</string>
@@ -12,6 +16,10 @@
     <string name="login_method_password">Passwort-Login</string>
     <string name="login_method_oauth">OAuth2 / OCS</string>
     <string name="login_action">Jetzt anmelden</string>
+    <string name="existing_accounts">Vorhandene Konten</string>
+    <string name="import_account">Ein Konto aus der App Nextcloud importieren</string>
+    <string name="select_account">Konto auswählen</string>
+    <string name="no_accounts_found">Keine Nextcloud-Konten gefunden.\n\nBitte installieren Sie zunächst die Nextcloud Files-App und fügen Sie ein Konto hinzu.</string>
 
     <!-- Task List -->
     <string name="task_list_title">Aufgabenübersicht</string>
@@ -71,6 +79,11 @@
     <string name="error_invalid_credentials">Benutzername, Passwort oder Code ist ungültig</string>
     <string name="error_unexpected">Unerwarteter Fehler</string>
     <string name="error_unknown">Unbekannter Fehler</string>
+    <string name="error_login_flow_failed">Fehler beim Starten des Anmeldevorgangs</string>
+    <string name="error_login_timeout">Anmeldung abgelaufen. Bitte versuchen Sie es erneut.</string>
+    <string name="error_login_failed">Anmeldung fehlgeschlagen</string>
+    <string name="error_switch_account_failed">Kontowechsel fehlgeschlagen</string>
+    <string name="error_logout_failed">Abmeldung fehlgeschlagen</string>
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>

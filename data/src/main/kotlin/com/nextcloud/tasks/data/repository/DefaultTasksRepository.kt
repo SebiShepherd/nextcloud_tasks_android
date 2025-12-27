@@ -18,6 +18,7 @@ import com.nextcloud.tasks.domain.model.TaskList
 import com.nextcloud.tasks.domain.repository.TasksRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -46,6 +47,7 @@ class DefaultTasksRepository
         private val taskListsDao get() = database.taskListsDao()
         private val tagsDao get() = database.tagsDao()
 
+        @OptIn(ExperimentalCoroutinesApi::class)
         override fun observeTasks(): Flow<List<Task>> =
             authTokenProvider
                 .observeActiveAccountId()
@@ -59,6 +61,7 @@ class DefaultTasksRepository
                     }
                 }
 
+        @OptIn(ExperimentalCoroutinesApi::class)
         override fun observeLists(): Flow<List<TaskList>> =
             authTokenProvider
                 .observeActiveAccountId()

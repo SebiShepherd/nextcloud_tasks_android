@@ -66,6 +66,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     buildFeatures {
@@ -78,6 +79,7 @@ android {
 
 kapt {
     correctErrorTypes = true
+    useBuildCache = true
 }
 
 kotlin {
@@ -98,6 +100,9 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.coil.compose)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.browser)
+
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     kapt(libs.hilt.compiler)
 

@@ -18,17 +18,6 @@ android {
             "DEFAULT_NEXTCLOUD_BASE_URL",
             "\"https://nextcloud.example.com/\"",
         )
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                argument(
-                    "room.schemaLocation",
-                    "$projectDir/schemas",
-                )
-                argument("room.incremental", "true")
-                argument("room.expandProjection", "true")
-            }
-        }
     }
 
     buildFeatures {
@@ -43,6 +32,7 @@ android {
 
 kapt {
     correctErrorTypes = true
+    useBuildCache = true
 }
 
 kotlin {
