@@ -22,13 +22,15 @@ fun getVersionName(): String {
 
     // Try to get version from git tag
     try {
-        val tagVersion = Runtime.getRuntime()
-            .exec("git describe --tags --abbrev=0")
-            .inputStream
-            .bufferedReader()
-            .readText()
-            .trim()
-            .removePrefix("v")
+        val tagVersion =
+            Runtime
+                .getRuntime()
+                .exec("git describe --tags --abbrev=0")
+                .inputStream
+                .bufferedReader()
+                .readText()
+                .trim()
+                .removePrefix("v")
 
         if (tagVersion.isNotBlank()) {
             return tagVersion
@@ -59,7 +61,7 @@ fun getVersionCode(): Int {
 
         major * 10000 + minor * 100 + patch
     } catch (e: Exception) {
-        1  // Fallback version code
+        1 // Fallback version code
     }
 }
 
