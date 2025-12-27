@@ -2,16 +2,11 @@
 
 package com.nextcloud.tasks.di
 
-import com.nextcloud.tasks.auth.LoginUseCases
 import com.nextcloud.tasks.domain.repository.AuthRepository
 import com.nextcloud.tasks.domain.repository.TasksRepository
 import com.nextcloud.tasks.domain.usecase.InitiateLoginFlowV2UseCase
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.domain.usecase.LoginWithAppPasswordUseCase
-@Suppress("DEPRECATION")
-import com.nextcloud.tasks.domain.usecase.LoginWithOAuthUseCase
-@Suppress("DEPRECATION")
-import com.nextcloud.tasks.domain.usecase.LoginWithPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveAccountsUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase
@@ -34,16 +29,6 @@ object AppModule {
     @Provides
     @Singleton
     fun provideValidateServerUrlUseCase(): ValidateServerUrlUseCase = ValidateServerUrlUseCase()
-
-    @Provides
-    @Singleton
-    @Suppress("DEPRECATION")
-    fun provideLoginWithPasswordUseCase(repository: AuthRepository): LoginWithPasswordUseCase = LoginWithPasswordUseCase(repository)
-
-    @Provides
-    @Singleton
-    @Suppress("DEPRECATION")
-    fun provideLoginWithOAuthUseCase(repository: AuthRepository): LoginWithOAuthUseCase = LoginWithOAuthUseCase(repository)
 
     @Provides
     @Singleton
@@ -76,21 +61,4 @@ object AppModule {
     @Singleton
     fun provideLoginWithAppPasswordUseCase(repository: AuthRepository): LoginWithAppPasswordUseCase =
         LoginWithAppPasswordUseCase(repository)
-
-    @Provides
-    @Singleton
-    @Suppress("DEPRECATION")
-    fun provideLoginUseCases(
-        authRepository: AuthRepository,
-        validateServerUrlUseCase: ValidateServerUrlUseCase,
-    ): LoginUseCases =
-        LoginUseCases(
-            loginWithPassword = LoginWithPasswordUseCase(authRepository),
-            loginWithOAuth = LoginWithOAuthUseCase(authRepository),
-            observeAccounts = ObserveAccountsUseCase(authRepository),
-            observeActiveAccount = ObserveActiveAccountUseCase(authRepository),
-            switchAccount = SwitchAccountUseCase(authRepository),
-            logout = LogoutUseCase(authRepository),
-            validateServerUrl = validateServerUrlUseCase,
-        )
 }

@@ -80,9 +80,6 @@ android {
 kapt {
     correctErrorTypes = true
     useBuildCache = true
-    arguments {
-        arg("showProcessorTimings", "false")
-    }
 }
 
 kotlin {

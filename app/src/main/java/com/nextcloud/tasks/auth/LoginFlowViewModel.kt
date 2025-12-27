@@ -11,6 +11,7 @@ import com.nextcloud.tasks.domain.usecase.InitiateLoginFlowV2UseCase
 import com.nextcloud.tasks.domain.usecase.LoginWithAppPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveAccountsUseCase
+import com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase
 import com.nextcloud.tasks.domain.usecase.PollLoginFlowV2UseCase
 import com.nextcloud.tasks.domain.usecase.SwitchAccountUseCase
 import com.nextcloud.tasks.domain.usecase.ValidateServerUrlUseCase
@@ -40,6 +41,7 @@ class LoginFlowViewModel
         private val loginWithAppPassword: LoginWithAppPasswordUseCase,
         private val validateServerUrl: ValidateServerUrlUseCase,
         private val observeAccounts: ObserveAccountsUseCase,
+        private val observeActiveAccount: ObserveActiveAccountUseCase,
         private val switchAccount: SwitchAccountUseCase,
         private val logout: LogoutUseCase,
     ) : ViewModel() {
@@ -49,10 +51,15 @@ class LoginFlowViewModel
         private var pollingJob: Job? = null
 
         init {
-            // Observe accounts from repository
+            // Observe accounts and active account from repository
             viewModelScope.launch {
                 observeAccounts().collect { accounts ->
                     _uiState.update { it.copy(accounts = accounts) }
+                }
+            }
+            viewModelScope.launch {
+                observeActiveAccount().collect { activeAccount ->
+                    _uiState.update { it.copy(activeAccount = activeAccount) }
                 }
             }
         }
@@ -252,4 +259,5 @@ data class LoginFlowUiState(
     val error: String? = null,
     val loginSuccess: Boolean = false,
     val accounts: List<NextcloudAccount> = emptyList(),
+    val activeAccount: NextcloudAccount? = null,
 )

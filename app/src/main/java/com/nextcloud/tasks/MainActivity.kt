@@ -74,10 +74,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.AsyncImage
-import com.nextcloud.tasks.auth.LoginCallbacks
-import com.nextcloud.tasks.auth.LoginScreen
-import com.nextcloud.tasks.auth.LoginUiState
-import com.nextcloud.tasks.auth.LoginViewModel
+import com.nextcloud.tasks.auth.LoginFlowUiState
+import com.nextcloud.tasks.auth.LoginFlowViewModel
 import com.nextcloud.tasks.auth.ServerInputScreen
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.model.Task
@@ -96,7 +94,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private val taskListViewModel: TaskListViewModel by viewModels()
-    private val loginViewModel: LoginViewModel by viewModels()
+    private val loginFlowViewModel: LoginFlowViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,7 +110,7 @@ class MainActivity : AppCompatActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     NextcloudTasksApp(
-                        loginViewModel = loginViewModel,
+                        loginFlowViewModel = loginFlowViewModel,
                         taskListViewModel = taskListViewModel,
                     )
                 }
@@ -130,10 +128,10 @@ class MainActivity : AppCompatActivity() {
 
 @Composable
 fun NextcloudTasksApp(
-    loginViewModel: LoginViewModel,
+    loginFlowViewModel: LoginFlowViewModel,
     taskListViewModel: TaskListViewModel,
 ) {
-    val loginState by loginViewModel.uiState.collectAsState()
+    val loginState by loginFlowViewModel.uiState.collectAsState()
     val tasks by taskListViewModel.tasks.collectAsState()
     val taskLists by taskListViewModel.taskLists.collectAsState()
     val selectedListId by taskListViewModel.selectedListId.collectAsState()
@@ -160,7 +158,7 @@ fun NextcloudTasksApp(
 
     // Handle account switching with automatic refresh
     val handleSwitchAccount: (String) -> Unit = { accountId ->
-        loginViewModel.switchAccount(accountId)
+        loginFlowViewModel.onSwitchAccount(accountId)
         forceShowLogin = false
         // Refresh will be triggered by LaunchedEffect above
     }
@@ -192,7 +190,7 @@ fun NextcloudTasksApp(
             taskFilter = taskFilter,
             taskSort = taskSort,
             isRefreshing = isRefreshing,
-            onLogout = loginViewModel::logout,
+            onLogout = loginFlowViewModel::onLogout,
             onSwitchAccount = handleSwitchAccount,
             onSelectList = taskListViewModel::selectList,
             onSetFilter = taskListViewModel::setFilter,
@@ -225,7 +223,7 @@ fun NextcloudTasksApp(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthenticatedHome(
-    state: LoginUiState,
+    state: LoginFlowUiState,
     tasks: List<Task>,
     taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
     selectedListId: String?,
@@ -312,7 +310,7 @@ fun AuthenticatedHome(
 
 @Composable
 private fun UnifiedSearchBar(
-    state: LoginUiState,
+    state: LoginFlowUiState,
     onOpenDrawer: () -> Unit,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
@@ -479,7 +477,7 @@ private fun SortOption(
 @Composable
 private fun TasksContent(
     padding: PaddingValues,
-    state: LoginUiState,
+    state: LoginFlowUiState,
     tasks: List<Task>,
     taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
     taskFilter: com.nextcloud.tasks.domain.model.TaskFilter,
