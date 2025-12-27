@@ -63,13 +63,13 @@ The app uses an automated release process based on **Git Tags**. When you create
 
 5. Click **Create** or **Save changes**
 
-#### 📝 Important Note About PR Approvals
+#### 📝 Controlling PR Approvals
 
 **Who can approve PRs?**
 
-By default, anyone can comment on pull requests in public repositories, but you can control who can formally approve them using GitHub's **Code review limits** feature.
+By default, anyone can comment on pull requests in public repositories, but repository maintainers can control who can formally approve them using GitHub's **Code review limits** feature.
 
-**How to restrict PR approvals (Recommended):**
+**Restricting PR Approvals (Recommended):**
 
 1. In the **same Branch protection rule**, scroll down to find:
 
@@ -78,38 +78,39 @@ By default, anyone can comment on pull requests in public repositories, but you 
 2. ✅ Enable: **"Limit to users explicitly granted read or higher access"**
 
    This means:
-   - Only users you explicitly add as collaborators can approve PRs
-   - Random contributors from the public can submit PRs but **cannot approve** them
+   - Only users explicitly added as collaborators can approve PRs
+   - Public contributors can submit PRs but **cannot approve** them
    - Everyone can still comment and participate in discussions
 
-3. Control who can approve:
+3. Managing approval permissions:
    - Go to **Settings** → **Collaborators and teams**
-   - Add only yourself (and trusted maintainers if needed)
-   - Don't add regular contributors as collaborators
-   - Result: **Only you can approve and merge PRs**
+   - Add maintainers who should be able to approve PRs
+   - Regular contributors don't need collaborator access to submit PRs
+   - Result: **Only designated maintainers can approve and merge PRs**
 
-**Complete Setup for Solo Maintainer:**
-1. Enable "Require a pull request before merging" with 1 approval
+**Recommended Setup:**
+1. Enable "Require a pull request before merging" with 1+ approvals
 2. Enable "Code review limits" → "Limit to users explicitly granted read or higher access"
-3. Don't add other collaborators (only you have explicit access)
-4. Result: ✅ Only you can approve and merge PRs, even though the repo is public!
+3. Add trusted maintainers as collaborators with write/maintain access
+4. Result: ✅ Only designated maintainers can approve and merge PRs
 
-**Alternative Options (if needed):**
+**Alternative Options:**
 
-**Option 2: Code Owners (GitHub Pro/Teams/Enterprise)**
+**Code Owners (GitHub Pro/Teams/Enterprise)**
 - Create a `.github/CODEOWNERS` file to require specific reviewers
+- Provides fine-grained control over who must approve changes to specific files
 - Requires paid GitHub subscription
 
-**Option 3: Control via Write Access**
-- Only give write access to trusted maintainers
-- Everyone else gets read-only access
-- Works, but "Code review limits" is cleaner
+**Access Control Only**
+- Control approvals by limiting who has write access to the repository
+- More coarse-grained than "Code review limits"
+- Works without additional configuration
 
 ---
 
-### 2. Verify Repository Secrets
+### 2. Configure Repository Secrets
 
-The following secrets must be configured in your repository (they appear to already exist):
+The release workflow requires signing secrets to build APK and AAB files.
 
 **Go to:** Settings → Secrets and variables → Actions → Repository secrets
 
@@ -119,7 +120,11 @@ Required secrets:
 - `SIGNING_KEY_ALIAS` - Signing key alias
 - `SIGNING_KEY_PASSWORD` - Signing key password
 
-**These secrets are already configured ✅**
+**📚 Don't have a keystore yet?** See **[SIGNING.md](SIGNING.md)** for a complete guide on:
+- Creating an Android signing keystore
+- Converting it to Base64
+- Adding secrets to GitHub
+- Security best practices
 
 Optional (for Play Store publishing):
 - `PLAY_SERVICE_ACCOUNT_JSON` - Service Account JSON for Play Store API
