@@ -1,65 +1,65 @@
-# Entwicklungs-Workflow für Nextcloud Tasks Android
+# Development Workflow for Nextcloud Tasks Android
 
-## Schnelle Referenz: Wann welchen Build-Befehl verwenden?
+## Quick Reference: When to Use Which Build Command?
 
-### ✅ Empfohlene Methoden (von schnell nach sicher)
+### ✅ Recommended Methods (from fast to safe)
 
-| Situation | Befehl | Dauer | Zuverlässigkeit |
-|-----------|--------|-------|-----------------|
-| **Kleine Code-Änderung nur in :app** | `./gradlew installDebug` | ~10-30s | ⭐⭐⭐⭐ |
-| **Änderung in :data oder :domain** | `./gradlew installDebug` | ~20-40s | ⭐⭐⭐⭐ |
-| **Nach git pull / Dependency-Updates** | `./gradlew clean installDebug` | ~60-90s | ⭐⭐⭐⭐⭐ |
-| **Hartnäckige Cache-Probleme** | Siehe unten: "Nuclear Option" | ~90-120s | ⭐⭐⭐⭐⭐ |
+| Situation | Command | Duration | Reliability |
+|-----------|---------|----------|-------------|
+| **Small code change in :app only** | `./gradlew installDebug` | ~10-30s | ⭐⭐⭐⭐ |
+| **Change in :data or :domain** | `./gradlew installDebug` | ~20-40s | ⭐⭐⭐⭐ |
+| **After git pull / dependency updates** | `./gradlew clean installDebug` | ~60-90s | ⭐⭐⭐⭐⭐ |
+| **Stubborn cache issues** | See below: "Nuclear Option" | ~90-120s | ⭐⭐⭐⭐⭐ |
 
-### ❌ NICHT empfohlen
+### ❌ NOT Recommended
 
 | Android Studio Button | Problem |
 |----------------------|---------|
-| "Apply Changes" | Funktioniert fast nie bei Multi-Modul-Projekten |
-| "Apply Code Changes" | Ignoriert Ressourcen-Änderungen, Hilt-Updates |
-| Grüner "Run"-Button | Oft inkrementelles Build, überspringt manchmal Module |
+| "Apply Changes" | Almost never works in multi-module projects |
+| "Apply Code Changes" | Ignores resource changes, Hilt updates |
+| Green "Run" button | Often incremental build, sometimes skips modules |
 
 ---
 
-## Typische Workflows
+## Typical Workflows
 
-### 1. Normale Entwicklung (Quick Iteration)
+### 1. Normal Development (Quick Iteration)
 
 ```bash
-# Nach Code-Änderungen
+# After code changes
 ./gradlew installDebug
 
-# Oder mit automatischem Start der App
+# Or with automatic app launch
 adb shell am start -n com.nextcloud.tasks.debug/.MainActivity
 ```
 
-**Keyboard-Shortcut in Android Studio:**
-- Öffne `Run > Edit Configurations...`
-- Erstelle neue "Gradle" Configuration
+**Keyboard Shortcut in Android Studio:**
+- Open `Run > Edit Configurations...`
+- Create new "Gradle" configuration
 - Tasks: `installDebug`
-- Weise Shortcut zu: `Ctrl+Shift+D` (oder eigene Wahl)
+- Assign shortcut: `Ctrl+Shift+D` (or your preference)
 
-### 2. Nach Git Pull
+### 2. After Git Pull
 
 ```bash
-# Immer nach git pull von Remote
+# Always after git pull from remote
 ./gradlew clean installDebug
 ```
 
-**Warum?** Gradle erkennt nicht immer Änderungen in anderen Branches/Commits.
+**Why?** Gradle doesn't always detect changes from other branches/commits.
 
-### 3. Nach Dependency-Updates
+### 3. After Dependency Updates
 
 ```bash
-# Nach Änderungen in libs.versions.toml
+# After changes in libs.versions.toml
 ./gradlew clean build --refresh-dependencies
 ./gradlew installDebug
 ```
 
-### 4. "Nuclear Option" (bei hartnäckigen Problemen)
+### 4. "Nuclear Option" (for stubborn problems)
 
 ```bash
-# Kompletter Reset des Build-Caches
+# Complete reset of build caches
 ./gradlew clean
 rm -rf .gradle/
 rm -rf build/
@@ -69,17 +69,17 @@ rm -rf domain/build/
 ./gradlew installDebug
 ```
 
-**Oder kürzer:**
+**Or shorter:**
 ```bash
-# Bash-Script dafür
-./scripts/clean_all.sh  # (falls vorhanden, sonst erstellen)
+# Use the provided script
+./scripts/clean_all.sh  # (if available, otherwise create it)
 ```
 
 ---
 
-## Warum "Apply Changes" nicht funktioniert
+## Why "Apply Changes" Doesn't Work
 
-### Multi-Modul-Struktur
+### Multi-Module Structure
 ```
 :app (UI)
   ↓ depends on
@@ -88,110 +88,110 @@ rm -rf domain/build/
 :domain (Models, Use Cases)
 ```
 
-**Problem:** Android Studio's "Apply Changes" versteht diese Abhängigkeiten nicht richtig.
+**Problem:** Android Studio's "Apply Changes" doesn't understand these dependencies correctly.
 
 ### Hilt Dependency Injection
-- DI-Graph wird zur **Compile-Time** generiert
-- "Apply Changes" überspringt Kapt/KSP-Generierung
-- Resultat: Alte DI-Bindings bleiben aktiv
+- DI graph is generated at **compile-time**
+- "Apply Changes" skips Kapt/KSP generation
+- Result: Old DI bindings remain active
 
-### Ressourcen & Manifest
-- `strings.xml`, `colors.xml` → Erfordern vollständiges Re-Packaging
-- `AndroidManifest.xml` → Erfordert APK-Neuinstallation
+### Resources & Manifest
+- `strings.xml`, `colors.xml` → Require complete re-packaging
+- `AndroidManifest.xml` → Requires APK reinstallation
 
 ---
 
-## Performance-Optimierungen (bereits aktiviert)
+## Performance Optimizations (Already Enabled)
 
 ### gradle.properties
 ```properties
-# Build Cache (wichtig!)
+# Build Cache (important!)
 org.gradle.caching=true
 
-# Parallele Module-Builds
+# Parallel module builds
 org.gradle.parallel=true
 
-# Nur betroffene Module konfigurieren
+# Configure only affected modules
 org.gradle.configureondemand=true
 
-# Inkrementelle Kotlin-Kompilierung
+# Incremental Kotlin compilation
 kotlin.incremental=true
 kotlin.compiler.execution.strategy=in-process
 
-# Mehr RAM für Gradle
+# More RAM for Gradle
 org.gradle.jvmargs=-Xmx4g -XX:+UseParallelGC
 ```
 
-### Erwartete Build-Zeiten
-- **Incremental Build** (nur :app geändert): 10-20s
-- **Multi-Modul Build** (:data geändert): 30-40s
+### Expected Build Times
+- **Incremental Build** (only :app changed): 10-20s
+- **Multi-Module Build** (:data changed): 30-40s
 - **Clean Build**: 60-90s
 
 ---
 
-## Debugging bei Build-Problemen
+## Debugging Build Problems
 
-### 1. Prüfe, welche Tasks laufen
+### 1. Check Which Tasks Are Running
 ```bash
-# Verbose Output
+# Verbose output
 ./gradlew installDebug --info
 
-# Oder mit Scan (detaillierter)
+# Or with scan (more detailed)
 ./gradlew installDebug --scan
 ```
 
-### 2. Prüfe, ob Module neu kompiliert werden
+### 2. Check If Modules Are Recompiled
 ```bash
-# Module explizit bauen
+# Build modules explicitly
 ./gradlew :domain:build :data:build :app:assembleDebug
 ```
 
-### 3. Cache-Status prüfen
+### 3. Check Cache Status
 ```bash
-# Gradle-Cache leeren (wenn aktiviert)
+# Clear Gradle cache (if enabled)
 ./gradlew cleanBuildCache
 ```
 
-### 4. Gradle Daemon neustarten
+### 4. Restart Gradle Daemon
 ```bash
-# Bei seltsamen Problemen
+# For weird issues
 ./gradlew --stop
 ./gradlew installDebug
 ```
 
 ---
 
-## Android Studio Konfiguration
+## Android Studio Configuration
 
-### Disable "Instant Run" (veraltet, sollte deaktiviert sein)
+### Disable "Instant Run" (deprecated, should be disabled)
 - **File > Settings > Build, Execution, Deployment > Debugger**
-- Deaktiviere alle "Apply Changes"-Features wenn Probleme auftreten
+- Disable all "Apply Changes" features if problems occur
 
-### Gradle Settings optimieren
+### Optimize Gradle Settings
 - **File > Settings > Build, Execution, Deployment > Compiler**
-  - ✅ `Build project automatically` (nur wenn gewünscht)
+  - ✅ `Build project automatically` (only if desired)
   - ✅ `Compile independent modules in parallel`
   - ✅ `Configure on demand`
 
 - **File > Settings > Build, Execution, Deployment > Gradle**
   - Gradle JDK: **17 (Temurin/OpenJDK)**
-  - Build and run using: **Gradle** (nicht Android Studio)
-  - Run tests using: **Gradle** (nicht Android Studio)
+  - Build and run using: **Gradle** (not Android Studio)
+  - Run tests using: **Gradle** (not Android Studio)
 
 ---
 
-## Häufige Fehlermeldungen
+## Common Error Messages
 
 ### "Task ':app:installDebug' uses this output of task ':data:compileDebugKotlin' without declaring an explicit or implicit dependency"
 
-**Lösung:**
+**Solution:**
 ```bash
 ./gradlew clean build
 ```
 
 ### "Execution failed for task ':app:kaptGenerateStubsDebugKotlin'"
 
-**Lösung:** Hilt-Cache-Problem
+**Solution:** Hilt cache problem
 ```bash
 rm -rf app/build/generated/
 ./gradlew installDebug
@@ -199,9 +199,9 @@ rm -rf app/build/generated/
 
 ### "INSTALL_FAILED_UPDATE_INCOMPATIBLE"
 
-**Lösung:** App-ID-Konflikt (Debug vs Release)
+**Solution:** App ID conflict (Debug vs Release)
 ```bash
-# Deinstalliere alte Version
+# Uninstall old version
 adb uninstall com.nextcloud.tasks.debug
 ./gradlew installDebug
 ```
@@ -210,61 +210,61 @@ adb uninstall com.nextcloud.tasks.debug
 
 ## Testing Workflow
 
-### Unit Tests (schnell, lokal)
+### Unit Tests (fast, local)
 ```bash
-# Alle Module
+# All modules
 ./gradlew testDebugUnitTest
 
-# Spezifisches Modul
+# Specific module
 ./gradlew :domain:test
 ./gradlew :data:testDebugUnitTest
 ```
 
 ### Lint & Code Quality
 ```bash
-# Vor jedem Commit
+# Before each commit
 ./gradlew ktlintCheck detekt :app:lintDebug
 
-# Automatische Formatierung
+# Automatic formatting
 ./gradlew ktlintFormat
 ```
 
 ---
 
-## Empfohlener Tagesablauf
+## Recommended Daily Routine
 
-### Morgens (nach git pull)
+### Morning (after git pull)
 ```bash
 git pull origin main
 ./gradlew clean installDebug
 ```
 
-### Während Entwicklung (iterativ)
+### During Development (iterative)
 ```bash
-# Nach jeder Änderung
+# After each change
 ./gradlew installDebug
 ```
 
-### Vor Commit
+### Before Commit
 ```bash
-# Code Quality Checks
+# Code quality checks
 ./gradlew ktlintCheck detekt :app:lintDebug testDebugUnitTest
 
-# Falls Fehler:
+# If errors occur:
 ./gradlew ktlintFormat  # Auto-fix
 ```
 
-### Abends (optional: Cache aufräumen)
+### Evening (optional: clean up cache)
 ```bash
-# Gradle Daemon stoppen (spart RAM)
+# Stop Gradle daemon (saves RAM)
 ./gradlew --stop
 ```
 
 ---
 
-## Nützliche Alias/Scripts
+## Useful Aliases/Scripts
 
-Erstelle in `~/.bashrc` oder `~/.zshrc`:
+Add to `~/.bashrc` or `~/.zshrc`:
 
 ```bash
 # Android Development
@@ -275,31 +275,31 @@ alias gtest="./gradlew testDebugUnitTest"
 alias gcheck="./gradlew ktlintCheck detekt :app:lintDebug testDebugUnitTest"
 ```
 
-Dann kannst du einfach tippen:
+Then you can simply type:
 ```bash
-gid      # Schneller Build
-gcid     # Clean Build
-gcheck   # Alle Checks
+gid      # Quick build
+gcid     # Clean build
+gcheck   # All checks
 ```
 
 ---
 
-## Zusammenfassung
+## Summary
 
 ### ✅ DO:
-- **Benutze Gradle-Tasks direkt** statt Android Studio-Buttons
-- **Clean Build nach git pull**
-- **Gradle Caching aktivieren** (✓ bereits erledigt)
-- **Gradle Daemon nutzen** (automatisch nach erstem Build)
+- **Use Gradle tasks directly** instead of Android Studio buttons
+- **Clean build after git pull**
+- **Enable Gradle caching** (✓ already done)
+- **Use Gradle daemon** (automatic after first build)
 
 ### ❌ DON'T:
-- Android Studio "Apply Changes" bei Multi-Modul-Projekten
-- Builds ohne vorheriges Clean nach großen Änderungen
-- Gradle Cache deaktivieren (war vorher aus, jetzt an)
+- Use Android Studio "Apply Changes" in multi-module projects
+- Skip clean builds after major changes
+- Disable Gradle cache (was off before, now on)
 
 ### 🚀 Quick Win:
-Ab jetzt: **`./gradlew installDebug`** statt Android Studio-Buttons!
+From now on: **`./gradlew installDebug`** instead of Android Studio buttons!
 
 ---
 
-**Pro-Tipp:** Erstelle in Android Studio eine "Run Configuration" mit diesem Gradle-Task und weise ihr `Ctrl+Shift+R` oder ähnliches zu. Dann hast du einen zuverlässigen "Run"-Button!
+**Pro Tip:** Create a "Run Configuration" in Android Studio with this Gradle task and assign it to `Ctrl+Shift+R` or similar. Then you have a reliable "Run" button!
