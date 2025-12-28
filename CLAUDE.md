@@ -254,6 +254,16 @@ com.nextcloud.tasks.domain/
 
 ### Code Quality Checks (Always Run Before Committing)
 
+**🚨 MANDATORY for all commits:**
+
+```bash
+# Run all pre-commit checks (ktlint + detekt)
+# This works in Claude Code sandbox AND local environments
+.claude/pre-commit-checks.sh
+```
+
+**For local development with full Gradle access:**
+
 ```bash
 # Format check
 ./gradlew ktlintCheck
@@ -270,6 +280,12 @@ com.nextcloud.tasks.domain/
 # All quality checks together
 ./gradlew ktlintCheck detekt :app:lintDebug testDebugUnitTest
 ```
+
+**Note for Claude Code users:**
+- The `.claude/pre-commit-checks.sh` script uses **standalone ktlint and detekt**
+- Full Gradle builds are **not possible** in Claude Code sandbox (network restrictions)
+- CI/CD will validate complete builds after push
+- Use the pre-commit script for fast, local validation
 
 ### Building
 
@@ -675,6 +691,37 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
 
 ### ✅ DO's
 
+### 🚨 MANDATORY Pre-Commit Checks (CRITICAL - NEVER SKIP!)
+
+**BEFORE EVERY COMMIT, YOU MUST:**
+
+1. **Run the pre-commit checks script:**
+   ```bash
+   .claude/pre-commit-checks.sh
+   ```
+   This script runs:
+   - ✅ **ktlint** - Code formatting validation
+   - ✅ **detekt** - Static code analysis
+
+2. **The script MUST pass with zero errors**
+   - If ktlint fails: Run `.claude/pre-commit-checks.sh` to see issues
+   - If detekt fails: Fix code quality issues reported
+   - **NEVER commit if these checks fail**
+
+3. **In Claude Code Sandbox environment:**
+   - Full Gradle builds are NOT possible (network restrictions)
+   - Use standalone ktlint and detekt (automatically downloaded by script)
+   - CI/CD will validate full builds after push
+   - Local IDE can validate builds before final merge
+
+**Why this is mandatory:**
+- Ensures consistent code style across the codebase
+- Catches code quality issues before they reach CI/CD
+- Prevents failed GitHub Actions runs
+- Maintains high code quality standards
+
+---
+
 1. **Follow Clean Architecture**
    - Never add Android dependencies to `:domain`
    - Keep data sources in `:data`, business logic in `:domain`, UI in `:app`
@@ -686,8 +733,8 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
    - Add `@HiltViewModel` to ViewModels
    - Add `@AndroidEntryPoint` to Activities
 
-3. **Code Quality**
-   - Run `ktlintCheck`, `detekt`, and `lintDebug` before committing
+3. **Code Quality** (See MANDATORY Pre-Commit Checks above)
+   - ALWAYS run `.claude/pre-commit-checks.sh` before committing
    - Fix all warnings and errors
    - Use `@Suppress` only when absolutely necessary with clear justification
 
@@ -769,8 +816,24 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
 1. **Read files first**: Always read relevant files before editing
 2. **Understand context**: Check related files (e.g., repository, use case, ViewModel)
 3. **Follow existing patterns**: Match the style of surrounding code
-4. **Test changes**: Run builds and tests locally
-5. **Update documentation**: If changing architecture or adding features
+4. **Run quality checks**: Execute `.claude/pre-commit-checks.sh` BEFORE committing
+5. **Test changes**: Full builds validated by CI/CD (Gradle builds not possible in sandbox)
+6. **Update documentation**: If changing architecture or adding features
+
+**Workflow for Claude Code:**
+```bash
+# 1. Make code changes
+# 2. Run quality checks (MANDATORY)
+.claude/pre-commit-checks.sh
+
+# 3. If checks pass, commit and push
+git add .
+git commit -m "Your message"
+git push -u origin <branch-name>
+
+# 4. CI/CD validates full build
+# GitHub Actions will run: build, lint, tests
+```
 
 ### Common Pitfalls
 
