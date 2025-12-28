@@ -252,21 +252,36 @@ com.nextcloud.tasks.domain/
 
 ## Development Workflows
 
-### Code Quality Checks (Always Run Before Committing)
+### Code Quality Checks
 
-**🚨 MANDATORY for all commits:**
+**🔧 Setup (run once after cloning):**
 
 ```bash
-# Run all pre-commit checks (ktlint + detekt)
-# This works in Claude Code sandbox AND local environments
-.claude/pre-commit-checks.sh
+./scripts/setup-git-hooks.sh
 ```
+
+This installs a Git pre-commit hook that **automatically** runs quality checks before every commit.
+
+**Manual execution (if needed):**
+
+```bash
+# Run pre-commit checks manually
+./scripts/pre-commit-checks.sh
+```
+
+The script **auto-detects** your environment:
+- 🏠 **Local IDE with Gradle**: Runs `./gradlew ktlintCheck detekt` (fast)
+- 🤖 **Claude Code / Sandboxed**: Uses standalone tools (downloads if needed)
+- ⚙️ **CI/CD**: Uses Gradle
 
 **For local development with full Gradle access:**
 
 ```bash
 # Format check
 ./gradlew ktlintCheck
+
+# Auto-fix formatting
+./gradlew ktlintFormat
 
 # Static analysis
 ./gradlew detekt
@@ -281,11 +296,11 @@ com.nextcloud.tasks.domain/
 ./gradlew ktlintCheck detekt :app:lintDebug testDebugUnitTest
 ```
 
-**Note for Claude Code users:**
-- The `.claude/pre-commit-checks.sh` script uses **standalone ktlint and detekt**
-- Full Gradle builds are **not possible** in Claude Code sandbox (network restrictions)
-- CI/CD will validate complete builds after push
-- Use the pre-commit script for fast, local validation
+**Environment-specific notes:**
+
+- **Local IDE**: Git hook runs Gradle-based checks (preferred)
+- **Claude Code**: Git hook uses standalone tools (Gradle blocked by sandbox)
+- **CI/CD**: GitHub Actions runs full Gradle pipeline
 
 ### Building
 
@@ -693,32 +708,34 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
 
 ### 🚨 MANDATORY Pre-Commit Checks (CRITICAL - NEVER SKIP!)
 
-**BEFORE EVERY COMMIT, YOU MUST:**
+**Git hooks are automatically enabled** - checks run on every `git commit`.
 
-1. **Run the pre-commit checks script:**
-   ```bash
-   .claude/pre-commit-checks.sh
-   ```
-   This script runs:
-   - ✅ **ktlint** - Code formatting validation
-   - ✅ **detekt** - Static code analysis
+If you need to run manually:
 
-2. **The script MUST pass with zero errors**
-   - If ktlint fails: Run `.claude/pre-commit-checks.sh` to see issues
-   - If detekt fails: Fix code quality issues reported
-   - **NEVER commit if these checks fail**
+```bash
+./scripts/pre-commit-checks.sh
+```
 
-3. **In Claude Code Sandbox environment:**
-   - Full Gradle builds are NOT possible (network restrictions)
-   - Use standalone ktlint and detekt (automatically downloaded by script)
-   - CI/CD will validate full builds after push
-   - Local IDE can validate builds before final merge
+**What it checks:**
+- ✅ **ktlint** - Code formatting validation
+- ✅ **detekt** - Static code analysis
+
+**The script MUST pass with zero errors:**
+- If ktlint fails: Fix formatting or run `./gradlew ktlintFormat`
+- If detekt fails: Fix code quality issues reported
+- **NEVER commit if these checks fail** (unless using `--no-verify`)
+
+**Smart environment detection:**
+- 🏠 **Local IDE**: Uses `./gradlew ktlintCheck detekt` (preferred, fastest)
+- 🤖 **Claude Code**: Uses standalone tools (Gradle blocked by sandbox)
+- ⚙️ **CI/CD**: Uses Gradle (standard pipeline)
 
 **Why this is mandatory:**
-- Ensures consistent code style across the codebase
+- Ensures consistent code style across ALL developers
 - Catches code quality issues before they reach CI/CD
 - Prevents failed GitHub Actions runs
 - Maintains high code quality standards
+- **Not Claude-specific** - enforced for everyone via Git hooks
 
 ---
 
@@ -734,8 +751,8 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
    - Add `@AndroidEntryPoint` to Activities
 
 3. **Code Quality** (See MANDATORY Pre-Commit Checks above)
-   - ALWAYS run `.claude/pre-commit-checks.sh` before committing
-   - Fix all warnings and errors
+   - Git pre-commit hook runs automatically (installed via `scripts/setup-git-hooks.sh`)
+   - Fix all warnings and errors before committing
    - Use `@Suppress` only when absolutely necessary with clear justification
 
 4. **Async Operations**
@@ -816,24 +833,28 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
 1. **Read files first**: Always read relevant files before editing
 2. **Understand context**: Check related files (e.g., repository, use case, ViewModel)
 3. **Follow existing patterns**: Match the style of surrounding code
-4. **Run quality checks**: Execute `.claude/pre-commit-checks.sh` BEFORE committing
+4. **Quality checks run automatically**: Git pre-commit hook enforces ktlint + detekt
 5. **Test changes**: Full builds validated by CI/CD (Gradle builds not possible in sandbox)
 6. **Update documentation**: If changing architecture or adding features
 
-**Workflow for Claude Code:**
+**Workflow for all developers (including AI assistants):**
 ```bash
 # 1. Make code changes
-# 2. Run quality checks (MANDATORY)
-.claude/pre-commit-checks.sh
 
-# 3. If checks pass, commit and push
+# 2. Commit (quality checks run automatically via Git hook)
 git add .
 git commit -m "Your message"
+# → Pre-commit hook runs ./scripts/pre-commit-checks.sh
+# → Commit succeeds only if checks pass
+
+# 3. Push to remote
 git push -u origin <branch-name>
 
 # 4. CI/CD validates full build
 # GitHub Actions will run: build, lint, tests
 ```
+
+**Note:** The pre-commit hook can be bypassed with `git commit --no-verify`, but this is **strongly discouraged**.
 
 ### Common Pitfalls
 
