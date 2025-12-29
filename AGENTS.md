@@ -1,199 +1,634 @@
 # AI Agent Guide - Nextcloud Tasks Android
 
-This document contains essential information for AI agents working on this project to ensure consistency and adherence to project conventions.
+**Last Updated**: 2025-12-28
+**Project Version**: 1.0.0
+**Target Audience**: Claude Code, AI assistants, and automated agents working on this codebase
+
+> **Note**: This document is synchronized with `CLAUDE.md` to ensure consistency across all AI assistants.
+
+---
+
+## Table of Contents
+
+1. [Project Overview](#project-overview)
+2. [Architecture](#architecture)
+3. [Key Technologies](#key-technologies)
+4. [Code Structure](#code-structure)
+5. [Development Workflows](#development-workflows)
+6. [Code Conventions](#code-conventions)
+7. [Important Patterns](#important-patterns)
+8. [Build & Deployment](#build--deployment)
+9. [Testing](#testing)
+10. [AI Assistant Guidelines](#ai-assistant-guidelines)
+11. [Common Tasks](#common-tasks)
+
+---
 
 ## Project Overview
 
-**Nextcloud Tasks Android** is a modular Android application for managing Nextcloud Tasks, built with modern Android development practices.
+**Nextcloud Tasks Android** is a native Android client for Nextcloud Tasks, built with modern Android development practices and Clean Architecture principles.
+
+### Key Information
 
 - **Package Name**: `com.nextcloud.tasks`
-- **Min SDK**: 24 (Android 7.0)
-- **Target/Compile SDK**: 34 (Android 14)
 - **Language**: Kotlin
+- **Min SDK**: 26 (Android 8.0)
+- **Target/Compile SDK**: 36 (Android 15)
 - **Java Version**: 17
+- **Module Count**: 3 (app, data, domain)
+- **Total Kotlin Files**: ~67
+
+### Features
+
+- Multi-account support with account switching
+- CalDAV-based task synchronization
+- VTODO (iCalendar) parsing and generation
+- Offline-first architecture with Room database
+- Pull-to-refresh synchronization
+- Task lists with color coding
+- Task filtering and sorting
+- Material 3 design with dynamic theming
+
+---
 
 ## Architecture
 
-### Module Structure (Clean Architecture)
+### Clean Architecture (3-Layer)
 
-The project follows Clean Architecture principles with three distinct modules:
-
-1. **`:domain`** (Pure Kotlin Module)
-   - Location: `/domain`
-   - Contains: Business logic, interfaces, use cases, domain models
-   - Dependencies: Only `kotlinx-coroutines-core` (no Android dependencies)
-   - Package: `com.nextcloud.tasks.domain`
-   - Example: `Task` data class, `TasksRepository` interface, `LoadTasksUseCase`
-
-2. **`:data`** (Android Library)
-   - Location: `/data`
-   - Contains: Repository implementations, data sources, data models
-   - Dependencies: `:domain`, Hilt, Coroutines
-   - Package: `com.nextcloud.tasks.data`
-   - Example: `DefaultTasksRepository` implementation
-
-3. **`:app`** (Android Application)
-   - Location: `/app`
-   - Contains: UI (Jetpack Compose), ViewModels, Dependency Injection setup, themes
-   - Dependencies: `:domain`, `:data`, Compose, Hilt, Material 3
-   - Package: `com.nextcloud.tasks`
-   - Entry Point: `TasksApp` (Application class with `@HiltAndroidApp`)
-
-### Dependency Flow
+The project follows Clean Architecture with strict dependency rules:
 
 ```
-:app → :data → :domain
+┌─────────────────────────────────────────────────┐
+│ :app (Android Application)                     │
+│ • UI (Jetpack Compose)                         │
+│ • ViewModels                                   │
+│ • Navigation                                   │
+│ • Dependency Injection Setup                   │
+└─────────────────────────────────────────────────┘
+                    ↓ depends on
+┌─────────────────────────────────────────────────┐
+│ :data (Android Library)                        │
+│ • Repository Implementations                   │
+│ • Room Database                                │
+│ • CalDAV Service                               │
+│ • Network Layer (Retrofit + OkHttp)            │
+│ • iCal4j Integration (VTODO parsing/generation)│
+│ • Authentication & Token Management            │
+└─────────────────────────────────────────────────┘
+                    ↓ depends on
+┌─────────────────────────────────────────────────┐
+│ :domain (Pure Kotlin Module)                   │
+│ • Business Models (Task, TaskList, Tag, etc.)  │
+│ • Repository Interfaces                        │
+│ • Use Cases                                    │
+│ • NO Android dependencies                      │
+└─────────────────────────────────────────────────┘
 ```
 
-- `:domain` has no dependencies on other modules
-- `:data` depends only on `:domain`
-- `:app` depends on both `:data` and `:domain`
+### Module Details
 
-## Dependency Injection
+#### `:app` Module
+- **Path**: `/app`
+- **Package**: `com.nextcloud.tasks`
+- **Source**: `app/src/main/java/` (uses 'java' directory for Kotlin)
+- **Purpose**: UI layer with Jetpack Compose screens
+- **Key Files**:
+  - `MainActivity.kt` - Entry point with all UI composables
+  - `TasksApp.kt` - Application class with `@HiltAndroidApp`
+  - `auth/LoginScreen.kt`, `auth/LoginViewModel.kt` - Authentication UI
+  - `di/AppModule.kt` - Hilt module for use cases
+  - `ui/theme/Theme.kt`, `Color.kt`, `Type.kt` - Material 3 theming
 
-**Framework**: Dagger Hilt
+#### `:data` Module
+- **Path**: `/data`
+- **Package**: `com.nextcloud.tasks.data`
+- **Source**: `data/src/main/kotlin/`
+- **Purpose**: Data layer with repositories, database, and network
+- **Key Subdirectories**:
+  - `api/` - Retrofit API interfaces and DTOs
+  - `caldav/` - CalDAV service, parsers (VTodoParser, DavMultistatusParser), generators (VTodoGenerator)
+  - `database/` - Room database, DAOs, entities
+  - `repository/` - Repository implementations (DefaultTasksRepository, DefaultAuthRepository)
+  - `network/` - OkHttp clients, interceptors, SafeDns
+  - `auth/` - Authentication token provider
+  - `mapper/` - Entity ↔ Domain model mappers
+  - `di/` - Hilt modules (DataModule, NetworkModule)
 
-### Key Components
+#### `:domain` Module
+- **Path**: `/domain`
+- **Package**: `com.nextcloud.tasks.domain`
+- **Source**: `domain/src/main/kotlin/`
+- **Purpose**: Pure business logic (platform-agnostic)
+- **Key Subdirectories**:
+  - `model/` - Domain models (Task, TaskList, Tag, NextcloudAccount, etc.)
+  - `repository/` - Repository interfaces (TasksRepository, AuthRepository)
+  - `usecase/` - Use cases (LoadTasksUseCase, LoginWithPasswordUseCase, etc.)
 
-- **Application Class**: `TasksApp` annotated with `@HiltAndroidApp`
-- **Activities**: Annotated with `@AndroidEntryPoint` (e.g., `MainActivity`)
-- **ViewModels**: Annotated with `@HiltViewModel`
+---
 
-### Hilt Modules
+## Key Technologies
 
-1. **AppModule** (`app/src/main/java/com/nextcloud/tasks/di/AppModule.kt`)
-   - Installed in `SingletonComponent`
-   - Provides use cases
-   - Uses `@Provides` with `@Singleton`
+### Core Stack
 
-2. **DataModule** (`data/src/main/kotlin/com/nextcloud/tasks/data/di/DataModule.kt`)
-   - Installed in `SingletonComponent`
-   - Binds repository implementations
-   - Uses `@Binds` with `@Singleton`
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Kotlin** | 2.1.10 | Primary language |
+| **Jetpack Compose** | BOM 2025.12.00 | UI framework |
+| **Material 3** | 1.4.0 | Design system |
+| **Hilt** | 2.57.2 | Dependency injection |
+| **Room** | 2.7.0-alpha04 | Local database |
+| **Retrofit** | 2.11.0 | REST API client |
+| **OkHttp** | 4.12.0 | HTTP client |
+| **Coroutines** | 1.10.2 | Async programming |
+| **iCal4j** | 3.2.18 | iCalendar VTODO parsing/generation |
+| **Timber** | 5.0.1 | Logging |
+| **Coil** | 2.7.0 | Image loading (avatars) |
 
-### DI Conventions
+### Build Tools
 
-- Use `@Inject constructor()` for repository/use case injection
-- Use `object` for `@Provides` modules
-- Use `interface` for `@Binds` modules
-- Always mark singleton dependencies with `@Singleton`
+- **Gradle**: 8.13.2 (Android Gradle Plugin)
+- **KSP**: 2.1.10-1.0.29 (for Room)
+- **Kapt**: Used for Hilt
+- **ktlint**: 14.0.1 (code formatting)
+- **detekt**: 1.23.8 (static analysis)
 
-## UI & Theming
+### CalDAV Integration
 
-### UI Framework
+The app uses **CalDAV protocol** for task synchronization:
+- **iCal4j** library for parsing/generating VTODO (iCalendar tasks)
+- Custom `CalDavService` for HTTP PROPFIND/REPORT requests
+- `VTodoParser` for parsing VCALENDAR → Task entities
+- `VTodoGenerator` for generating Task → VCALENDAR strings
+- ETags for optimistic locking during updates
 
-- **Jetpack Compose** with Material 3
-- **Kotlin Compiler Extension Version**: 2.2.21
-- **Compose BOM**: 2025.12.00
+---
 
-### Theme Structure
+## Code Structure
 
-- **Theme File**: `app/src/main/java/com/nextcloud/tasks/ui/theme/Theme.kt`
-- **Theme Function**: `NextcloudTasksTheme`
-- **Features**:
-  - Light/Dark theme support (follows system preference)
-  - Dynamic color support for Android 12+ (Material You)
-  - Custom Nextcloud colors for older devices
-  - Automatic status bar and navigation bar styling
+### Package Organization
 
-### UI Conventions
+```
+com.nextcloud.tasks/
+├── MainActivity.kt              # Main activity with all Compose screens
+├── TasksApp.kt                  # Application class (@HiltAndroidApp)
+├── auth/
+│   ├── LoginScreen.kt           # Login UI
+│   ├── LoginViewModel.kt        # Login business logic
+│   └── LoginCallbacks.kt        # Login event callbacks
+├── di/
+│   └── AppModule.kt             # Hilt module (provides use cases)
+└── ui/
+    └── theme/
+        ├── Theme.kt             # NextcloudTasksTheme
+        ├── Color.kt             # Color definitions
+        └── Type.kt              # Typography
 
-- Use `MaterialTheme.colorScheme` for colors
-- Use `MaterialTheme.typography` for text styles
-- Use `MaterialTheme.shapes` for shapes
-- Prefer `Surface` with `tonalElevation` over `shadowElevation`
-- Use `Scaffold` for screen-level layouts with `TopAppBar`
-- Organize Composables: Screen → List → Item pattern
-- Keep ViewModels close to Activities (same file for simple cases)
+com.nextcloud.tasks.data/
+├── api/
+│   ├── NextcloudTasksApi.kt     # Retrofit API interface
+│   └── dto/                     # Data Transfer Objects
+├── caldav/
+│   ├── service/
+│   │   └── CalDavService.kt     # CalDAV HTTP operations
+│   ├── parser/
+│   │   ├── VTodoParser.kt       # VTODO → TaskEntity
+│   │   └── DavMultistatusParser.kt
+│   ├── generator/
+│   │   └── VTodoGenerator.kt    # Task → VTODO
+│   └── models/
+│       ├── DavResponse.kt
+│       └── DavProperty.kt
+├── database/
+│   ├── NextcloudTasksDatabase.kt
+│   ├── dao/                     # Room DAOs
+│   ├── entity/                  # Room entities
+│   ├── model/                   # Relation models (TaskWithRelations)
+│   └── converter/               # Type converters (InstantTypeConverter)
+├── repository/
+│   ├── DefaultTasksRepository.kt
+│   └── DefaultAuthRepository.kt
+├── network/
+│   ├── NextcloudService.kt
+│   ├── NextcloudClientFactory.kt
+│   ├── AuthenticationInterceptors.kt
+│   └── SafeDns.kt
+├── auth/
+│   ├── AuthToken.kt
+│   └── AuthTokenProvider.kt     # Token management
+├── mapper/
+│   ├── TaskMapper.kt            # Entity ↔ Domain
+│   ├── TaskListMapper.kt
+│   └── TagMapper.kt
+├── sync/
+│   └── SyncManager.kt
+└── di/
+    ├── DataModule.kt            # Provides DB, Retrofit, CalDAV
+    └── NetworkModule.kt         # Provides OkHttp, interceptors
 
-## Code Style & Quality
+com.nextcloud.tasks.domain/
+├── model/
+│   ├── Task.kt                  # Core task model
+│   ├── TaskDraft.kt             # For creating tasks
+│   ├── TaskList.kt
+│   ├── Tag.kt
+│   ├── NextcloudAccount.kt
+│   ├── TaskFilter.kt            # ALL, CURRENT, COMPLETED
+│   ├── TaskSort.kt              # DUE_DATE, PRIORITY, TITLE, UPDATED_AT
+│   ├── AuthType.kt
+│   └── AuthFailure.kt
+├── repository/
+│   ├── TasksRepository.kt       # Interface for task operations
+│   └── AuthRepository.kt        # Interface for auth operations
+└── usecase/
+    ├── LoadTasksUseCase.kt
+    ├── LoginWithPasswordUseCase.kt
+    ├── LoginWithOAuthUseCase.kt
+    ├── ObserveActiveAccountUseCase.kt
+    ├── ObserveAccountsUseCase.kt
+    ├── SwitchAccountUseCase.kt
+    ├── LogoutUseCase.kt
+    └── ValidateServerUrlUseCase.kt
+```
 
-### Linting & Static Analysis
+---
 
-1. **ktlint** (Kotlin code style)
-   - Configuration: Applied in root `build.gradle.kts`
-   - Android mode enabled
-   - Excludes generated code
-   - Command: `./gradlew ktlintCheck`
+## Development Workflows
 
-2. **detekt** (Static analysis)
-   - Configuration: `config/detekt/detekt.yml`
-   - Auto-correct enabled
-   - MagicNumber check disabled
-   - Command: `./gradlew detekt`
+### Code Quality Checks
 
-3. **Android Lint**
-   - Command: `./gradlew :app:lintDebug`
-
-### Code Conventions
-
-- **Code Style**: Official Kotlin code style (`kotlin.code.style=official`)
-- **File Organization**: Package by feature, then by layer
-- **Naming**:
-  - Classes: PascalCase
-  - Functions/Variables: camelCase
-  - Constants: UPPER_SNAKE_CASE
-  - Files: Match the primary class name
-- **Imports**: No wildcard imports
-- **ViewModels**: Suffix with `ViewModel` (e.g., `TaskListViewModel`)
-- **Use Cases**: Suffix with `UseCase` (e.g., `LoadTasksUseCase`)
-- **Repositories**: Suffix with `Repository`, prefix implementation with `Default` (e.g., `DefaultTasksRepository`)
-
-### Kotlin Conventions
-
-- Use `data class` for models
-- Use `Flow` for reactive data streams
-- Prefer `StateFlow` for state management in repositories
-- Use `stateIn()` to convert Flow to StateFlow in ViewModels
-- Use `suspend` functions for one-shot operations
-- Prefer `@Composable` functions over Views
-
-## Build & Test
-
-### Gradle Commands
+**🔧 Setup (run once after cloning):**
 
 ```bash
-# Code Quality
-./gradlew ktlintCheck          # Check code style
-./gradlew detekt               # Run static analysis
-./gradlew :app:lintDebug       # Run Android lint
-
-# Testing
-./gradlew testDebugUnitTest    # Run unit tests
-
-# Building
-./gradlew assembleDebug        # Build debug APK
-./gradlew bundleRelease        # Build release AAB
-
-# Play Store
-./gradlew publishReleaseBundle # Upload to Play Store (internal track)
+./scripts/setup-git-hooks.sh
 ```
 
-### Build Configuration
+This installs a Git pre-commit hook that **automatically** runs quality checks before every commit.
 
-- **Kotlin JVM Target**: 17
-- **Java Compatibility**: VERSION_17
-- **Kapt**: `correctErrorTypes = true`
-- **ProGuard**: Disabled for now (commented out in build files)
-- **Build Types**:
-  - Debug: `applicationIdSuffix = ".debug"`, no minification
-  - Release: Signed, minification disabled for now
+**Manual execution (if needed):**
 
-### Signing (Release)
+```bash
+# Run pre-commit checks manually
+./scripts/pre-commit-checks.sh
+```
 
-Release builds are signed using environment variables:
-- `SIGNING_KEYSTORE_BASE64`: Base64-encoded keystore
-- `SIGNING_KEYSTORE_PASSWORD`: Keystore password
-- `SIGNING_KEY_ALIAS`: Key alias
-- `SIGNING_KEY_PASSWORD`: Key password
+The script **auto-detects** your environment:
+- 🏠 **Local IDE with Gradle**: Runs `./gradlew ktlintCheck detekt` (fast)
+- 🤖 **Claude Code / Sandboxed**: Uses standalone tools (downloads if needed)
+- ⚙️ **CI/CD**: Uses Gradle
 
-Keystore is decoded and written to `build/keystore/release.jks` at build time.
+**For local development with full Gradle access:**
 
-## CI/CD
+```bash
+# Format check
+./gradlew ktlintCheck
 
-### GitHub Actions
+# Auto-fix formatting
+./gradlew ktlintFormat
 
-**Workflow File**: `.github/workflows/ci.yml`
+# Static analysis
+./gradlew detekt
+
+# Android lint
+./gradlew :app:lintDebug
+
+# Unit tests
+./gradlew testDebugUnitTest
+
+# All quality checks together
+./gradlew ktlintCheck detekt :app:lintDebug testDebugUnitTest
+```
+
+**Environment-specific notes:**
+
+- **Local IDE**: Git hook runs Gradle-based checks (preferred)
+- **Claude Code**: Git hook uses standalone tools (Gradle blocked by sandbox)
+- **CI/CD**: GitHub Actions runs full Gradle pipeline
+
+### Building
+
+```bash
+# Debug APK
+./gradlew assembleDebug
+
+# Debug with installation
+./gradlew installDebug
+
+# Release bundle (requires signing secrets)
+./gradlew bundleRelease
+
+# Clean build
+./gradlew clean assembleDebug
+```
+
+### Play Store Publishing
+
+```bash
+# Upload to internal track (requires PLAY_SERVICE_ACCOUNT_JSON)
+./gradlew publishReleaseBundle
+
+# Or via Fastlane
+fastlane internal
+```
+
+### Debugging
+
+- **Debug variant** enables Timber logging and OkHttp logging interceptor
+- **Application ID**: `com.nextcloud.tasks.debug` (debug), `com.nextcloud.tasks` (release)
+- **Logcat filters**:
+  - Package: `com.nextcloud.tasks`
+  - Tag: `LoginViewModel`, `CalDavService`, `VTodoParser`, etc.
+
+---
+
+## Code Conventions
+
+### Kotlin Style
+
+- **Code Style**: Official Kotlin style (`kotlin.code.style=official`)
+- **Max Line Length**: Enforced by ktlint
+- **No wildcard imports**: Forbidden
+- **EditorConfig**: Special rule for Composable function naming
+
+### Naming Conventions
+
+| Type | Convention | Example |
+|------|-----------|---------|
+| **Classes** | PascalCase | `TaskListViewModel` |
+| **Functions/Variables** | camelCase | `observeTasks()`, `isRefreshing` |
+| **Constants** | UPPER_SNAKE_CASE | `DEFAULT_TIMEOUT` |
+| **Composables** | PascalCase | `TaskCard()`, `EmptyState()` |
+| **Files** | Match primary class | `TasksRepository.kt` |
+| **Repositories** | `Default` prefix for impl | `DefaultTasksRepository` |
+| **Use Cases** | Suffix with `UseCase` | `LoadTasksUseCase` |
+| **ViewModels** | Suffix with `ViewModel` | `LoginViewModel` |
+| **DTOs** | Suffix with `Dto` | `TaskDto`, `TaskRequestDto` |
+| **Entities** | Suffix with `Entity` | `TaskEntity`, `TaskListEntity` |
+
+### File Organization
+
+- **Package by feature, then by layer**
+- **Composables can be co-located** with ViewModels if tightly coupled (see `MainActivity.kt`)
+- **Mappers** in separate package (`data/mapper/`)
+- **One public class per file** (except sealed classes and tightly coupled Composables)
+
+### Detekt Rules
+
+Key configurations from `config/detekt/detekt.yml`:
+
+- ❌ **MagicNumber**: Disabled (numbers in Compose are common)
+- ✅ **ReturnCount**: Max 3
+- ✅ **LongParameterList**: Ignores `@Composable`
+- ✅ **LongMethod**: Max 70 lines, ignores `@Composable`
+- ✅ **TooManyFunctions**: Max 15 per file/class
+- ✅ **CyclomaticComplexMethod**: Max 20
+- ✅ **FunctionNaming**: Ignores `@Composable` (allows PascalCase)
+- ✅ **Formatting**: Auto-correct enabled
+- ❌ **Indentation**: Disabled (ktlint handles it)
+
+### Suppression Annotations
+
+Use `@Suppress` sparingly and only when necessary:
+
+```kotlin
+@Suppress("TooManyFunctions")
+interface TasksRepository {
+    // ... many methods
+}
+
+@Suppress("LongMethod")
+override suspend fun refresh() {
+    // Complex sync logic
+}
+
+@Suppress("UnusedParameter")
+@Composable
+private fun TasksContent(padding: PaddingValues, ...) {
+    // Padding required by Scaffold but not used yet
+}
+```
+
+---
+
+## Important Patterns
+
+### 1. Repository Pattern
+
+**Domain (Interface)**:
+```kotlin
+// domain/repository/TasksRepository.kt
+interface TasksRepository {
+    fun observeTasks(): Flow<List<Task>>
+    suspend fun createTask(draft: TaskDraft): Task
+    suspend fun updateTask(task: Task): Task
+    suspend fun deleteTask(taskId: String)
+    suspend fun refresh()
+}
+```
+
+**Data (Implementation)**:
+```kotlin
+// data/repository/DefaultTasksRepository.kt
+class DefaultTasksRepository @Inject constructor(
+    private val database: NextcloudTasksDatabase,
+    private val calDavService: CalDavService,
+    private val vTodoParser: VTodoParser,
+    private val vTodoGenerator: VTodoGenerator,
+    private val authTokenProvider: AuthTokenProvider,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : TasksRepository {
+
+    override fun observeTasks(): Flow<List<Task>> =
+        authTokenProvider
+            .observeActiveAccountId()
+            .flatMapLatest { accountId ->
+                if (accountId != null) {
+                    database.tasksDao().observeTasks(accountId)
+                        .map { tasks -> tasks.map(taskMapper::toDomain) }
+                } else {
+                    flowOf(emptyList())
+                }
+            }
+
+    override suspend fun createTask(draft: TaskDraft): Task =
+        withContext(ioDispatcher) {
+            // 1. Generate VTODO string
+            val icalData = vTodoGenerator.generateVTodo(task)
+
+            // 2. Upload to CalDAV server
+            calDavService.createTodo(baseUrl, listId, filename, icalData)
+
+            // 3. Save to local database
+            database.tasksDao().upsertTask(taskEntity)
+
+            // 4. Return created task
+            getTask(taskEntity.id) ?: error("Task not found")
+        }
+}
+```
+
+### 2. Use Case Pattern
+
+```kotlin
+// domain/usecase/LoadTasksUseCase.kt
+class LoadTasksUseCase @Inject constructor(
+    private val repository: TasksRepository
+) {
+    operator fun invoke(): Flow<List<Task>> = repository.observeTasks()
+}
+```
+
+### 3. ViewModel Pattern
+
+```kotlin
+@HiltViewModel
+class TaskListViewModel @Inject constructor(
+    private val loadTasksUseCase: LoadTasksUseCase,
+    private val tasksRepository: TasksRepository,
+) : ViewModel() {
+
+    val tasks = loadTasksUseCase()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing = _isRefreshing.asStateFlow()
+
+    fun refresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                tasksRepository.refresh()
+            } finally {
+                _isRefreshing.value = false
+            }
+        }
+    }
+}
+```
+
+### 4. Compose Screen Pattern
+
+```kotlin
+@Composable
+fun TaskListScreen(viewModel: TaskListViewModel) {
+    val tasks by viewModel.tasks.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+
+    Scaffold(
+        floatingActionButton = { /* FAB */ }
+    ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = viewModel::refresh
+        ) {
+            TaskList(tasks = tasks)
+        }
+    }
+}
+```
+
+### 5. Hilt Module Patterns
+
+**AppModule (Provides)**:
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object AppModule {
+    @Provides
+    @Singleton
+    fun provideLoadTasksUseCase(repository: TasksRepository): LoadTasksUseCase =
+        LoadTasksUseCase(repository)
+}
+```
+
+**DataModule (Binds)**:
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+interface RepositoryBindings {
+    @Binds
+    @Singleton
+    fun bindTasksRepository(impl: DefaultTasksRepository): TasksRepository
+}
+```
+
+### 6. CalDAV Sync Pattern
+
+```kotlin
+override suspend fun refresh() = withContext(ioDispatcher) {
+    // 1. CalDAV Discovery (PROPFIND)
+    val principal = calDavService.discoverPrincipal(baseUrl).getOrThrow()
+    val calendarHome = calDavService.discoverCalendarHome(baseUrl, principal.principalUrl).getOrThrow()
+
+    // 2. Enumerate Collections (PROPFIND)
+    val collections = calDavService.enumerateCalendarCollections(baseUrl, calendarHome.calendarHomeUrl).getOrThrow()
+
+    // 3. Fetch VTODOs (REPORT)
+    collections.forEach { collection ->
+        val todos = calDavService.fetchTodosFromCollection(baseUrl, collection.href).getOrThrow()
+        todos.forEach { todo ->
+            val taskEntity = vTodoParser.parseVTodo(todo.calendarData, accountId, collection.href, todo.href, todo.etag)
+            allTasks.add(taskEntity)
+        }
+    }
+
+    // 4. Update database
+    database.withTransaction {
+        upsertTaskLists(taskLists)
+        upsertTasksFromCalDav(allTasks)
+    }
+}
+```
+
+### 7. Multi-Account Support Pattern
+
+```kotlin
+// Auth token provider tracks active account
+interface AuthTokenProvider {
+    fun observeActiveAccountId(): Flow<String?>
+    suspend fun activeAccountId(): String?
+    suspend fun activeServerUrl(): String?
+}
+
+// Repository filters by active account
+override fun observeTasks(): Flow<List<Task>> =
+    authTokenProvider
+        .observeActiveAccountId()
+        .flatMapLatest { accountId ->
+            if (accountId != null) {
+                tasksDao.observeTasks(accountId).map { ... }
+            } else {
+                flowOf(emptyList())
+            }
+        }
+```
+
+---
+
+## Build & Deployment
+
+### Build Variants
+
+| Variant | App ID | Minification | Signing | Use Case |
+|---------|--------|--------------|---------|----------|
+| **Debug** | `com.nextcloud.tasks.debug` | No | Debug keystore | Development, testing |
+| **Release** | `com.nextcloud.tasks` | No (disabled) | Release keystore | Production |
+
+### Signing Configuration
+
+Release builds require environment variables:
+
+```bash
+export SIGNING_KEYSTORE_BASE64="..."  # Base64-encoded keystore
+export SIGNING_KEYSTORE_PASSWORD="..."
+export SIGNING_KEY_ALIAS="..."
+export SIGNING_KEY_PASSWORD="..."
+```
+
+The keystore is decoded at build time to `app/build/keystore/release.jks`.
+
+### CI/CD (GitHub Actions)
+
+**Workflow**: `.github/workflows/ci.yml`
 
 **Jobs**:
 
@@ -205,293 +640,385 @@ Keystore is decoded and written to `build/keystore/release.jks` at build time.
 
 2. **signed-build** (runs after quality, only on main branch)
    - Builds signed release bundle
-   - Uploads artifact
+   - Uploads AAB artifact
 
 3. **play-internal** (optional, if secrets configured)
    - Publishes to Play Store internal track
+   - Requires `PLAY_SERVICE_ACCOUNT_JSON` secret
 
 **Environment**:
 - Java: Temurin 17
-- Android SDK: via `android-actions/setup-android@v3`
-- Gradle caching: enabled
+- Gradle caching: Enabled
+- Android SDK: Setup via `android-actions/setup-android@v3`
 
 ### Fastlane
 
-**Location**: `fastlane/Fastfile`
-
 **Lane**: `internal`
-- Builds release bundle
-- Publishes to Play Store via Gradle Play Publisher
 
-## Dependencies
-
-### Version Catalog
-
-**File**: `gradle/libs.versions.toml`
-
-**Key Libraries**:
-- Compose BOM: 2025.12.00
-- Kotlin: 2.2.21
-- Hilt: 2.57.2
-- Coroutines: 1.10.2
-- Android Gradle Plugin: 8.13.2
-
-### Dependency Management
-
-- Use version catalog (`libs.versions.toml`) for all dependencies
-- Access via `libs.` prefix in build files
-- Group related dependencies in bundles (e.g., `bundles.compose`)
-
-## Play Store Integration
-
-**Plugin**: Gradle Play Publisher (3.13.0)
-
-**Configuration** (in `app/build.gradle.kts`):
-- Track: `internal`
-- Format: AAB (App Bundles)
-- Resolution Strategy: `AUTO`
-- Service Account: via `PLAY_SERVICE_ACCOUNT_JSON` environment variable
-
-## Important Patterns
-
-### Repository Pattern
-
-```kotlin
-// Domain (interface)
-interface TasksRepository {
-    fun observeTasks(): Flow<List<Task>>
-    suspend fun addSampleTasksIfEmpty()
-}
-
-// Data (implementation)
-class DefaultTasksRepository @Inject constructor() : TasksRepository {
-    override fun observeTasks(): Flow<List<Task>> = // ...
-}
+```ruby
+platform :android do
+  desc "Build and upload an internal release via Gradle Play Publisher"
+  lane :internal do
+    gradle(task: "bundle", build_type: "Release")
+    gradle(task: "publishReleaseBundle")
+  end
+end
 ```
-
-### Use Case Pattern
-
-```kotlin
-class LoadTasksUseCase @Inject constructor(
-    private val repository: TasksRepository
-) {
-    operator fun invoke(): Flow<List<Task>> = repository.observeTasks()
-    suspend fun seedSample() = repository.addSampleTasksIfEmpty()
-}
-```
-
-### ViewModel Pattern
-
-```kotlin
-@HiltViewModel
-class TaskListViewModel @Inject constructor(
-    private val loadTasksUseCase: LoadTasksUseCase
-) : ViewModel() {
-    val tasks = loadTasksUseCase()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-}
-```
-
-### Compose Screen Pattern
-
-```kotlin
-@Composable
-fun TaskListScreen(viewModel: TaskListViewModel) {
-    val tasks by viewModel.tasks.collectAsState()
-    
-    Scaffold(topBar = { /* ... */ }) { padding ->
-        if (tasks.isEmpty()) {
-            EmptyState(padding)
-        } else {
-            TaskList(padding, tasks)
-        }
-    }
-}
-```
-
-## File Structure Conventions
-
-### Package Structure
-
-```
-com.nextcloud.tasks/
-├── (root)              # Application, MainActivity, ViewModels
-├── di/                 # Hilt modules (AppModule)
-└── ui/
-    └── theme/          # Theme.kt, Color.kt, Type.kt
-
-com.nextcloud.tasks.data/
-├── di/                 # Hilt modules (DataModule)
-└── repository/         # Repository implementations
-
-com.nextcloud.tasks.domain/
-├── model/              # Domain models (Task)
-├── repository/         # Repository interfaces
-└── usecase/            # Use cases
-```
-
-### Source Sets
-
-- **App**: `app/src/main/java/` (note: Java directory even for Kotlin files)
-- **Data**: `data/src/main/kotlin/`
-- **Domain**: `domain/src/main/kotlin/`
-
-## Important Notes for AI Agents
-
-### DO's
-
-✅ Follow Clean Architecture separation (domain → data → app)
-✅ Run a lightweight build (e.g., `./gradlew :app:compileDebugKotlin --no-daemon --console=plain`) after formatting to catch missing imports or resources before committing
-✅ Use Hilt for dependency injection
-✅ Use Flow for reactive streams
-✅ Use Jetpack Compose for UI
-✅ Follow Material 3 guidelines
-✅ Run ktlint, detekt, and lint before committing
-✅ Write unit tests (testDebugUnitTest)
-✅ Use the version catalog for dependencies
-✅ Keep ViewModels framework-agnostic (except Android lifecycle)
-✅ Use suspend functions for async operations
-✅ Prefer immutable data classes
-
-### DON'Ts
-
-❌ Don't add Android dependencies to `:domain` module
-❌ Don't use Views/XML layouts (use Compose)
-❌ Don't bypass Hilt for dependency management
-❌ Don't use wildcard imports
-❌ Don't commit keystore files or secrets
-❌ Don't skip linting/static analysis
-❌ Don't use deprecated Compose APIs
-❌ Don't add dependencies without updating version catalog
-❌ Don't couple domain logic to UI or data layers
-❌ Don't use blocking calls on main thread
-
-## Testing
-
-### Current Test Structure
-
-- Unit tests: `testDebugUnitTest`
-- Framework: Kotlin Test (`kotlin("test")`)
-- Location: `src/test/` directories in each module
-
-### Testing Conventions
-
-- Test repository implementations with fake data
-- Test use cases with mock repositories
-- Test ViewModels with test coroutines
-- Use `kotlinx-coroutines-test` for testing suspending functions
-
-## Accessibility
-
-The app is designed with accessibility in mind:
-- Semantic content descriptions where needed
-- Proper contrast ratios (Material 3 handles this)
-- Dynamic color support
-- Scalable text (using MaterialTheme.typography)
-
-## Internationalization (i18n)
-
-The app supports multiple languages with runtime language switching.
-
-### String Resources
-
-**Location**: `app/src/main/res/values*/strings.xml`
-
-**Supported Languages**:
-- **English** (default): `values/strings.xml`
-- **German**: `values-de/strings.xml`
-
-### String Management Guidelines
-
-✅ **DO's**:
-- Always use `stringResource(R.string.xyz)` in Composables
-- Use `context.getString(R.string.xyz)` in ViewModels/non-Compose code
-- Add new strings in both English (`values/`) and German (`values-de/`)
-- Use string formatting for dynamic content (e.g., `%1$s`, `%1$d`)
-- Categorize strings with XML comments (e.g., `<!-- Login Screen -->`)
-- Provide content descriptions for accessibility
-
-❌ **DON'Ts**:
-- Never hardcode strings in UI code
-- Don't use string concatenation for dynamic text
-- Don't forget to translate new strings to all supported languages
-
-### String Formatting Examples
-
-```kotlin
-// Simple string
-Text(stringResource(R.string.app_name))
-
-// String with parameters
-Text(stringResource(R.string.account_info, account.displayName))
-
-// In ViewModel with Context
-val error = context.getString(R.string.error_invalid_credentials)
-```
-
-### Language Switching
-
-**Implementation**:
-- **Android 13+ (API 33+)**: Uses native Per-App Language Preferences
-- **Android 8-12 (API 26-32)**: Uses AndroidX AppCompat backport via `AppCompatDelegate`
-
-**User Access**:
-- Settings → Language (accessible via drawer menu)
-- Options: System Default, English, Deutsch
-
-**Code Components**:
-- `LanguagePreferencesManager`: DataStore-based preference storage
-- `LocaleHelper`: Runtime locale application via AppCompatDelegate
-- `SettingsViewModel` & `SettingsScreen`: Language selection UI
-
-**Initialization**:
-Locale is initialized in `TasksApp.onCreate()` via `LocaleHelper.initialize()`
-
-### Build Configuration
-
-**In `app/build.gradle.kts`**:
-```kotlin
-androidResources {
-    localeFilters += listOf("en", "de")
-}
-```
-
-**In `app/src/main/res/xml/locales_config.xml`**:
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
-    <locale android:name="en" />
-    <locale android:name="de" />
-</locale-config>
-```
-
-**In `app/src/main/AndroidManifest.xml`**:
-```xml
-<application
-    ...
-    android:localeConfig="@xml/locales_config">
-```
-
-### Adding a New Language
-
-1. Create `values-{code}/strings.xml` (e.g., `values-fr/` for French)
-2. Translate all strings from `values/strings.xml`
-3. Add language to `localeFilters` in `build.gradle.kts`: `localeFilters += listOf("en", "de", "fr")`
-4. Add `<locale android:name="fr" />` to `res/xml/locales_config.xml`
-5. Add enum entry to `Language` in `LanguagePreferencesManager.kt`
-6. Update `getLanguageDisplayName()` in `SettingsScreen.kt`
-7. Test language switching in Settings
-
-## Future Considerations
-
-- Database integration (Room) will go in `:data` module
-- Network layer (Retrofit/Ktor) will go in `:data` module
-- Feature modules can be added following the same pattern
-- UI testing with Compose testing library
 
 ---
 
-**Last Updated**: 2025-12-14
-**Project Version**: 1.0.0
+## Testing
 
-For questions or updates to this guide, please ensure consistency with the actual codebase and update the "Last Updated" timestamp.
+### Test Structure
+
+```
+src/test/kotlin/          # Unit tests
+src/androidTest/kotlin/   # Instrumentation tests (future)
+```
+
+### Running Tests
+
+```bash
+# All unit tests
+./gradlew testDebugUnitTest
+
+# Specific module
+./gradlew :domain:test
+./gradlew :data:testDebugUnitTest
+./gradlew :app:testDebugUnitTest
+```
+
+### Testing Conventions
+
+- Use `kotlin("test")` framework
+- Test repository implementations with fake data
+- Test use cases with mock repositories
+- Test ViewModels with `kotlinx-coroutines-test`
+- Test Composables with `androidx.compose.ui.test`
+
+### Test File Naming
+
+- Test file: `TasksRepositoryTest.kt`
+- Test class: `class TasksRepositoryTest { ... }`
+- Test function: `fun `should create task when draft is valid`() { ... }`
+
+---
+
+## AI Assistant Guidelines
+
+### ✅ DO's
+
+### 🚨 MANDATORY Pre-Commit Checks (CRITICAL - NEVER SKIP!)
+
+**Git hooks are automatically enabled** - checks run on every `git commit`.
+
+If you need to run manually:
+
+```bash
+./scripts/pre-commit-checks.sh
+```
+
+**What it checks:**
+- ✅ **ktlint** - Code formatting validation
+- ✅ **detekt** - Static code analysis
+
+**The script MUST pass with zero errors:**
+- If ktlint fails: Fix formatting or run `./gradlew ktlintFormat`
+- If detekt fails: Fix code quality issues reported
+- **NEVER commit if these checks fail** (unless using `--no-verify`)
+
+**Smart environment detection:**
+- 🏠 **Local IDE**: Uses `./gradlew ktlintCheck detekt` (preferred, fastest)
+- 🤖 **Claude Code**: Uses standalone tools (Gradle blocked by sandbox)
+- ⚙️ **CI/CD**: Uses Gradle (standard pipeline)
+
+**Why this is mandatory:**
+- Ensures consistent code style across ALL developers
+- Catches code quality issues before they reach CI/CD
+- Prevents failed GitHub Actions runs
+- Maintains high code quality standards
+- **Not Claude-specific** - enforced for everyone via Git hooks
+
+---
+
+1. **Follow Clean Architecture**
+   - Never add Android dependencies to `:domain`
+   - Keep data sources in `:data`, business logic in `:domain`, UI in `:app`
+   - Use interfaces in domain, implementations in data
+
+2. **Use Dependency Injection**
+   - Always use Hilt for DI
+   - Use `@Inject constructor()` for repositories and use cases
+   - Add `@HiltViewModel` to ViewModels
+   - Add `@AndroidEntryPoint` to Activities
+
+3. **Code Quality** (See MANDATORY Pre-Commit Checks above)
+   - Git pre-commit hook runs automatically (installed via `scripts/setup-git-hooks.sh`)
+   - Fix all warnings and errors before committing
+   - Use `@Suppress` only when absolutely necessary with clear justification
+
+4. **Async Operations**
+   - Use `suspend` functions for one-shot operations
+   - Use `Flow` for streams of data
+   - Use `viewModelScope` in ViewModels
+   - Use `withContext(ioDispatcher)` for IO operations in repositories
+
+5. **Compose Best Practices**
+   - Use Material 3 components
+   - Use `MaterialTheme.colorScheme`, `typography`, `shapes`
+   - Prefer `StateFlow.collectAsState()` in Composables
+   - Use `remember` for state, `derivedStateOf` for computed state
+
+6. **CalDAV Integration**
+   - Use `VTodoParser` for parsing VCALENDAR → TaskEntity
+   - Use `VTodoGenerator` for generating Task → VCALENDAR
+   - Handle ETags for optimistic locking
+   - Always sync to server before updating local database
+
+7. **Database Operations**
+   - Use `database.withTransaction { }` for multiple operations
+   - Use `upsert` instead of insert/update when appropriate
+   - Use Room's `@Transaction` for complex queries
+   - Use `InstantTypeConverter` for `Instant` fields
+
+8. **Error Handling**
+   - Log errors with Timber (e.g., `Timber.e(exception, "Error message")`)
+   - Use `Result<T>` for CalDAV service operations
+   - Catch and handle exceptions in ViewModels
+   - Show user-friendly error messages in UI
+
+9. **Multi-Account Support**
+   - Always filter data by `accountId`
+   - Use `AuthTokenProvider` to get active account
+   - Clear account data on logout
+
+### ❌ DON'Ts
+
+1. **Architecture Violations**
+   - ❌ Add Android dependencies to `:domain`
+   - ❌ Use data layer classes directly in UI
+   - ❌ Put business logic in ViewModels (use Use Cases)
+   - ❌ Bypass Hilt for dependency management
+
+2. **Code Style**
+   - ❌ Use wildcard imports
+   - ❌ Commit without running quality checks
+   - ❌ Skip linting/static analysis
+   - ❌ Hardcode strings (use `strings.xml`)
+
+3. **Compose Anti-Patterns**
+   - ❌ Use Views/XML layouts (this is a Compose-only app)
+   - ❌ Use deprecated Compose APIs
+   - ❌ Perform IO operations in Composables
+   - ❌ Create ViewModels inside Composables (use `hiltViewModel()`)
+
+4. **Data Layer**
+   - ❌ Use blocking calls on main thread
+   - ❌ Expose entities directly (use mappers to domain models)
+   - ❌ Skip error handling in network/database operations
+   - ❌ Hardcode base URLs (use `BuildConfig` or config)
+
+5. **Security**
+   - ❌ Commit keystore files or secrets
+   - ❌ Log sensitive data (passwords, tokens)
+   - ❌ Store tokens in plain text (use EncryptedSharedPreferences)
+   - ❌ Skip TLS certificate validation
+
+6. **Version Control**
+   - ❌ Add dependencies without updating `libs.versions.toml`
+   - ❌ Commit generated files (`build/`, `.gradle/`, etc.)
+   - ❌ Force push to main/master
+   - ❌ Skip hooks (pre-commit, etc.)
+
+### When Making Changes
+
+1. **Read files first**: Always read relevant files before editing
+2. **Understand context**: Check related files (e.g., repository, use case, ViewModel)
+3. **Follow existing patterns**: Match the style of surrounding code
+4. **Quality checks run automatically**: Git pre-commit hook enforces ktlint + detekt
+5. **Test changes**: Full builds validated by CI/CD (Gradle builds not possible in sandbox)
+6. **Update documentation**: If changing architecture or adding features
+
+**Workflow for all developers (including AI assistants):**
+```bash
+# 1. Make code changes
+
+# 2. Commit (quality checks run automatically via Git hook)
+git add .
+git commit -m "Your message"
+# → Pre-commit hook runs ./scripts/pre-commit-checks.sh
+# → Commit succeeds only if checks pass
+
+# 3. Push to remote
+git push -u origin <branch-name>
+
+# 4. CI/CD validates full build
+# GitHub Actions will run: build, lint, tests
+```
+
+**Note:** The pre-commit hook can be bypassed with `git commit --no-verify`, but this is **strongly discouraged**.
+
+### Common Pitfalls
+
+1. **Import Issues**
+   - The `:app` module uses `src/main/java/` for Kotlin files
+   - The `:data` and `:domain` modules use `src/main/kotlin/`
+   - Watch for import conflicts between `Task` (domain) and `TaskEntity` (data)
+
+2. **Compose State**
+   - Always use `collectAsState()` for Flows in Composables
+   - Use `remember { }` for state that should survive recomposition
+   - Use `LaunchedEffect` for side effects (e.g., auto-refresh)
+
+3. **Database Migrations**
+   - Room schema changes require migrations in `DatabaseMigrations.kt`
+   - Export schema to `data/schemas/` directory
+   - Update version number in `NextcloudTasksDatabase`
+
+4. **CalDAV Sync**
+   - Always handle `Result<T>` from CalDAV service methods
+   - Check for `null` account ID before syncing
+   - Use ETags to avoid conflicts
+
+---
+
+## Common Tasks
+
+### Adding a New Feature
+
+1. **Create domain model** (if needed) in `:domain/model/`
+2. **Add repository method** in `:domain/repository/` interface
+3. **Implement repository** in `:data/repository/`
+4. **Create use case** in `:domain/usecase/`
+5. **Add UI** in `:app/` (ViewModel + Composable)
+6. **Update Hilt modules** (if new dependencies)
+7. **Write tests**
+8. **Run quality checks**
+
+### Adding a New Dependency
+
+1. **Update** `gradle/libs.versions.toml`:
+   ```toml
+   [versions]
+   newLib = "1.0.0"
+
+   [libraries]
+   new-lib = { module = "com.example:library", version.ref = "newLib" }
+   ```
+
+2. **Add to** module's `build.gradle.kts`:
+   ```kotlin
+   implementation(libs.new.lib)
+   ```
+
+3. **Sync** and verify build
+
+### Updating SDK Versions
+
+1. Update in **all three** `build.gradle.kts` files (app, data, domain)
+2. Update `compileSdk`, `targetSdk` in `:app` and `:data`
+3. Test thoroughly (especially Compose and Material 3)
+
+### Adding a Database Field
+
+1. **Update entity** in `:data/database/entity/`
+2. **Create migration** in `:data/database/migrations/DatabaseMigrations.kt`
+3. **Update version** in `NextcloudTasksDatabase`
+4. **Export schema**: Set `room.schemaLocation` in KSP args
+5. **Update mapper** in `:data/mapper/`
+6. **Update domain model** (if needed)
+7. **Test migration**
+
+### Debugging CalDAV Issues
+
+1. Enable debug build for logging
+2. Check Logcat for `CalDavService` tag
+3. Verify server URL format (must end with `/`)
+4. Check authentication (credentials, tokens)
+5. Inspect PROPFIND/REPORT responses
+6. Validate VTODO format with iCal4j
+
+---
+
+## Quick Reference
+
+### Essential Commands
+
+```bash
+# Format & analyze
+./gradlew ktlintCheck detekt :app:lintDebug
+
+# Build debug
+./gradlew assembleDebug
+
+# Run tests
+./gradlew testDebugUnitTest
+
+# Build release
+./gradlew bundleRelease
+
+# Clean
+./gradlew clean
+```
+
+### Key File Paths
+
+```
+app/build.gradle.kts                          # App module config
+data/build.gradle.kts                         # Data module config
+domain/build.gradle.kts                       # Domain module config
+gradle/libs.versions.toml                     # Dependency versions
+config/detekt/detekt.yml                      # Detekt rules
+.github/workflows/ci.yml                      # CI/CD pipeline
+fastlane/Fastfile                             # Fastlane config
+app/src/main/java/com/nextcloud/tasks/MainActivity.kt  # Main UI
+data/src/main/kotlin/com/nextcloud/tasks/data/repository/DefaultTasksRepository.kt  # Task repo
+domain/src/main/kotlin/com/nextcloud/tasks/domain/model/Task.kt  # Task model
+```
+
+### Important Annotations
+
+```kotlin
+// Dependency Injection
+@HiltAndroidApp              // Application class
+@AndroidEntryPoint           // Activity/Fragment
+@HiltViewModel              // ViewModel
+@Inject constructor()       // Inject dependencies
+@Singleton                  // Singleton scope
+@Binds                      // Interface binding
+@Provides                   // Factory method
+
+// Room
+@Database                   // Database class
+@Dao                        // DAO interface
+@Entity                     // Table entity
+@Transaction                // Transactional query
+@TypeConverter              // Type converter
+
+// Compose
+@Composable                 // Composable function
+@Preview                    // Preview function
+@OptIn                      // Opt-in experimental API
+
+// Detekt
+@Suppress("RuleName")       // Suppress specific rule
+```
+
+---
+
+## Additional Resources
+
+- **README.md**: User-facing documentation (German)
+- **CLAUDE.md**: Synchronized AI assistant guide
+- **Kotlin Docs**: https://kotlinlang.org/docs/
+- **Jetpack Compose**: https://developer.android.com/jetpack/compose
+- **Hilt**: https://dagger.dev/hilt/
+- **Room**: https://developer.android.com/training/data-storage/room
+- **CalDAV RFC**: https://tools.ietf.org/html/rfc4791
+- **iCal4j**: https://www.ical4j.org/
+
+---
+
+**End of AGENTS.md**
+
+This document is maintained by AI assistants working on this codebase. It is synchronized with `CLAUDE.md` to ensure consistency. When making significant architectural changes or adding major features, please update both documents accordingly.

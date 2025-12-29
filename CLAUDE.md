@@ -252,11 +252,36 @@ com.nextcloud.tasks.domain/
 
 ## Development Workflows
 
-### Code Quality Checks (Always Run Before Committing)
+### Code Quality Checks
+
+**🔧 Setup (run once after cloning):**
+
+```bash
+./scripts/setup-git-hooks.sh
+```
+
+This installs a Git pre-commit hook that **automatically** runs quality checks before every commit.
+
+**Manual execution (if needed):**
+
+```bash
+# Run pre-commit checks manually
+./scripts/pre-commit-checks.sh
+```
+
+The script **auto-detects** your environment:
+- 🏠 **Local IDE with Gradle**: Runs `./gradlew ktlintCheck detekt` (fast)
+- 🤖 **Claude Code / Sandboxed**: Uses standalone tools (downloads if needed)
+- ⚙️ **CI/CD**: Uses Gradle
+
+**For local development with full Gradle access:**
 
 ```bash
 # Format check
 ./gradlew ktlintCheck
+
+# Auto-fix formatting
+./gradlew ktlintFormat
 
 # Static analysis
 ./gradlew detekt
@@ -270,6 +295,12 @@ com.nextcloud.tasks.domain/
 # All quality checks together
 ./gradlew ktlintCheck detekt :app:lintDebug testDebugUnitTest
 ```
+
+**Environment-specific notes:**
+
+- **Local IDE**: Git hook runs Gradle-based checks (preferred)
+- **Claude Code**: Git hook uses standalone tools (Gradle blocked by sandbox)
+- **CI/CD**: GitHub Actions runs full Gradle pipeline
 
 ### Building
 
@@ -675,6 +706,39 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
 
 ### ✅ DO's
 
+### 🚨 MANDATORY Pre-Commit Checks (CRITICAL - NEVER SKIP!)
+
+**Git hooks are automatically enabled** - checks run on every `git commit`.
+
+If you need to run manually:
+
+```bash
+./scripts/pre-commit-checks.sh
+```
+
+**What it checks:**
+- ✅ **ktlint** - Code formatting validation
+- ✅ **detekt** - Static code analysis
+
+**The script MUST pass with zero errors:**
+- If ktlint fails: Fix formatting or run `./gradlew ktlintFormat`
+- If detekt fails: Fix code quality issues reported
+- **NEVER commit if these checks fail** (unless using `--no-verify`)
+
+**Smart environment detection:**
+- 🏠 **Local IDE**: Uses `./gradlew ktlintCheck detekt` (preferred, fastest)
+- 🤖 **Claude Code**: Uses standalone tools (Gradle blocked by sandbox)
+- ⚙️ **CI/CD**: Uses Gradle (standard pipeline)
+
+**Why this is mandatory:**
+- Ensures consistent code style across ALL developers
+- Catches code quality issues before they reach CI/CD
+- Prevents failed GitHub Actions runs
+- Maintains high code quality standards
+- **Not Claude-specific** - enforced for everyone via Git hooks
+
+---
+
 1. **Follow Clean Architecture**
    - Never add Android dependencies to `:domain`
    - Keep data sources in `:data`, business logic in `:domain`, UI in `:app`
@@ -686,9 +750,9 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
    - Add `@HiltViewModel` to ViewModels
    - Add `@AndroidEntryPoint` to Activities
 
-3. **Code Quality**
-   - Run `ktlintCheck`, `detekt`, and `lintDebug` before committing
-   - Fix all warnings and errors
+3. **Code Quality** (See MANDATORY Pre-Commit Checks above)
+   - Git pre-commit hook runs automatically (installed via `scripts/setup-git-hooks.sh`)
+   - Fix all warnings and errors before committing
    - Use `@Suppress` only when absolutely necessary with clear justification
 
 4. **Async Operations**
@@ -769,8 +833,28 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
 1. **Read files first**: Always read relevant files before editing
 2. **Understand context**: Check related files (e.g., repository, use case, ViewModel)
 3. **Follow existing patterns**: Match the style of surrounding code
-4. **Test changes**: Run builds and tests locally
-5. **Update documentation**: If changing architecture or adding features
+4. **Quality checks run automatically**: Git pre-commit hook enforces ktlint + detekt
+5. **Test changes**: Full builds validated by CI/CD (Gradle builds not possible in sandbox)
+6. **Update documentation**: If changing architecture or adding features
+
+**Workflow for all developers (including AI assistants):**
+```bash
+# 1. Make code changes
+
+# 2. Commit (quality checks run automatically via Git hook)
+git add .
+git commit -m "Your message"
+# → Pre-commit hook runs ./scripts/pre-commit-checks.sh
+# → Commit succeeds only if checks pass
+
+# 3. Push to remote
+git push -u origin <branch-name>
+
+# 4. CI/CD validates full build
+# GitHub Actions will run: build, lint, tests
+```
+
+**Note:** The pre-commit hook can be bypassed with `git commit --no-verify`, but this is **strongly discouraged**.
 
 ### Common Pitfalls
 

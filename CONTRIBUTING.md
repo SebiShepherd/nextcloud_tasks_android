@@ -28,7 +28,13 @@ Please be respectful and constructive in all interactions. We're building this t
    - JDK 17
    - Android SDK with API levels 26-36
 
-4. **Build the project**:
+4. **Install Git hooks** (IMPORTANT - runs quality checks on every commit):
+   ```bash
+   ./scripts/setup-git-hooks.sh
+   ```
+   This installs a pre-commit hook that automatically runs ktlint and detekt before allowing commits.
+
+5. **Build the project**:
    ```bash
    ./gradlew build
    ```
@@ -58,9 +64,25 @@ Please be respectful and constructive in all interactions. We're building this t
 
 ### Before Committing
 
-Run all checks:
+**Quality checks run automatically** via Git pre-commit hook (if you ran `setup-git-hooks.sh`).
+
+The hook will:
+- ✅ Run ktlint formatting check
+- ✅ Run detekt static analysis
+- ❌ Block the commit if checks fail
+
+If you want to run checks manually:
 ```bash
+# Quick checks (runs automatically on commit)
+./scripts/pre-commit-checks.sh
+
+# Full checks (recommended before pushing)
 ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest
+```
+
+**Auto-fix formatting issues:**
+```bash
+./gradlew ktlintFormat
 ```
 
 ## Coding Standards
