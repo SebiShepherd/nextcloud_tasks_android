@@ -30,6 +30,9 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Gradle dependency resolution
+        run: ./gradlew dependencies --refresh-dependencies --build-cache || ./gradlew dependencies --refresh-dependencies --build-cache || true
+
       - name: Code formatting check
         run: ./gradlew ktlintCheck
 
@@ -37,7 +40,7 @@ jobs:
         run: ./gradlew detekt
 
       - name: Android lint
-        run: ./gradlew :app:lintDebug
+        run: ./gradlew :app:lintDebug --build-cache || ./gradlew :app:lintDebug --refresh-dependencies --build-cache
 
       - name: Unit tests
         run: ./gradlew testDebugUnitTest
