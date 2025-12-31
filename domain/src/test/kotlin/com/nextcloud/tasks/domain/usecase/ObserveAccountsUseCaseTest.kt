@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.domain.usecase
 
+import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.repository.AuthRepository
 import io.mockk.every
@@ -20,15 +21,17 @@ class ObserveAccountsUseCaseTest {
                 listOf(
                     NextcloudAccount(
                         id = "account-1",
-                        serverUrl = "https://cloud1.example.com",
-                        userName = "user1",
                         displayName = "User 1",
+                        serverUrl = "https://cloud1.example.com",
+                        username = "user1",
+                        authType = AuthType.PASSWORD,
                     ),
                     NextcloudAccount(
                         id = "account-2",
-                        serverUrl = "https://cloud2.example.com",
-                        userName = "user2",
                         displayName = "User 2",
+                        serverUrl = "https://cloud2.example.com",
+                        username = "user2",
+                        authType = AuthType.OAUTH,
                     ),
                 )
             every { repository.observeAccounts() } returns flowOf(accounts)
@@ -37,8 +40,8 @@ class ObserveAccountsUseCaseTest {
 
             result.collect { emittedAccounts ->
                 assertEquals(2, emittedAccounts.size)
-                assertEquals("user1", emittedAccounts[0].userName)
-                assertEquals("user2", emittedAccounts[1].userName)
+                assertEquals("user1", emittedAccounts[0].username)
+                assertEquals("user2", emittedAccounts[1].username)
             }
         }
 

@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.domain.usecase
 
+import com.nextcloud.tasks.domain.model.LoginFlowV2Credentials
 import com.nextcloud.tasks.domain.model.LoginFlowV2PollResult
 import com.nextcloud.tasks.domain.repository.AuthRepository
 import io.mockk.coEvery
@@ -46,15 +47,13 @@ class PollLoginFlowV2UseCaseTest {
         runTest {
             val pollUrl = "https://cloud.example.com/poll"
             val token = "token-789"
-            val serverUrl = "https://cloud.example.com"
-            val loginName = "testuser"
-            val appPassword = "app-password-123"
-            val successResult =
-                LoginFlowV2PollResult.Success(
-                    serverUrl = serverUrl,
-                    loginName = loginName,
-                    appPassword = appPassword,
+            val credentials =
+                LoginFlowV2Credentials(
+                    server = "https://cloud.example.com",
+                    loginName = "testuser",
+                    appPassword = "app-password-123",
                 )
+            val successResult = LoginFlowV2PollResult.Success(credentials = credentials)
             coEvery {
                 repository.pollLoginFlowV2(pollUrl, token)
             } returns successResult

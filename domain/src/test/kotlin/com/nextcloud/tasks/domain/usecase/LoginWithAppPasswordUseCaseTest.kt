@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.domain.usecase
 
+import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.repository.AuthRepository
 import io.mockk.coEvery
@@ -22,9 +23,10 @@ class LoginWithAppPasswordUseCaseTest {
             val expectedAccount =
                 NextcloudAccount(
                     id = "account-123",
-                    serverUrl = serverUrl,
-                    userName = loginName,
                     displayName = "Test User",
+                    serverUrl = serverUrl,
+                    username = loginName,
+                    authType = AuthType.PASSWORD,
                 )
 
             coEvery {
@@ -48,9 +50,10 @@ class LoginWithAppPasswordUseCaseTest {
             val account =
                 NextcloudAccount(
                     id = "acc-456",
-                    serverUrl = serverUrl,
-                    userName = loginName,
                     displayName = "User 123",
+                    serverUrl = serverUrl,
+                    username = loginName,
+                    authType = AuthType.PASSWORD,
                 )
 
             coEvery {
@@ -60,6 +63,6 @@ class LoginWithAppPasswordUseCaseTest {
             val result = useCase(serverUrl, loginName, appPassword)
 
             assertEquals(account.id, result.id)
-            assertEquals(account.userName, result.userName)
+            assertEquals(account.username, result.username)
         }
 }

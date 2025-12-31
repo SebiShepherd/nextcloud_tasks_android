@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.domain.usecase
 
+import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.repository.AuthRepository
 import io.mockk.every
@@ -20,9 +21,10 @@ class ObserveActiveAccountUseCaseTest {
             val account =
                 NextcloudAccount(
                     id = "account-123",
-                    serverUrl = "https://cloud.example.com",
-                    userName = "testuser",
                     displayName = "Test User",
+                    serverUrl = "https://cloud.example.com",
+                    username = "testuser",
+                    authType = AuthType.PASSWORD,
                 )
             every { repository.observeActiveAccount() } returns flowOf(account)
 
