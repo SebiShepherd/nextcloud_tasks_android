@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.playPublisher) apply false
+    alias(libs.plugins.kover)
 }
 
 subprojects {
@@ -34,4 +35,11 @@ subprojects {
 
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
+}
+
+// Kover configuration for code coverage
+dependencies {
+    kover(project(":app"))
+    kover(project(":data"))
+    kover(project(":domain"))
 }

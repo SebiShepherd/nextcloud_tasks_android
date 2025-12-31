@@ -42,13 +42,26 @@ jobs:
       - name: Unit tests
         run: ./gradlew testDebugUnitTest
 
-      - name: Upload lint reports
+      - name: Generate coverage report
+        run: ./gradlew koverXmlReport koverHtmlReport
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./build/reports/kover/report.xml
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: lint-reports
+          name: test-reports
           path: |
             app/build/reports/
             data/build/reports/
             domain/build/reports/
+            build/reports/kover/
           retention-days: 7

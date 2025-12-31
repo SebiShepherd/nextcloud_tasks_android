@@ -167,6 +167,10 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(kotlin("test"))
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.turbine)
     detektPlugins(libs.detekt.formatting)
 }
 

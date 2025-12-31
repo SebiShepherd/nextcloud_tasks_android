@@ -1,5 +1,10 @@
 # Nextcloud Tasks Android
 
+[![Android CI](https://github.com/SebiShepherd/nextcloud_tasks_android/actions/workflows/ci.yml/badge.svg)](https://github.com/SebiShepherd/nextcloud_tasks_android/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/SebiShepherd/nextcloud_tasks_android/branch/main/graph/badge.svg)](https://codecov.io/gh/SebiShepherd/nextcloud_tasks_android)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Android](https://img.shields.io/badge/Android-8.0%2B-green.svg)](https://android.com)
+
 A modern, native Android client for Nextcloud Tasks built with Jetpack Compose and Clean Architecture principles.
 
 ---
