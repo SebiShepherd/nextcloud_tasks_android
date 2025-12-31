@@ -80,7 +80,38 @@ class VTodoParser
             href: String,
             etag: String,
         ): List<TaskEntity> {
-            // First try to parse as a single calendar with multiple VTODOs
+            // Check if there are multiple VCALENDAR blocks
+            val vcalendarCount = icalData.lines().count { it.trim().startsWith("BEGIN:VCALENDAR") }
+
+            // If there are multiple VCALENDAR blocks, use the split approach
+            if (vcalendarCount > 1) {
+                return try {
+                    val calendarBlocks = splitVCalendarBlocks(icalData)
+                    timber.log.Timber.d("Split iCalendar data into ${calendarBlocks.size} blocks")
+
+                    calendarBlocks.flatMap { block ->
+                        try {
+                            val builder = CalendarBuilder()
+                            val calendar = builder.build(StringReader(block))
+
+                            @Suppress("UNCHECKED_CAST")
+                            val vtodos = calendar.getComponents<VToDo>("VTODO") as? List<VToDo> ?: emptyList()
+
+                            vtodos.mapNotNull { vtodo ->
+                                parseVTodoComponent(vtodo, accountId, listId, href, etag)
+                            }
+                        } catch (ignored: Exception) {
+                            timber.log.Timber.w(ignored, "Failed to parse calendar block")
+                            emptyList()
+                        }
+                    }
+                } catch (ignored: Exception) {
+                    timber.log.Timber.w(ignored, "Failed to parse VTODOs with split approach")
+                    emptyList()
+                }
+            }
+
+            // Try to parse as a single calendar with multiple VTODOs
             try {
                 val builder = CalendarBuilder()
                 val calendar = builder.build(StringReader(icalData))
