@@ -1,0 +1,8 @@
+#!/bin/bash
+# Pre-commit hook - runs quality checks before allowing commits
+
+# Get repository root
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Run pre-commit checks
+"$REPO_ROOT/scripts/pre-commit-checks.sh"
