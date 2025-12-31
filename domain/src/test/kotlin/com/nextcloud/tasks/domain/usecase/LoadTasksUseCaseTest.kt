@@ -17,50 +17,54 @@ class LoadTasksUseCaseTest {
     private val useCase = LoadTasksUseCase(repository)
 
     @Test
-    fun `invoke returns flow from repository`() = runTest {
-        val tasks = listOf(
-            Task(
-                id = "task-1",
-                listId = "list-1",
-                title = "Task 1",
-                updatedAt = Instant.now(),
-            ),
-            Task(
-                id = "task-2",
-                listId = "list-1",
-                title = "Task 2",
-                updatedAt = Instant.now(),
-            ),
-        )
-        every { repository.observeTasks() } returns flowOf(tasks)
+    fun `invoke returns flow from repository`() =
+        runTest {
+            val tasks =
+                listOf(
+                    Task(
+                        id = "task-1",
+                        listId = "list-1",
+                        title = "Task 1",
+                        updatedAt = Instant.now(),
+                    ),
+                    Task(
+                        id = "task-2",
+                        listId = "list-1",
+                        title = "Task 2",
+                        updatedAt = Instant.now(),
+                    ),
+                )
+            every { repository.observeTasks() } returns flowOf(tasks)
 
-        val result = useCase()
+            val result = useCase()
 
-        // Collect the flow and verify
-        result.collect { emittedTasks ->
-            assertEquals(2, emittedTasks.size)
-            assertEquals("Task 1", emittedTasks[0].title)
-            assertEquals("Task 2", emittedTasks[1].title)
+            // Collect the flow and verify
+            result.collect { emittedTasks ->
+                assertEquals(2, emittedTasks.size)
+                assertEquals("Task 1", emittedTasks[0].title)
+                assertEquals("Task 2", emittedTasks[1].title)
+            }
         }
-    }
 
     @Test
-    fun `invoke calls repository observeTasks`() = runTest {
-        every { repository.observeTasks() } returns flowOf(emptyList())
+    fun `invoke calls repository observeTasks`() =
+        runTest {
+            every { repository.observeTasks() } returns flowOf(emptyList())
 
-        useCase()
+            useCase()
 
-        // Verify the repository method was called
-        // Note: Flow is lazy, so we don't verify unless collected
-        every { repository.observeTasks() }
-    }
+            // Verify the repository method was called
+            // Note: Flow is lazy, so we don't verify unless collected
+            every { repository.observeTasks() }
+        }
 
     @Test
-    fun `seedSample calls repository addSampleTasksIfEmpty`() = runTest {
-        coEvery { repository.addSampleTasksIfEmpty() } returns Unit
+    fun `seedSample calls repository addSampleTasksIfEmpty`() =
+        runTest {
+            coEvery { repository.addSampleTasksIfEmpty() } returns Unit
 
-        useCase.seedSample()
+            useCase.seedSample()
 
-        coVerify { repository.addSampleTasksIfEmpty() }
-    }
+            coVerify { repository.addSampleTasksIfEmpty() }
+        }
 }

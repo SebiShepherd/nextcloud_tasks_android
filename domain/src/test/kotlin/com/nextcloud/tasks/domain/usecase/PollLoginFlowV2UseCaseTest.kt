@@ -14,49 +14,53 @@ class PollLoginFlowV2UseCaseTest {
     private val useCase = PollLoginFlowV2UseCase(repository)
 
     @Test
-    fun `invoke calls repository pollLoginFlowV2 with correct parameters`() = runTest {
-        val pollUrl = "https://cloud.example.com/poll"
-        val token = "token-123"
-        val pollResult = LoginFlowV2PollResult.Pending
-        coEvery { repository.pollLoginFlowV2(pollUrl, token) } returns pollResult
+    fun `invoke calls repository pollLoginFlowV2 with correct parameters`() =
+        runTest {
+            val pollUrl = "https://cloud.example.com/poll"
+            val token = "token-123"
+            val pollResult = LoginFlowV2PollResult.Pending
+            coEvery { repository.pollLoginFlowV2(pollUrl, token) } returns pollResult
 
-        val result = useCase(pollUrl, token)
+            val result = useCase(pollUrl, token)
 
-        assertEquals(pollResult, result)
-        coVerify { repository.pollLoginFlowV2(pollUrl, token) }
-    }
-
-    @Test
-    fun `invoke returns Pending from repository`() = runTest {
-        val pollUrl = "https://mycloud.test/poll"
-        val token = "token-456"
-        coEvery {
-            repository.pollLoginFlowV2(pollUrl, token)
-        } returns LoginFlowV2PollResult.Pending
-
-        val result = useCase(pollUrl, token)
-
-        assertEquals(LoginFlowV2PollResult.Pending, result)
-    }
+            assertEquals(pollResult, result)
+            coVerify { repository.pollLoginFlowV2(pollUrl, token) }
+        }
 
     @Test
-    fun `invoke returns Success from repository`() = runTest {
-        val pollUrl = "https://cloud.example.com/poll"
-        val token = "token-789"
-        val serverUrl = "https://cloud.example.com"
-        val loginName = "testuser"
-        val appPassword = "app-password-123"
-        val successResult = LoginFlowV2PollResult.Success(
-            serverUrl = serverUrl,
-            loginName = loginName,
-            appPassword = appPassword,
-        )
-        coEvery {
-            repository.pollLoginFlowV2(pollUrl, token)
-        } returns successResult
+    fun `invoke returns Pending from repository`() =
+        runTest {
+            val pollUrl = "https://mycloud.test/poll"
+            val token = "token-456"
+            coEvery {
+                repository.pollLoginFlowV2(pollUrl, token)
+            } returns LoginFlowV2PollResult.Pending
 
-        val result = useCase(pollUrl, token)
+            val result = useCase(pollUrl, token)
 
-        assertEquals(successResult, result)
-    }
+            assertEquals(LoginFlowV2PollResult.Pending, result)
+        }
+
+    @Test
+    fun `invoke returns Success from repository`() =
+        runTest {
+            val pollUrl = "https://cloud.example.com/poll"
+            val token = "token-789"
+            val serverUrl = "https://cloud.example.com"
+            val loginName = "testuser"
+            val appPassword = "app-password-123"
+            val successResult =
+                LoginFlowV2PollResult.Success(
+                    serverUrl = serverUrl,
+                    loginName = loginName,
+                    appPassword = appPassword,
+                )
+            coEvery {
+                repository.pollLoginFlowV2(pollUrl, token)
+            } returns successResult
+
+            val result = useCase(pollUrl, token)
+
+            assertEquals(successResult, result)
+        }
 }

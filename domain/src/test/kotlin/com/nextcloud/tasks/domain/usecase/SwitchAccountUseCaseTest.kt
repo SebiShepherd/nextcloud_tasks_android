@@ -12,22 +12,24 @@ class SwitchAccountUseCaseTest {
     private val useCase = SwitchAccountUseCase(repository)
 
     @Test
-    fun `invoke calls repository switchAccount with accountId`() = runTest {
-        val accountId = "account-789"
-        coEvery { repository.switchAccount(accountId) } returns Unit
+    fun `invoke calls repository switchAccount with accountId`() =
+        runTest {
+            val accountId = "account-789"
+            coEvery { repository.switchAccount(accountId) } returns Unit
 
-        useCase(accountId)
+            useCase(accountId)
 
-        coVerify { repository.switchAccount(accountId) }
-    }
+            coVerify { repository.switchAccount(accountId) }
+        }
 
     @Test
-    fun `invoke calls repository with different accountId`() = runTest {
-        val accountId = "another-account-999"
-        coEvery { repository.switchAccount(accountId) } returns Unit
+    fun `invoke calls repository with different accountId`() =
+        runTest {
+            val accountId = "another-account-999"
+            coEvery { repository.switchAccount(accountId) } returns Unit
 
-        useCase(accountId)
+            useCase(accountId)
 
-        coVerify { repository.switchAccount(accountId) }
-    }
+            coVerify { repository.switchAccount(accountId) }
+        }
 }

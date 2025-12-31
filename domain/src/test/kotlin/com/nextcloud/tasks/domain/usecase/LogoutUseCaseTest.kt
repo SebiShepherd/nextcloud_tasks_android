@@ -12,22 +12,24 @@ class LogoutUseCaseTest {
     private val useCase = LogoutUseCase(repository)
 
     @Test
-    fun `invoke calls repository logout with accountId`() = runTest {
-        val accountId = "account-123"
-        coEvery { repository.logout(accountId) } returns Unit
+    fun `invoke calls repository logout with accountId`() =
+        runTest {
+            val accountId = "account-123"
+            coEvery { repository.logout(accountId) } returns Unit
 
-        useCase(accountId)
+            useCase(accountId)
 
-        coVerify { repository.logout(accountId) }
-    }
+            coVerify { repository.logout(accountId) }
+        }
 
     @Test
-    fun `invoke calls repository with different accountId`() = runTest {
-        val accountId = "different-account-456"
-        coEvery { repository.logout(accountId) } returns Unit
+    fun `invoke calls repository with different accountId`() =
+        runTest {
+            val accountId = "different-account-456"
+            coEvery { repository.logout(accountId) } returns Unit
 
-        useCase(accountId)
+            useCase(accountId)
 
-        coVerify { repository.logout(accountId) }
-    }
+            coVerify { repository.logout(accountId) }
+        }
 }

@@ -11,11 +11,12 @@ class TagMapperTest {
 
     @Test
     fun `toEntity maps all fields correctly`() {
-        val dto = TagDto(
-            id = "tag-123",
-            name = "Work",
-            updatedAt = 1640000000000L,
-        )
+        val dto =
+            TagDto(
+                id = "tag-123",
+                name = "Work",
+                updatedAt = 1640000000000L,
+            )
 
         val entity = mapper.toEntity(dto)
 
@@ -26,11 +27,12 @@ class TagMapperTest {
 
     @Test
     fun `toDomain maps all fields correctly`() {
-        val entity = TagEntity(
-            id = "tag-456",
-            name = "Personal",
-            updatedAt = Instant.ofEpochMilli(1650000000000L),
-        )
+        val entity =
+            TagEntity(
+                id = "tag-456",
+                name = "Personal",
+                updatedAt = Instant.ofEpochMilli(1650000000000L),
+            )
 
         val domain = mapper.toDomain(entity)
 
@@ -41,11 +43,12 @@ class TagMapperTest {
 
     @Test
     fun `toEntity and toDomain round trip preserves data`() {
-        val dto = TagDto(
-            id = "tag-789",
-            name = "Important",
-            updatedAt = 1660000000000L,
-        )
+        val dto =
+            TagDto(
+                id = "tag-789",
+                name = "Important",
+                updatedAt = 1660000000000L,
+            )
 
         val entity = mapper.toEntity(dto)
         val domain = mapper.toDomain(entity)

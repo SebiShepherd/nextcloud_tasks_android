@@ -14,48 +14,52 @@ class LoginWithAppPasswordUseCaseTest {
     private val useCase = LoginWithAppPasswordUseCase(repository)
 
     @Test
-    fun `invoke calls repository with correct parameters`() = runTest {
-        val serverUrl = "https://cloud.example.com"
-        val loginName = "testuser"
-        val appPassword = "test-app-password-123"
-        val expectedAccount = NextcloudAccount(
-            id = "account-123",
-            serverUrl = serverUrl,
-            userName = loginName,
-            displayName = "Test User",
-        )
+    fun `invoke calls repository with correct parameters`() =
+        runTest {
+            val serverUrl = "https://cloud.example.com"
+            val loginName = "testuser"
+            val appPassword = "test-app-password-123"
+            val expectedAccount =
+                NextcloudAccount(
+                    id = "account-123",
+                    serverUrl = serverUrl,
+                    userName = loginName,
+                    displayName = "Test User",
+                )
 
-        coEvery {
-            repository.loginWithAppPassword(serverUrl, loginName, appPassword)
-        } returns expectedAccount
+            coEvery {
+                repository.loginWithAppPassword(serverUrl, loginName, appPassword)
+            } returns expectedAccount
 
-        val result = useCase(serverUrl, loginName, appPassword)
+            val result = useCase(serverUrl, loginName, appPassword)
 
-        assertEquals(expectedAccount, result)
-        coVerify {
-            repository.loginWithAppPassword(serverUrl, loginName, appPassword)
+            assertEquals(expectedAccount, result)
+            coVerify {
+                repository.loginWithAppPassword(serverUrl, loginName, appPassword)
+            }
         }
-    }
 
     @Test
-    fun `invoke returns account from repository`() = runTest {
-        val serverUrl = "https://mycloud.test"
-        val loginName = "user123"
-        val appPassword = "password456"
-        val account = NextcloudAccount(
-            id = "acc-456",
-            serverUrl = serverUrl,
-            userName = loginName,
-            displayName = "User 123",
-        )
+    fun `invoke returns account from repository`() =
+        runTest {
+            val serverUrl = "https://mycloud.test"
+            val loginName = "user123"
+            val appPassword = "password456"
+            val account =
+                NextcloudAccount(
+                    id = "acc-456",
+                    serverUrl = serverUrl,
+                    userName = loginName,
+                    displayName = "User 123",
+                )
 
-        coEvery {
-            repository.loginWithAppPassword(serverUrl, loginName, appPassword)
-        } returns account
+            coEvery {
+                repository.loginWithAppPassword(serverUrl, loginName, appPassword)
+            } returns account
 
-        val result = useCase(serverUrl, loginName, appPassword)
+            val result = useCase(serverUrl, loginName, appPassword)
 
-        assertEquals(account.id, result.id)
-        assertEquals(account.userName, result.userName)
-    }
+            assertEquals(account.id, result.id)
+            assertEquals(account.userName, result.userName)
+        }
 }

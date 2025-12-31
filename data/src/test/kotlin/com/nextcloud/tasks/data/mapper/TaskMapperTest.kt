@@ -20,15 +20,16 @@ class TaskMapperTest {
 
     @Test
     fun `toEntity maps all fields correctly`() {
-        val dto = TaskDto(
-            id = "task-123",
-            listId = "list-456",
-            title = "Buy groceries",
-            description = "Milk, bread, eggs",
-            completed = false,
-            due = 1640000000000L,
-            updatedAt = 1650000000000L,
-        )
+        val dto =
+            TaskDto(
+                id = "task-123",
+                listId = "list-456",
+                title = "Buy groceries",
+                description = "Milk, bread, eggs",
+                completed = false,
+                due = 1640000000000L,
+                updatedAt = 1650000000000L,
+            )
 
         val entity = mapper.toEntity(dto, accountId = "account-789")
 
@@ -51,15 +52,16 @@ class TaskMapperTest {
 
     @Test
     fun `toEntity maps correctly with null description and due`() {
-        val dto = TaskDto(
-            id = "task-456",
-            listId = "list-789",
-            title = "Simple task",
-            description = null,
-            completed = true,
-            due = null,
-            updatedAt = 1660000000000L,
-        )
+        val dto =
+            TaskDto(
+                id = "task-456",
+                listId = "list-789",
+                title = "Simple task",
+                description = null,
+                completed = true,
+                due = null,
+                updatedAt = 1660000000000L,
+            )
 
         val entity = mapper.toEntity(dto, accountId = "account-123")
 
@@ -72,45 +74,49 @@ class TaskMapperTest {
 
     @Test
     fun `toDomain maps all fields correctly with tags`() {
-        val tagEntity1 = TagEntity(
-            id = "tag-1",
-            name = "Work",
-            updatedAt = Instant.now(),
-        )
-        val tagEntity2 = TagEntity(
-            id = "tag-2",
-            name = "Urgent",
-            updatedAt = Instant.now(),
-        )
+        val tagEntity1 =
+            TagEntity(
+                id = "tag-1",
+                name = "Work",
+                updatedAt = Instant.now(),
+            )
+        val tagEntity2 =
+            TagEntity(
+                id = "tag-2",
+                name = "Urgent",
+                updatedAt = Instant.now(),
+            )
         val tag1 = Tag(id = "tag-1", name = "Work", updatedAt = Instant.now())
         val tag2 = Tag(id = "tag-2", name = "Urgent", updatedAt = Instant.now())
 
         every { tagMapper.toDomain(tagEntity1) } returns tag1
         every { tagMapper.toDomain(tagEntity2) } returns tag2
 
-        val taskEntity = TaskEntity(
-            id = "task-789",
-            accountId = "account-456",
-            listId = "list-123",
-            title = "Important meeting",
-            description = "Discuss Q4 results",
-            completed = false,
-            due = Instant.ofEpochMilli(1670000000000L),
-            updatedAt = Instant.ofEpochMilli(1660000000000L),
-            priority = 1,
-            status = "NEEDS-ACTION",
-            completedAt = null,
-            uid = "uid-123",
-            etag = "etag-456",
-            href = "/calendars/user/tasks/task-789.ics",
-            parentUid = null,
-        )
+        val taskEntity =
+            TaskEntity(
+                id = "task-789",
+                accountId = "account-456",
+                listId = "list-123",
+                title = "Important meeting",
+                description = "Discuss Q4 results",
+                completed = false,
+                due = Instant.ofEpochMilli(1670000000000L),
+                updatedAt = Instant.ofEpochMilli(1660000000000L),
+                priority = 1,
+                status = "NEEDS-ACTION",
+                completedAt = null,
+                uid = "uid-123",
+                etag = "etag-456",
+                href = "/calendars/user/tasks/task-789.ics",
+                parentUid = null,
+            )
 
-        val taskWithRelations = TaskWithRelations(
-            task = taskEntity,
-            list = null,
-            tags = listOf(tagEntity1, tagEntity2),
-        )
+        val taskWithRelations =
+            TaskWithRelations(
+                task = taskEntity,
+                list = null,
+                tags = listOf(tagEntity1, tagEntity2),
+            )
 
         val domain = mapper.toDomain(taskWithRelations)
 
@@ -135,29 +141,31 @@ class TaskMapperTest {
 
     @Test
     fun `toDomain maps correctly with no tags`() {
-        val taskEntity = TaskEntity(
-            id = "task-999",
-            accountId = "account-111",
-            listId = "list-222",
-            title = "No tags task",
-            description = null,
-            completed = true,
-            due = null,
-            updatedAt = Instant.ofEpochMilli(1680000000000L),
-            priority = null,
-            status = "COMPLETED",
-            completedAt = Instant.ofEpochMilli(1680000000000L),
-            uid = "uid-999",
-            etag = "etag-999",
-            href = "/calendars/user/tasks/task-999.ics",
-            parentUid = "parent-uid-123",
-        )
+        val taskEntity =
+            TaskEntity(
+                id = "task-999",
+                accountId = "account-111",
+                listId = "list-222",
+                title = "No tags task",
+                description = null,
+                completed = true,
+                due = null,
+                updatedAt = Instant.ofEpochMilli(1680000000000L),
+                priority = null,
+                status = "COMPLETED",
+                completedAt = Instant.ofEpochMilli(1680000000000L),
+                uid = "uid-999",
+                etag = "etag-999",
+                href = "/calendars/user/tasks/task-999.ics",
+                parentUid = "parent-uid-123",
+            )
 
-        val taskWithRelations = TaskWithRelations(
-            task = taskEntity,
-            list = null,
-            tags = emptyList(),
-        )
+        val taskWithRelations =
+            TaskWithRelations(
+                task = taskEntity,
+                list = null,
+                tags = emptyList(),
+            )
 
         val domain = mapper.toDomain(taskWithRelations)
 
@@ -172,21 +180,23 @@ class TaskMapperTest {
 
     @Test
     fun `toRequest with Task maps all fields correctly`() {
-        val task = Task(
-            id = "task-111",
-            listId = "list-222",
-            title = "Write tests",
-            description = "Comprehensive test coverage",
-            completed = false,
-            due = Instant.ofEpochMilli(1690000000000L),
-            updatedAt = Instant.ofEpochMilli(1685000000000L),
-            tags = listOf(
-                Tag(id = "tag-1", name = "Dev", updatedAt = Instant.now()),
-                Tag(id = "tag-2", name = "Testing", updatedAt = Instant.now()),
-            ),
-            priority = 2,
-            status = "IN-PROCESS",
-        )
+        val task =
+            Task(
+                id = "task-111",
+                listId = "list-222",
+                title = "Write tests",
+                description = "Comprehensive test coverage",
+                completed = false,
+                due = Instant.ofEpochMilli(1690000000000L),
+                updatedAt = Instant.ofEpochMilli(1685000000000L),
+                tags =
+                    listOf(
+                        Tag(id = "tag-1", name = "Dev", updatedAt = Instant.now()),
+                        Tag(id = "tag-2", name = "Testing", updatedAt = Instant.now()),
+                    ),
+                priority = 2,
+                status = "IN-PROCESS",
+            )
 
         val requestDto = mapper.toRequest(task)
 
@@ -203,16 +213,17 @@ class TaskMapperTest {
 
     @Test
     fun `toRequest with Task handles null fields`() {
-        val task = Task(
-            id = "task-222",
-            listId = "list-333",
-            title = "Simple task",
-            description = null,
-            completed = true,
-            due = null,
-            updatedAt = Instant.ofEpochMilli(1695000000000L),
-            tags = emptyList(),
-        )
+        val task =
+            Task(
+                id = "task-222",
+                listId = "list-333",
+                title = "Simple task",
+                description = null,
+                completed = true,
+                due = null,
+                updatedAt = Instant.ofEpochMilli(1695000000000L),
+                tags = emptyList(),
+            )
 
         val requestDto = mapper.toRequest(task)
 
@@ -227,14 +238,15 @@ class TaskMapperTest {
 
     @Test
     fun `toRequest with TaskDraft maps all fields correctly`() {
-        val draft = TaskDraft(
-            listId = "list-444",
-            title = "New draft task",
-            description = "Draft description",
-            completed = false,
-            due = Instant.ofEpochMilli(1700000000000L),
-            tagIds = listOf("tag-3", "tag-4"),
-        )
+        val draft =
+            TaskDraft(
+                listId = "list-444",
+                title = "New draft task",
+                description = "Draft description",
+                completed = false,
+                due = Instant.ofEpochMilli(1700000000000L),
+                tagIds = listOf("tag-3", "tag-4"),
+            )
         val updatedAt = Instant.ofEpochMilli(1698000000000L)
 
         val requestDto = mapper.toRequest(draft, updatedAt)

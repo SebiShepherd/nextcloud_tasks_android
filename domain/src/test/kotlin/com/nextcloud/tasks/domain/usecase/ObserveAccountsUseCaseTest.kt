@@ -14,40 +14,43 @@ class ObserveAccountsUseCaseTest {
     private val useCase = ObserveAccountsUseCase(repository)
 
     @Test
-    fun `invoke returns flow from repository with accounts`() = runTest {
-        val accounts = listOf(
-            NextcloudAccount(
-                id = "account-1",
-                serverUrl = "https://cloud1.example.com",
-                userName = "user1",
-                displayName = "User 1",
-            ),
-            NextcloudAccount(
-                id = "account-2",
-                serverUrl = "https://cloud2.example.com",
-                userName = "user2",
-                displayName = "User 2",
-            ),
-        )
-        every { repository.observeAccounts() } returns flowOf(accounts)
+    fun `invoke returns flow from repository with accounts`() =
+        runTest {
+            val accounts =
+                listOf(
+                    NextcloudAccount(
+                        id = "account-1",
+                        serverUrl = "https://cloud1.example.com",
+                        userName = "user1",
+                        displayName = "User 1",
+                    ),
+                    NextcloudAccount(
+                        id = "account-2",
+                        serverUrl = "https://cloud2.example.com",
+                        userName = "user2",
+                        displayName = "User 2",
+                    ),
+                )
+            every { repository.observeAccounts() } returns flowOf(accounts)
 
-        val result = useCase()
+            val result = useCase()
 
-        result.collect { emittedAccounts ->
-            assertEquals(2, emittedAccounts.size)
-            assertEquals("user1", emittedAccounts[0].userName)
-            assertEquals("user2", emittedAccounts[1].userName)
+            result.collect { emittedAccounts ->
+                assertEquals(2, emittedAccounts.size)
+                assertEquals("user1", emittedAccounts[0].userName)
+                assertEquals("user2", emittedAccounts[1].userName)
+            }
         }
-    }
 
     @Test
-    fun `invoke returns empty flow when no accounts`() = runTest {
-        every { repository.observeAccounts() } returns flowOf(emptyList())
+    fun `invoke returns empty flow when no accounts`() =
+        runTest {
+            every { repository.observeAccounts() } returns flowOf(emptyList())
 
-        val result = useCase()
+            val result = useCase()
 
-        result.collect { emittedAccounts ->
-            assertEquals(0, emittedAccounts.size)
+            result.collect { emittedAccounts ->
+                assertEquals(0, emittedAccounts.size)
+            }
         }
-    }
 }

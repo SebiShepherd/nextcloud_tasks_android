@@ -12,12 +12,13 @@ class TaskListMapperTest {
 
     @Test
     fun `toEntity maps all fields correctly with color`() {
-        val dto = TaskListDto(
-            id = "list-123",
-            name = "Work Tasks",
-            color = "#FF5733",
-            updatedAt = 1640000000000L,
-        )
+        val dto =
+            TaskListDto(
+                id = "list-123",
+                name = "Work Tasks",
+                color = "#FF5733",
+                updatedAt = 1640000000000L,
+            )
 
         val entity = mapper.toEntity(dto, accountId = "account-456")
 
@@ -33,12 +34,13 @@ class TaskListMapperTest {
 
     @Test
     fun `toEntity maps correctly with null color`() {
-        val dto = TaskListDto(
-            id = "list-789",
-            name = "Personal Tasks",
-            color = null,
-            updatedAt = 1650000000000L,
-        )
+        val dto =
+            TaskListDto(
+                id = "list-789",
+                name = "Personal Tasks",
+                color = null,
+                updatedAt = 1650000000000L,
+            )
 
         val entity = mapper.toEntity(dto, accountId = "account-123")
 
@@ -51,16 +53,17 @@ class TaskListMapperTest {
 
     @Test
     fun `toDomain maps all fields correctly`() {
-        val entity = TaskListEntity(
-            id = "list-456",
-            accountId = "account-789",
-            name = "Shopping",
-            color = "#00FF00",
-            updatedAt = Instant.ofEpochMilli(1660000000000L),
-            etag = "etag-123",
-            href = "/calendars/user/tasks/",
-            order = 1,
-        )
+        val entity =
+            TaskListEntity(
+                id = "list-456",
+                accountId = "account-789",
+                name = "Shopping",
+                color = "#00FF00",
+                updatedAt = Instant.ofEpochMilli(1660000000000L),
+                etag = "etag-123",
+                href = "/calendars/user/tasks/",
+                order = 1,
+            )
 
         val domain = mapper.toDomain(entity)
 
@@ -75,16 +78,17 @@ class TaskListMapperTest {
 
     @Test
     fun `toDomain maps correctly with null optional fields`() {
-        val entity = TaskListEntity(
-            id = "list-999",
-            accountId = "account-111",
-            name = "Simple List",
-            color = null,
-            updatedAt = Instant.ofEpochMilli(1670000000000L),
-            etag = null,
-            href = null,
-            order = null,
-        )
+        val entity =
+            TaskListEntity(
+                id = "list-999",
+                accountId = "account-111",
+                name = "Simple List",
+                color = null,
+                updatedAt = Instant.ofEpochMilli(1670000000000L),
+                etag = null,
+                href = null,
+                order = null,
+            )
 
         val domain = mapper.toDomain(entity)
 

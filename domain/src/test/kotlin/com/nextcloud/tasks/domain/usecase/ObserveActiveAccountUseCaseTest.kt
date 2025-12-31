@@ -15,30 +15,33 @@ class ObserveActiveAccountUseCaseTest {
     private val useCase = ObserveActiveAccountUseCase(repository)
 
     @Test
-    fun `invoke returns flow from repository with account`() = runTest {
-        val account = NextcloudAccount(
-            id = "account-123",
-            serverUrl = "https://cloud.example.com",
-            userName = "testuser",
-            displayName = "Test User",
-        )
-        every { repository.observeActiveAccount() } returns flowOf(account)
+    fun `invoke returns flow from repository with account`() =
+        runTest {
+            val account =
+                NextcloudAccount(
+                    id = "account-123",
+                    serverUrl = "https://cloud.example.com",
+                    userName = "testuser",
+                    displayName = "Test User",
+                )
+            every { repository.observeActiveAccount() } returns flowOf(account)
 
-        val result = useCase()
+            val result = useCase()
 
-        result.collect { emittedAccount ->
-            assertEquals(account, emittedAccount)
+            result.collect { emittedAccount ->
+                assertEquals(account, emittedAccount)
+            }
         }
-    }
 
     @Test
-    fun `invoke returns flow from repository with null`() = runTest {
-        every { repository.observeActiveAccount() } returns flowOf(null)
+    fun `invoke returns flow from repository with null`() =
+        runTest {
+            every { repository.observeActiveAccount() } returns flowOf(null)
 
-        val result = useCase()
+            val result = useCase()
 
-        result.collect { emittedAccount ->
-            assertNull(emittedAccount)
+            result.collect { emittedAccount ->
+                assertNull(emittedAccount)
+            }
         }
-    }
 }

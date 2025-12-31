@@ -16,7 +16,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodo with valid basic VTODO returns TaskEntity`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -26,7 +27,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
@@ -44,7 +45,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodo with description returns TaskEntity with description`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -55,7 +57,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
@@ -66,7 +68,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodo with COMPLETED status sets completed to true`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -78,7 +81,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T100000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
@@ -90,7 +93,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodo with DUE date parses due correctly`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -101,7 +105,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
@@ -111,7 +115,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodo with PRIORITY parses priority correctly`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -122,7 +127,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
@@ -132,7 +137,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodo with RELATED-TO parses parent UID correctly`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -143,7 +149,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
@@ -153,7 +159,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodo with missing UID returns null`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -162,7 +169,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
@@ -189,7 +196,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodos with single VTODO returns list with one task`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -199,7 +207,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
@@ -209,7 +217,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodos with multiple VTODOs returns list with all tasks`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -229,7 +238,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
@@ -241,7 +250,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodos with separate VCALENDAR blocks returns all tasks`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -260,7 +270,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
@@ -271,7 +281,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodos filters out tasks with missing UID`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Test//Test//EN
@@ -285,7 +296,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T120000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
@@ -304,7 +315,8 @@ class VTodoParserTest {
 
     @Test
     fun `parseVTodo with complex VTODO parses all fields`() {
-        val icalData = """
+        val icalData =
+            """
             BEGIN:VCALENDAR
             VERSION:2.0
             PRODID:-//Nextcloud Tasks//EN
@@ -320,7 +332,7 @@ class VTodoParserTest {
             DTSTAMP:20231201T100000Z
             END:VTODO
             END:VCALENDAR
-        """.trimIndent()
+            """.trimIndent()
 
         val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
