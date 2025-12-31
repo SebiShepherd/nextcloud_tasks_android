@@ -18,6 +18,7 @@ plugins {
 subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
     apply(plugin = "io.gitlab.arturbosch.detekt")
+    apply(plugin = "org.jetbrains.kotlinx.kover")
 
     extensions.configure<KtlintExtension> {
         android.set(true)
@@ -35,11 +36,4 @@ subprojects {
 
 tasks.register("clean", Delete::class) {
     delete(rootProject.layout.buildDirectory)
-}
-
-// Kover configuration for code coverage
-dependencies {
-    kover(project(":app"))
-    kover(project(":data"))
-    kover(project(":domain"))
 }
