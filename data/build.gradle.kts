@@ -56,6 +56,12 @@ dependencies {
     implementation(libs.ical4j.core)
     kapt(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.turbine)
+    testImplementation(libs.okhttp.mockwebserver)
     detektPlugins(libs.detekt.formatting)
 }
 

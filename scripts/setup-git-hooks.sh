@@ -5,33 +5,22 @@
 set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-HOOKS_DIR="$REPO_ROOT/.git/hooks"
-SCRIPTS_DIR="$REPO_ROOT/scripts"
 
 echo "🔧 Setting up Git hooks for Nextcloud Tasks Android..."
 echo ""
 
-# Install pre-commit hook
-echo "Installing pre-commit hook..."
-cat > "$HOOKS_DIR/pre-commit" << 'EOF'
-#!/bin/bash
-# Auto-generated pre-commit hook
-# Runs quality checks before allowing commits
+# Configure Git to use tracked hooks from .githooks/
+echo "Configuring Git to use hooks from .githooks/ directory..."
+git config core.hooksPath .githooks
 
-# Get repository root
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-
-# Run pre-commit checks
-"$REPO_ROOT/scripts/pre-commit-checks.sh"
-EOF
-
-chmod +x "$HOOKS_DIR/pre-commit"
-
-echo "✅ Pre-commit hook installed at: .git/hooks/pre-commit"
+echo "✅ Git hooks configured successfully!"
 echo ""
-echo "🎉 Git hooks setup complete!"
+echo "🎉 Setup complete!"
 echo ""
-echo "The pre-commit hook will now run automatically on every commit."
+echo "Git is now configured to use hooks from the .githooks/ directory."
+echo "These hooks are tracked in Git, so they work across all environments."
+echo ""
+echo "The pre-commit hook will run automatically on every commit."
 echo "It performs:"
 echo "  • ktlint code formatting check"
 echo "  • detekt static analysis"
