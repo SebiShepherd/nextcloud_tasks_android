@@ -134,4 +134,4 @@ When working on this codebase:
    - CI/CD pipelines
    - Sandboxed environments (Claude Code)
 
-See `CLAUDE.md` for detailed AI assistant guidelines.
+See `AGENTS.md` for detailed AI assistant guidelines.

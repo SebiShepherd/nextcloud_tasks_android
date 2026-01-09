@@ -503,7 +503,7 @@ Fix all errors and warnings, then push the tag.
 - **CI/CD Workflow:** `.github/workflows/ci.yml` - Runs on every push/PR
 - **Release Workflow:** `.github/workflows/release.yml` - Runs on version tags
 - **Build Config:** `app/build.gradle.kts` - Automatic versioning
-- **Project Docs:** `CLAUDE.md` - Complete project documentation
+- **Project Docs:** `AGENTS.md` - Complete project documentation
 
 ---
 

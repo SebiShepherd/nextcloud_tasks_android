@@ -1,10 +1,8 @@
 # AI Agent Guide - Nextcloud Tasks Android
 
-**Last Updated**: 2025-12-28
+**Last Updated**: 2026-01-09
 **Project Version**: 1.0.0
 **Target Audience**: Claude Code, AI assistants, and automated agents working on this codebase
-
-> **Note**: This document is synchronized with `CLAUDE.md` to ensure consistency across all AI assistants.
 
 ---
 
@@ -1008,8 +1006,7 @@ domain/src/main/kotlin/com/nextcloud/tasks/domain/model/Task.kt  # Task model
 
 ## Additional Resources
 
-- **README.md**: User-facing documentation (German)
-- **CLAUDE.md**: Synchronized AI assistant guide
+- **README.md**: User-facing documentation
 - **Kotlin Docs**: https://kotlinlang.org/docs/
 - **Jetpack Compose**: https://developer.android.com/jetpack/compose
 - **Hilt**: https://dagger.dev/hilt/
@@ -1021,4 +1018,4 @@ domain/src/main/kotlin/com/nextcloud/tasks/domain/model/Task.kt  # Task model
 
 **End of AGENTS.md**
 
-This document is maintained by AI assistants working on this codebase. It is synchronized with `CLAUDE.md` to ensure consistency. When making significant architectural changes or adding major features, please update both documents accordingly.
+This document is maintained by AI assistants working on this codebase. When making significant architectural changes or adding major features, please update this document accordingly.
