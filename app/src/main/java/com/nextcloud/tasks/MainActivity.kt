@@ -365,6 +365,7 @@ private fun UnifiedSearchBar(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                 singleLine = true,
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(androidx.compose.ui.graphics.Color(0xFF0082C9)),
                 decorationBox = { innerTextField ->
                     if (searchQuery.isEmpty()) {
                         Text(
