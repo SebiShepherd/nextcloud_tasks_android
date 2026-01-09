@@ -138,8 +138,7 @@ For detailed information about the project, development, and contributing, pleas
 - **[RELEASE.md](RELEASE.md)** - Release process and versioning
 - **[SIGNING.md](SIGNING.md)** - Android app signing setup guide
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines (coming soon)
-- **[CLAUDE.md](CLAUDE.md)** - Comprehensive documentation for AI assistants and developers
-- **[AGENTS.md](AGENTS.md)** - Agent-specific guidelines
+- **[AGENTS.md](AGENTS.md)** - Comprehensive documentation for AI assistants and developers
 
 ---
 
@@ -152,11 +151,11 @@ Contributions are welcome! Whether it's bug reports, feature requests, translati
 - **Report bugs**: Open an issue on GitHub
 - **Suggest features**: Share your ideas in the issue tracker
 - **Translate**: Add support for new languages (see `CONTRIBUTING.md`)
-- **Code**: Submit pull requests (see development guidelines in `CLAUDE.md`)
+- **Code**: Submit pull requests (see development guidelines in `AGENTS.md`)
 
 ### Development Setup
 
-See [CLAUDE.md](CLAUDE.md) for:
+See [AGENTS.md](AGENTS.md) for:
 - Complete architecture overview
 - Code conventions and patterns
 - Development workflows
