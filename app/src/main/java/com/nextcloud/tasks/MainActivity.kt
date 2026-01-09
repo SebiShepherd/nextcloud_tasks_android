@@ -8,7 +8,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -69,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -352,7 +352,12 @@ private fun UnifiedSearchBar(
         ) {
             if (isSearchActive) {
                 // Back button when search is active
-                IconButton(onClick = { isSearchActive = false }) {
+                IconButton(
+                    onClick = {
+                        isSearchActive = false
+                        onSearchQueryChange("")
+                    },
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.close),
@@ -377,11 +382,8 @@ private fun UnifiedSearchBar(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) {
-                            if (isSearchActive == false) {
+                        .onFocusChanged { focusState ->
+                            if (focusState.isFocused && isSearchActive == false) {
                                 isSearchActive = true
                             }
                         },
