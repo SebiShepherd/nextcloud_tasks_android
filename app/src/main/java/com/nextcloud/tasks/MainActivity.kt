@@ -334,14 +334,17 @@ private fun UnifiedSearchBar(
     var showSortDialog by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
     // Surface adapts based on search state
     Surface(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = if (isSearchActive) 0.dp else 16.dp, vertical = 8.dp)
-                .height(48.dp),
+                .padding(
+                    horizontal = if (isSearchActive) 0.dp else 16.dp,
+                    vertical = if (isSearchActive) 0.dp else 8.dp,
+                ).height(if (isSearchActive) 56.dp else 48.dp),
         shape = RoundedCornerShape(if (isSearchActive) 0.dp else 24.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
     ) {
@@ -356,6 +359,7 @@ private fun UnifiedSearchBar(
                     onClick = {
                         isSearchActive = false
                         onSearchQueryChange("")
+                        focusManager.clearFocus()
                     },
                 ) {
                     Icon(
