@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
@@ -48,7 +49,6 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -62,14 +62,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.isTraversalGroup
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -252,7 +249,6 @@ fun AuthenticatedHome(
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var searchBarExpanded by rememberSaveable { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -281,155 +277,123 @@ fun AuthenticatedHome(
                 }
             },
         ) { padding ->
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .semantics { isTraversalGroup = true },
-            ) {
-                // Main content behind SearchBar
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Spacer for SearchBar height
-                    Spacer(modifier = Modifier.height(72.dp))
-
-                    // Pull-to-Refresh Content
-                    PullToRefreshBox(
-                        isRefreshing = isRefreshing,
-                        onRefresh = onRefresh,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        TasksContent(
-                            padding = PaddingValues(0.dp),
-                            state = state,
-                            tasks = tasks,
-                            taskLists = taskLists,
-                            taskFilter = taskFilter,
-                            taskSort = taskSort,
-                            searchQuery = searchQuery,
-                            onSetFilter = onSetFilter,
-                            onSetSort = onSetSort,
-                            onToggleTaskComplete = onToggleTaskComplete,
-                            onDeleteTask = onDeleteTask,
-                        )
-                    }
-                }
-
-                // Material 3 SearchBar on top
-                MaterialSearchBar(
+            Column(modifier = Modifier.padding(padding)) {
+                // Durchgehende Search Bar mit allen Elementen
+                UnifiedSearchBar(
                     state = state,
                     searchQuery = searchQuery,
                     onSearchQueryChange = onSetSearchQuery,
-                    expanded = searchBarExpanded,
-                    onExpandedChange = { searchBarExpanded = it },
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                     onSwitchAccount = onSwitchAccount,
                     onLogout = onLogout,
                     taskSort = taskSort,
                     onSetSort = onSetSort,
                     onAddAccount = onAddAccount,
-                    tasks = tasks,
-                    taskLists = taskLists,
-                    taskFilter = taskFilter,
-                    onSetFilter = onSetFilter,
-                    onToggleTaskComplete = onToggleTaskComplete,
-                    onDeleteTask = onDeleteTask,
-                    modifier = Modifier.align(Alignment.TopCenter),
                 )
+
+                // Pull-to-Refresh Content
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    TasksContent(
+                        padding = PaddingValues(0.dp),
+                        state = state,
+                        tasks = tasks,
+                        taskLists = taskLists,
+                        taskFilter = taskFilter,
+                        taskSort = taskSort,
+                        searchQuery = searchQuery,
+                        onSetFilter = onSetFilter,
+                        onSetSort = onSetSort,
+                        onToggleTaskComplete = onToggleTaskComplete,
+                        onDeleteTask = onDeleteTask,
+                    )
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MaterialSearchBar(
+private fun UnifiedSearchBar(
     state: LoginFlowUiState,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
     onOpenDrawer: () -> Unit,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onAddAccount: () -> Unit,
-    tasks: List<Task>,
-    taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
-    taskFilter: com.nextcloud.tasks.domain.model.TaskFilter,
-    onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
-    onToggleTaskComplete: (Task) -> Unit,
-    onDeleteTask: (String) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     var showSortDialog by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
 
-    androidx.compose.material3.SearchBar(
-        inputField = {
-            SearchBarDefaults.InputField(
-                query = searchQuery,
-                onQueryChange = onSearchQueryChange,
-                onSearch = { /* Keep expanded to show results */ },
-                expanded = expanded,
-                onExpandedChange = onExpandedChange,
-                placeholder = { Text(stringResource(R.string.search_all_notes)) },
-                leadingIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = stringResource(R.string.menu_description),
-                        )
-                    }
-                },
-                trailingIcon = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        // Sort Icon
-                        IconButton(onClick = { showSortDialog = true }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = stringResource(R.string.sort_description),
-                            )
-                        }
-
-                        // Profile Picture
-                        ProfilePicture(
-                            account = state.activeAccount,
-                            size = 32.dp,
-                            onClick = { showAccountSheet = true },
-                        )
-                    }
-                },
-                colors =
-                    SearchBarDefaults.inputFieldColors(
-                        cursorColor =
-                            androidx.compose.ui.graphics
-                                .Color(0xFF0082C9),
-                    ),
-            )
-        },
-        expanded = expanded,
-        onExpandedChange = onExpandedChange,
+    // EINE durchgehende Pille mit allen Elementen
+    Surface(
         modifier =
-            modifier
+            Modifier
                 .fillMaxWidth()
-                .padding(horizontal = if (expanded) 0.dp else 16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .height(48.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
     ) {
-        // Expanded content: Show search results
-        TasksContent(
-            padding = PaddingValues(0.dp),
-            state = state,
-            tasks = tasks,
-            taskLists = taskLists,
-            taskFilter = taskFilter,
-            taskSort = taskSort,
-            searchQuery = searchQuery,
-            onSetFilter = onSetFilter,
-            onSetSort = onSetSort,
-            onToggleTaskComplete = onToggleTaskComplete,
-            onDeleteTask = onDeleteTask,
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Hamburger-Menü (links)
+            IconButton(onClick = onOpenDrawer) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = stringResource(R.string.menu_description),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Suchfeld (Mitte, expandiert)
+            androidx.compose.foundation.text.BasicTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                modifier = Modifier.weight(1f),
+                textStyle =
+                    MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                singleLine = true,
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(androidx.compose.ui.graphics.Color(0xFF0082C9)),
+                decorationBox = { innerTextField ->
+                    if (searchQuery.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.search_all_notes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    innerTextField()
+                },
+            )
+
+            // Sort-Icon
+            IconButton(onClick = { showSortDialog = true }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Sort,
+                    contentDescription = stringResource(R.string.sort_description),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Rundes Profilbild
+            ProfilePicture(
+                account = state.activeAccount,
+                size = 32.dp,
+                onClick = { showAccountSheet = true },
+            )
+        }
     }
 
     // Account Bottom Sheet
