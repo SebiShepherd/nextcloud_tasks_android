@@ -64,6 +64,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -380,7 +381,7 @@ private fun UnifiedSearchBar(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                         ) {
-                            if (!isSearchActive) {
+                            if (isSearchActive == false) {
                                 isSearchActive = true
                             }
                         },
@@ -408,7 +409,7 @@ private fun UnifiedSearchBar(
             )
 
             // Sort icon and profile picture only visible when search is not active
-            if (!isSearchActive) {
+            if (isSearchActive == false) {
                 IconButton(onClick = { showSortDialog = true }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Sort,
