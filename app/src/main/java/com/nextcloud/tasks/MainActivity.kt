@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -330,15 +332,16 @@ private fun UnifiedSearchBar(
 ) {
     var showSortDialog by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
 
-    // EINE durchgehende Pille mit allen Elementen
+    // Surface adapts based on search state
     Surface(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = if (isSearchActive) 0.dp else 16.dp, vertical = 8.dp)
                 .height(48.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(if (isSearchActive) 0.dp else 24.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
     ) {
         Row(
@@ -346,26 +349,52 @@ private fun UnifiedSearchBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Hamburger-Menü (links)
-            IconButton(onClick = onOpenDrawer) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = stringResource(R.string.menu_description),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (isSearchActive) {
+                // Back button when search is active
+                IconButton(onClick = { isSearchActive = false }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.close),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                // Hamburger menu in normal state
+                IconButton(onClick = onOpenDrawer) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = stringResource(R.string.menu_description),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
-            // Suchfeld (Mitte, expandiert)
+            // Search text field
             androidx.compose.foundation.text.BasicTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
-                modifier = Modifier.weight(1f),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) {
+                            if (!isSearchActive) {
+                                isSearchActive = true
+                            }
+                        },
                 textStyle =
                     MaterialTheme.typography.bodyLarge.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     ),
                 singleLine = true,
-                cursorBrush = androidx.compose.ui.graphics.SolidColor(androidx.compose.ui.graphics.Color(0xFF0082C9)),
+                cursorBrush =
+                    androidx.compose.ui.graphics
+                        .SolidColor(
+                            androidx.compose.ui.graphics
+                                .Color(0xFF0082C9),
+                        ),
                 decorationBox = { innerTextField ->
                     if (searchQuery.isEmpty()) {
                         Text(
@@ -378,21 +407,22 @@ private fun UnifiedSearchBar(
                 },
             )
 
-            // Sort-Icon
-            IconButton(onClick = { showSortDialog = true }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                    contentDescription = stringResource(R.string.sort_description),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            // Sort icon and profile picture only visible when search is not active
+            if (!isSearchActive) {
+                IconButton(onClick = { showSortDialog = true }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Sort,
+                        contentDescription = stringResource(R.string.sort_description),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                ProfilePicture(
+                    account = state.activeAccount,
+                    size = 32.dp,
+                    onClick = { showAccountSheet = true },
                 )
             }
-
-            // Rundes Profilbild
-            ProfilePicture(
-                account = state.activeAccount,
-                size = 32.dp,
-                onClick = { showAccountSheet = true },
-            )
         }
     }
 
