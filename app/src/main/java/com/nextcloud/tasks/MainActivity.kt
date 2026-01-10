@@ -336,99 +336,113 @@ private fun UnifiedSearchBar(
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
-    // Surface adapts based on search state
-    Surface(
+    // Container with fixed height to prevent layout shift
+    Box(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(
-                    horizontal = if (isSearchActive) 0.dp else 16.dp,
-                    vertical = if (isSearchActive) 0.dp else 8.dp,
-                ).height(if (isSearchActive) 56.dp else 48.dp),
-        shape = RoundedCornerShape(if (isSearchActive) 0.dp else 24.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                .height(64.dp), // Fixed total height
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (isSearchActive) {
-                // Back button when search is active
-                IconButton(
-                    onClick = {
-                        isSearchActive = false
-                        onSearchQueryChange("")
-                        focusManager.clearFocus()
-                    },
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.close),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                // Hamburger menu in normal state
-                IconButton(onClick = onOpenDrawer) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = stringResource(R.string.menu_description),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            // Search text field
-            androidx.compose.foundation.text.BasicTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .onFocusChanged { focusState ->
-                            if (focusState.isFocused && isSearchActive == false) {
-                                isSearchActive = true
-                            }
-                        },
-                textStyle =
-                    MaterialTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                singleLine = true,
-                cursorBrush =
+        // Surface adapts based on search state
+        Surface(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = if (isSearchActive) 0.dp else 16.dp,
+                        vertical = if (isSearchActive) 0.dp else 8.dp,
+                    ).fillMaxHeight(),
+            shape = RoundedCornerShape(if (isSearchActive) 0.dp else 24.dp),
+            color =
+                if (isSearchActive) {
                     androidx.compose.ui.graphics
-                        .SolidColor(
-                            androidx.compose.ui.graphics
-                                .Color(0xFF0082C9),
-                        ),
-                decorationBox = { innerTextField ->
-                    if (searchQuery.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.search_all_notes),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        .Color(0xFF141318)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                },
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (isSearchActive) {
+                    // Back button when search is active
+                    IconButton(
+                        onClick = {
+                            isSearchActive = false
+                            onSearchQueryChange("")
+                            focusManager.clearFocus()
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.close),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    innerTextField()
-                },
-            )
-
-            // Sort icon and profile picture only visible when search is not active
-            if (isSearchActive == false) {
-                IconButton(onClick = { showSortDialog = true }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Sort,
-                        contentDescription = stringResource(R.string.sort_description),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                } else {
+                    // Hamburger menu in normal state
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.menu_description),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
 
-                ProfilePicture(
-                    account = state.activeAccount,
-                    size = 32.dp,
-                    onClick = { showAccountSheet = true },
+                // Search text field
+                androidx.compose.foundation.text.BasicTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused && isSearchActive == false) {
+                                    isSearchActive = true
+                                }
+                            },
+                    textStyle =
+                        MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    singleLine = true,
+                    cursorBrush =
+                        androidx.compose.ui.graphics
+                            .SolidColor(
+                                androidx.compose.ui.graphics
+                                    .Color(0xFF0082C9),
+                            ),
+                    decorationBox = { innerTextField ->
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.search_all_notes),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        innerTextField()
+                    },
                 )
+
+                // Sort icon and profile picture only visible when search is not active
+                if (isSearchActive == false) {
+                    IconButton(onClick = { showSortDialog = true }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = stringResource(R.string.sort_description),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    ProfilePicture(
+                        account = state.activeAccount,
+                        size = 32.dp,
+                        onClick = { showAccountSheet = true },
+                    )
+                }
             }
         }
     }
