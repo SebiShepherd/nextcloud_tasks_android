@@ -3,6 +3,7 @@ package com.nextcloud.tasks
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -337,6 +338,13 @@ private fun UnifiedSearchBar(
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
+    // System back should close the search when it's active (same behavior as the in-UI back icon)
+    BackHandler(enabled = isSearchActive) {
+        isSearchActive = false
+        onSearchQueryChange("")
+        focusManager.clearFocus()
+    }
+
     // Container with fixed height to prevent layout shift
     Box(
         modifier =
@@ -354,13 +362,7 @@ private fun UnifiedSearchBar(
                         vertical = if (isSearchActive) 0.dp else 8.dp,
                     ).fillMaxHeight(),
             shape = RoundedCornerShape(if (isSearchActive) 0.dp else 24.dp),
-            color =
-                if (isSearchActive) {
-                    androidx.compose.ui.graphics
-                        .Color(0xFF141318)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                },
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 8.dp),
