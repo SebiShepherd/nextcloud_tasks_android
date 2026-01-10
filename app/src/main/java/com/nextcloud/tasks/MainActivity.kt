@@ -2,6 +2,7 @@ package com.nextcloud.tasks
 
 import android.content.res.Configuration
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -62,10 +65,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -138,6 +143,7 @@ fun NextcloudTasksApp(
     val taskFilter by taskListViewModel.taskFilter.collectAsState()
     val taskSort by taskListViewModel.taskSort.collectAsState()
     val isRefreshing by taskListViewModel.isRefreshing.collectAsState()
+    val searchQuery by taskListViewModel.searchQuery.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var forceShowLogin by remember { mutableStateOf(false) }
@@ -190,11 +196,13 @@ fun NextcloudTasksApp(
             taskFilter = taskFilter,
             taskSort = taskSort,
             isRefreshing = isRefreshing,
+            searchQuery = searchQuery,
             onLogout = loginFlowViewModel::onLogout,
             onSwitchAccount = handleSwitchAccount,
             onSelectList = taskListViewModel::selectList,
             onSetFilter = taskListViewModel::setFilter,
             onSetSort = taskListViewModel::setSort,
+            onSetSearchQuery = taskListViewModel::setSearchQuery,
             onRefresh = taskListViewModel::refresh,
             onCreateTask = { showCreateDialog = true },
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
@@ -230,11 +238,13 @@ fun AuthenticatedHome(
     taskFilter: com.nextcloud.tasks.domain.model.TaskFilter,
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     isRefreshing: Boolean,
+    searchQuery: String,
     onLogout: (String) -> Unit,
     onSwitchAccount: (String) -> Unit,
     onSelectList: (String?) -> Unit,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
+    onSetSearchQuery: (String) -> Unit,
     onRefresh: () -> Unit,
     onCreateTask: () -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
@@ -276,6 +286,8 @@ fun AuthenticatedHome(
                 // Durchgehende Search Bar mit allen Elementen
                 UnifiedSearchBar(
                     state = state,
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSetSearchQuery,
                     onOpenDrawer = { scope.launch { drawerState.open() } },
                     onSwitchAccount = onSwitchAccount,
                     onLogout = onLogout,
@@ -297,6 +309,7 @@ fun AuthenticatedHome(
                         taskLists = taskLists,
                         taskFilter = taskFilter,
                         taskSort = taskSort,
+                        searchQuery = searchQuery,
                         onSetFilter = onSetFilter,
                         onSetSort = onSetSort,
                         onToggleTaskComplete = onToggleTaskComplete,
@@ -311,6 +324,8 @@ fun AuthenticatedHome(
 @Composable
 private fun UnifiedSearchBar(
     state: LoginFlowUiState,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     onOpenDrawer: () -> Unit,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
@@ -320,54 +335,118 @@ private fun UnifiedSearchBar(
 ) {
     var showSortDialog by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
-    // EINE durchgehende Pille mit allen Elementen
-    Surface(
+    // System back should close the search when it's active (same behavior as the in-UI back icon)
+    BackHandler(enabled = isSearchActive) {
+        isSearchActive = false
+        onSearchQueryChange("")
+        focusManager.clearFocus()
+    }
+
+    // Container with fixed height to prevent layout shift
+    Box(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .height(48.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                .height(64.dp), // Fixed total height
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        // Surface adapts based on search state
+        Surface(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = if (isSearchActive) 0.dp else 16.dp,
+                        vertical = if (isSearchActive) 0.dp else 8.dp,
+                    ).fillMaxHeight(),
+            shape = RoundedCornerShape(if (isSearchActive) 0.dp else 24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
         ) {
-            // Hamburger-Menü (links)
-            IconButton(onClick = onOpenDrawer) {
-                Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = stringResource(R.string.menu_description),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            Row(
+                modifier = Modifier.padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (isSearchActive) {
+                    // Back button when search is active
+                    IconButton(
+                        onClick = {
+                            isSearchActive = false
+                            onSearchQueryChange("")
+                            focusManager.clearFocus()
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.close),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    // Hamburger menu in normal state
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.menu_description),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                // Search text field
+                androidx.compose.foundation.text.BasicTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused && isSearchActive == false) {
+                                    isSearchActive = true
+                                }
+                            },
+                    textStyle =
+                        MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    singleLine = true,
+                    cursorBrush =
+                        androidx.compose.ui.graphics
+                            .SolidColor(
+                                androidx.compose.ui.graphics
+                                    .Color(0xFF0082C9),
+                            ),
+                    decorationBox = { innerTextField ->
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.search_all_notes),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        innerTextField()
+                    },
                 )
+
+                // Sort icon and profile picture only visible when search is not active
+                if (isSearchActive == false) {
+                    IconButton(onClick = { showSortDialog = true }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = stringResource(R.string.sort_description),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    ProfilePicture(
+                        account = state.activeAccount,
+                        size = 32.dp,
+                        onClick = { showAccountSheet = true },
+                    )
+                }
             }
-
-            // Suchtext (Mitte, expandiert)
-            Text(
-                text = stringResource(R.string.search_all_notes),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-
-            // Sort-Icon
-            IconButton(onClick = { showSortDialog = true }) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                    contentDescription = stringResource(R.string.sort_description),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // Rundes Profilbild
-            ProfilePicture(
-                account = state.activeAccount,
-                size = 32.dp,
-                onClick = { showAccountSheet = true },
-            )
         }
     }
 
@@ -482,6 +561,7 @@ private fun TasksContent(
     taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
     taskFilter: com.nextcloud.tasks.domain.model.TaskFilter,
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
+    searchQuery: String,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
@@ -513,7 +593,11 @@ private fun TasksContent(
                             .padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    EmptyState()
+                    if (searchQuery.isNotBlank()) {
+                        NoSearchResultsState()
+                    } else {
+                        EmptyState()
+                    }
                 }
             }
         } else {
@@ -1116,6 +1200,33 @@ fun EmptyState(
     }
 }
 
+@Composable
+fun NoSearchResultsState(
+    modifier: Modifier = Modifier,
+    padding: PaddingValues = PaddingValues(),
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(padding),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = stringResource(id = R.string.no_search_results_title),
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = stringResource(id = R.string.no_search_results_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+}
+
 @HiltViewModel
 class TaskListViewModel
     @Inject
@@ -1148,9 +1259,12 @@ class TaskListViewModel
         private val _isRefreshing = MutableStateFlow(false)
         val isRefreshing = _isRefreshing.asStateFlow()
 
+        private val _searchQuery = MutableStateFlow("")
+        val searchQuery = _searchQuery.asStateFlow()
+
         // Filtered and sorted tasks
         val tasks =
-            combine(allTasks, selectedListId, taskFilter, taskSort) { tasks, listId, filter, sort ->
+            combine(allTasks, selectedListId, taskFilter, taskSort, searchQuery) { tasks, listId, filter, sort, query ->
                 tasks
                     .filter { task ->
                         // Filter by selected list
@@ -1161,6 +1275,15 @@ class TaskListViewModel
                             com.nextcloud.tasks.domain.model.TaskFilter.ALL -> true
                             com.nextcloud.tasks.domain.model.TaskFilter.CURRENT -> !task.completed
                             com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED -> task.completed
+                        }
+                    }.filter { task ->
+                        // Filter by search query (case-insensitive)
+                        if (query.isBlank()) {
+                            true
+                        } else {
+                            val searchLower = query.lowercase()
+                            task.title.lowercase().contains(searchLower) ||
+                                task.description?.lowercase()?.contains(searchLower) == true
                         }
                     }.sortedWith(
                         when (sort) {
@@ -1209,6 +1332,10 @@ class TaskListViewModel
 
         fun setSort(sort: com.nextcloud.tasks.domain.model.TaskSort) {
             _taskSort.value = sort
+        }
+
+        fun setSearchQuery(query: String) {
+            _searchQuery.value = query
         }
 
         fun refresh() {

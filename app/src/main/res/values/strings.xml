@@ -30,6 +30,8 @@
 
     <!-- Search & Sort -->
     <string name="search_all_notes">Search in all notes</string>
+    <string name="no_search_results_title">No results found</string>
+    <string name="no_search_results_hint">Try adjusting your search query.</string>
     <string name="sort_dialog_title">Sort by</string>
     <string name="sort_by_due_date">Due date</string>
     <string name="sort_by_priority">Priority</string>

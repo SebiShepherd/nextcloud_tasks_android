@@ -30,6 +30,8 @@
 
     <!-- Search & Sort -->
     <string name="search_all_notes">In allen Notizen suchen</string>
+    <string name="no_search_results_title">Keine Ergebnisse gefunden</string>
+    <string name="no_search_results_hint">Versuchen Sie, Ihre Suchanfrage anzupassen.</string>
     <string name="sort_dialog_title">Sortierung</string>
     <string name="sort_by_due_date">Fälligkeitsdatum</string>
     <string name="sort_by_priority">Priorität</string>
