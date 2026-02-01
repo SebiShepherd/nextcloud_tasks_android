@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -98,6 +99,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -1372,10 +1374,10 @@ class TaskListViewModel
         private val filteredTasks =
             combine(
                 allTasks,
-                selectedListId,
-                taskFilter,
-                taskSort,
-                searchQuery,
+                _selectedListId,
+                _taskFilter,
+                _taskSort,
+                _searchQuery,
             ) { tasks, listId, filter, sort, query ->
                 tasks
                     .filter { task ->
