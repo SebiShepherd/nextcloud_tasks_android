@@ -35,7 +35,7 @@ desugarJdkLibs = "2.0.4"
 mockk = "1.13.13"
 turbine = "1.2.0"
 kotest = "5.9.1"
-kover = "0.9.0"
+kover = "0.9.5"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
