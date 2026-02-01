@@ -258,7 +258,7 @@ class DefaultTasksRepository
          * The local database is updated immediately, and server sync happens in the background.
          * If offline, the operation is queued for later sync.
          */
-        override suspend fun deleteTask(taskId: String) =
+        override suspend fun deleteTask(taskId: String): Unit =
             withContext(ioDispatcher) {
                 val task = getTask(taskId)
                 val taskHref = task?.href
@@ -282,6 +282,7 @@ class DefaultTasksRepository
                     pendingOperationsManager.queueDeleteOperation(taskId, taskHref, taskEtag)
                     Timber.d("Task $taskId delete queued for sync (offline)")
                 }
+                Unit
             }
 
         /**
