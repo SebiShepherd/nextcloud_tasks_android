@@ -22,17 +22,18 @@ fun getVersionName(): String {
 
     // Try to get version from git tag
     try {
+        val process =
+            ProcessBuilder("git", "describe", "--tags", "--abbrev=0")
+                .redirectErrorStream(true)
+                .start()
         val tagVersion =
-            Runtime
-                .getRuntime()
-                .exec("git describe --tags --abbrev=0")
-                .inputStream
+            process.inputStream
                 .bufferedReader()
                 .readText()
                 .trim()
                 .removePrefix("v")
 
-        if (tagVersion.isNotBlank()) {
+        if (tagVersion.isNotBlank() && process.waitFor() == 0) {
             return tagVersion
         }
     } catch (e: Exception) {
