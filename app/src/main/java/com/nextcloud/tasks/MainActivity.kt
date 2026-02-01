@@ -1067,7 +1067,7 @@ private fun AccountItem(
 
 /**
  * Animated wrapper for TaskCard that provides smooth exit animations
- * when a task is completed or deleted.
+ * when a task is completed or deleted, and entry animations when appearing.
  */
 @Composable
 private fun AnimatedTaskCard(
@@ -1076,31 +1076,58 @@ private fun AnimatedTaskCard(
     onDelete: () -> Unit,
 ) {
     var isVisible by remember { mutableStateOf(true) }
+    var isExiting by remember { mutableStateOf(false) }
+    // Local state to show checkbox change before animation
+    var localCompleted by remember(task.id) { mutableStateOf(task.completed) }
     val scope = rememberCoroutineScope()
 
+    // Entry animation on first appearance
+    var hasAppeared by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        hasAppeared = true
+    }
+
     AnimatedVisibility(
-        visible = isVisible,
+        visible = isVisible && hasAppeared,
+        enter =
+            androidx.compose.animation.expandVertically(
+                animationSpec = tween(durationMillis = 250),
+            ) + androidx.compose.animation.fadeIn(animationSpec = tween(durationMillis = 200)),
         exit =
             shrinkVertically(
-                animationSpec = tween(durationMillis = 300),
-            ) + fadeOut(animationSpec = tween(durationMillis = 200)),
+                animationSpec = tween(durationMillis = 250),
+            ) + fadeOut(animationSpec = tween(durationMillis = 150)),
     ) {
         TaskCard(
-            task = task,
+            task = task.copy(completed = localCompleted),
             onToggleComplete = {
-                // Start animation, then trigger the actual completion
-                scope.launch {
-                    isVisible = false
-                    delay(150) // Small delay for visual feedback
-                    onToggleComplete()
+                if (!isExiting) {
+                    isExiting = true
+                    scope.launch {
+                        // First update local checkbox state to show visual feedback
+                        localCompleted = !localCompleted
+                        // Wait for user to see the checkbox change
+                        delay(400)
+                        // Then start exit animation
+                        isVisible = false
+                        // Wait for animation to complete
+                        delay(300)
+                        // Finally trigger the actual completion
+                        onToggleComplete()
+                    }
                 }
             },
             onDelete = {
-                // Start animation, then trigger the actual deletion
-                scope.launch {
-                    isVisible = false
-                    delay(150)
-                    onDelete()
+                if (!isExiting) {
+                    isExiting = true
+                    scope.launch {
+                        // Start exit animation
+                        isVisible = false
+                        // Wait for animation
+                        delay(300)
+                        // Then delete
+                        onDelete()
+                    }
                 }
             },
         )
@@ -1351,6 +1378,9 @@ class TaskListViewModel
         private val _searchQuery = MutableStateFlow("")
         val searchQuery = _searchQuery.asStateFlow()
 
+        // Frozen tasks during sync to prevent UI flicker
+        private val frozenTasksForSync = MutableStateFlow<List<Task>?>(null)
+
         // Network status and pending changes
         val isOnline =
             tasksRepository
@@ -1362,8 +1392,8 @@ class TaskListViewModel
                 .observeHasPendingChanges()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-        // Filtered and sorted tasks
-        val tasks =
+        // Internal filtered and sorted tasks (before freezing logic)
+        private val filteredTasks =
             combine(allTasks, selectedListId, taskFilter, taskSort, searchQuery) { tasks, listId, filter, sort, query ->
                 tasks
                     .filter { task ->
@@ -1402,6 +1432,13 @@ class TaskListViewModel
                                 }
                         },
                     )
+            }
+
+        // Public tasks flow that respects freezing during sync
+        val tasks =
+            combine(filteredTasks, frozenTasksForSync) { filtered, frozen ->
+                // Use frozen tasks during refresh to prevent UI flicker
+                frozen ?: filtered
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         init {
@@ -1440,6 +1477,8 @@ class TaskListViewModel
 
         fun refresh() {
             viewModelScope.launch {
+                // Freeze the current task list to prevent UI flicker during sync
+                frozenTasksForSync.value = tasks.value
                 _isRefreshing.value = true
                 try {
                     tasksRepository.refresh()
@@ -1447,6 +1486,8 @@ class TaskListViewModel
                     timber.log.Timber.e(ignored, "Failed to refresh tasks")
                 } finally {
                     _isRefreshing.value = false
+                    // Unfreeze - show the updated list
+                    frozenTasksForSync.value = null
                 }
             }
         }
