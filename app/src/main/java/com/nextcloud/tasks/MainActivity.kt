@@ -637,7 +637,6 @@ private fun TasksContent(
     LazyColumn(
         modifier = Modifier.padding(padding),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (openTasks.isEmpty() && completedTasks.isEmpty()) {
             item {
@@ -668,7 +667,8 @@ private fun TasksContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier =
                                 Modifier.padding(
-                                    top = if (openTasksByList.keys.first() != listId) 8.dp else 0.dp,
+                                    top = if (openTasksByList.keys.first() != listId) 16.dp else 0.dp,
+                                    bottom = 8.dp,
                                 ),
                         ) {
                             // Color dot
@@ -712,7 +712,7 @@ private fun TasksContent(
                 item {
                     TextButton(
                         onClick = { showCompletedTasks = !showCompletedTasks },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     ) {
                         Text(
                             text =
@@ -1084,8 +1084,11 @@ private fun AccountItem(
  * For toggle operations:
  * 1. Shows checkbox change for visual feedback (200ms)
  * 2. Starts transition (task appears in both sections)
- * 3. Exit animation here runs parallel to entry animation in other section
+ * 3. Exit animation (collapse) runs parallel to entry animation (expand) in other section
  * 4. After animation, removes task from transition state
+ *
+ * The spacing (12dp) is included inside the animated content so it collapses smoothly
+ * with the card, preventing abrupt layout shifts.
  */
 @Composable
 private fun AnimatedTaskCard(
@@ -1114,54 +1117,80 @@ private fun AnimatedTaskCard(
         hasAppeared = true
     }
 
+    // Animation duration for coordinated expand/collapse
+    val animationDuration = 300
+
     AnimatedVisibility(
         visible = isVisible && hasAppeared,
         enter =
             androidx.compose.animation.expandVertically(
-                animationSpec = tween(durationMillis = 250),
-            ) + androidx.compose.animation.fadeIn(animationSpec = tween(durationMillis = 200)),
+                animationSpec = tween(
+                    durationMillis = animationDuration,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                ),
+                expandFrom = Alignment.Top,
+            ) + androidx.compose.animation.fadeIn(
+                animationSpec = tween(
+                    durationMillis = animationDuration,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                ),
+            ),
         exit =
             shrinkVertically(
-                animationSpec = tween(durationMillis = 250),
-            ) + fadeOut(animationSpec = tween(durationMillis = 150)),
+                animationSpec = tween(
+                    durationMillis = animationDuration,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                ),
+                shrinkTowards = Alignment.Top,
+            ) + fadeOut(
+                animationSpec = tween(
+                    durationMillis = animationDuration / 2,
+                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
+                ),
+            ),
     ) {
-        TaskCard(
-            task = task.copy(completed = localCompleted),
-            onToggleComplete = {
-                if (!isExiting) {
-                    isExiting = true
-                    scope.launch {
-                        // First update local checkbox state to show visual feedback
-                        localCompleted = !localCompleted
-                        // Wait for user to see the checkbox change
-                        delay(200)
-                        // Start transition - task will appear in both sections
-                        onStartTransition()
-                        // Trigger the actual completion - this updates the data
-                        onToggleComplete()
-                        // Start exit animation
-                        isVisible = false
-                        // Wait for animation to complete
-                        delay(300)
-                        // End transition - task disappears from source section
-                        onEndTransition()
+        // Column wraps TaskCard with bottom spacing so spacing animates with collapse
+        Column {
+            TaskCard(
+                task = task.copy(completed = localCompleted),
+                onToggleComplete = {
+                    if (!isExiting) {
+                        isExiting = true
+                        scope.launch {
+                            // First update local checkbox state to show visual feedback
+                            localCompleted = !localCompleted
+                            // Wait for user to see the checkbox change
+                            delay(200)
+                            // Start transition - task will appear in both sections
+                            onStartTransition()
+                            // Trigger the actual completion - this updates the data
+                            onToggleComplete()
+                            // Start exit animation
+                            isVisible = false
+                            // Wait for animation to complete
+                            delay(animationDuration.toLong() + 50)
+                            // End transition - task disappears from source section
+                            onEndTransition()
+                        }
                     }
-                }
-            },
-            onDelete = {
-                if (!isExiting) {
-                    isExiting = true
-                    scope.launch {
-                        // Start exit animation
-                        isVisible = false
-                        // Wait for animation
-                        delay(300)
-                        // Then delete
-                        onDelete()
+                },
+                onDelete = {
+                    if (!isExiting) {
+                        isExiting = true
+                        scope.launch {
+                            // Start exit animation
+                            isVisible = false
+                            // Wait for animation
+                            delay(animationDuration.toLong() + 50)
+                            // Then delete
+                            onDelete()
+                        }
                     }
-                }
-            },
-        )
+                },
+            )
+            // Bottom spacing - included inside AnimatedVisibility so it collapses with the card
+            Spacer(modifier = Modifier.height(12.dp))
+        }
     }
 }
 
