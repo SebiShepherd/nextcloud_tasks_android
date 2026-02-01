@@ -1087,7 +1087,9 @@ private fun SimpleAnimatedTaskCard(
     AnimatedVisibility(
         visible = isVisible,
         enter = fadeIn(animationSpec = tween(durationMillis = 200)),
-        exit = fadeOut(animationSpec = tween(durationMillis = 200)),
+        exit = shrinkVertically(
+            animationSpec = tween(durationMillis = 200),
+        ) + fadeOut(animationSpec = tween(durationMillis = 150)),
     ) {
         TaskCard(
             task = task,
