@@ -1427,24 +1427,38 @@ class TaskListViewModel
         // These tasks should appear in both sections during animation
         private val transitioningTaskIds = MutableStateFlow<Set<String>>(emptySet())
 
+        // Data class to hold filter parameters (needed because combine only supports 5 params)
+        private data class FilterParams(
+            val tasks: List<com.nextcloud.tasks.domain.model.Task>,
+            val listId: String?,
+            val filter: com.nextcloud.tasks.domain.model.TaskFilter,
+            val sort: com.nextcloud.tasks.domain.model.TaskSort,
+            val query: String,
+        )
+
         // Internal filtered and sorted tasks (before freezing logic)
+        // Uses nested combine because Kotlin Flow's combine only supports up to 5 parameters
         private val filteredTasks =
             combine(
-                allTasks,
-                selectedListId,
-                taskFilter,
-                taskSort,
-                searchQuery,
+                combine(
+                    allTasks,
+                    selectedListId,
+                    taskFilter,
+                    taskSort,
+                    searchQuery,
+                ) { tasks, listId, filter, sort, query ->
+                    FilterParams(tasks, listId, filter, sort, query)
+                },
                 transitioningTaskIds,
-            ) { tasks, listId, filter, sort, query, transitioning ->
-                tasks
+            ) { params, transitioning ->
+                params.tasks
                     .filter { task ->
                         // Filter by selected list
-                        (listId == null || task.listId == listId)
+                        (params.listId == null || task.listId == params.listId)
                     }.filter { task ->
                         // Filter by task status, but keep transitioning tasks in both sections
                         val isTransitioning = transitioning.contains(task.id)
-                        when (filter) {
+                        when (params.filter) {
                             com.nextcloud.tasks.domain.model.TaskFilter.ALL -> true
                             com.nextcloud.tasks.domain.model.TaskFilter.CURRENT ->
                                 !task.completed || isTransitioning
@@ -1453,15 +1467,15 @@ class TaskListViewModel
                         }
                     }.filter { task ->
                         // Filter by search query (case-insensitive)
-                        if (query.isBlank()) {
+                        if (params.query.isBlank()) {
                             true
                         } else {
-                            val searchLower = query.lowercase()
+                            val searchLower = params.query.lowercase()
                             task.title.lowercase().contains(searchLower) ||
                                 task.description?.lowercase()?.contains(searchLower) == true
                         }
                     }.sortedWith(
-                        when (sort) {
+                        when (params.sort) {
                             com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE ->
                                 compareBy(
                                     nullsLast(),
