@@ -94,4 +94,9 @@
     <string name="language_english">English</string>
     <string name="language_german">Deutsch</string>
     <string name="language_dialog_title">Sprache auswählen</string>
+
+    <!-- Offline Mode -->
+    <string name="offline_message">Du bist aktuell offline. Deine Änderungen werden synchronisiert, sobald du wieder online bist.</string>
+    <string name="syncing_pending_changes">Ausstehende Änderungen werden synchronisiert\u2026</string>
+    <string name="sync_complete">Alle Änderungen synchronisiert</string>
 </resources>

@@ -83,5 +83,26 @@ object DatabaseMigrations {
             }
         }
 
-    val all: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    val MIGRATION_4_5 =
+        object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Create pending_operations table for offline-first support
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS pending_operations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        account_id TEXT NOT NULL,
+                        task_id TEXT NOT NULL,
+                        operation_type TEXT NOT NULL,
+                        payload TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        retry_count INTEGER NOT NULL DEFAULT 0,
+                        last_error TEXT
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
+    val all: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }

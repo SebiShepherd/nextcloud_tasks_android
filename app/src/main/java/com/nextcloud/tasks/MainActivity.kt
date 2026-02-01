@@ -7,6 +7,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +56,9 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -88,6 +95,7 @@ import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -144,6 +152,8 @@ fun NextcloudTasksApp(
     val taskSort by taskListViewModel.taskSort.collectAsState()
     val isRefreshing by taskListViewModel.isRefreshing.collectAsState()
     val searchQuery by taskListViewModel.searchQuery.collectAsState()
+    val isOnline by taskListViewModel.isOnline.collectAsState()
+    val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var forceShowLogin by remember { mutableStateOf(false) }
@@ -197,6 +207,8 @@ fun NextcloudTasksApp(
             taskSort = taskSort,
             isRefreshing = isRefreshing,
             searchQuery = searchQuery,
+            isOnline = isOnline,
+            hasPendingChanges = hasPendingChanges,
             onLogout = loginFlowViewModel::onLogout,
             onSwitchAccount = handleSwitchAccount,
             onSelectList = taskListViewModel::selectList,
@@ -239,6 +251,8 @@ fun AuthenticatedHome(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     isRefreshing: Boolean,
     searchQuery: String,
+    isOnline: Boolean,
+    hasPendingChanges: Boolean,
     onLogout: (String) -> Unit,
     onSwitchAccount: (String) -> Unit,
     onSelectList: (String?) -> Unit,
@@ -254,6 +268,18 @@ fun AuthenticatedHome(
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val offlineMessage = stringResource(R.string.offline_message)
+
+    // Show snackbar when offline and user performs an action
+    var showOfflineSnackbar by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showOfflineSnackbar, isOnline) {
+        if (showOfflineSnackbar && !isOnline) {
+            snackbarHostState.showSnackbar(offlineMessage)
+            showOfflineSnackbar = false
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -273,6 +299,15 @@ fun AuthenticatedHome(
         },
     ) {
         Scaffold(
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
             floatingActionButton = {
                 FloatingActionButton(onClick = onCreateTask) {
                     Icon(
@@ -310,10 +345,21 @@ fun AuthenticatedHome(
                         taskFilter = taskFilter,
                         taskSort = taskSort,
                         searchQuery = searchQuery,
+                        isOnline = isOnline,
                         onSetFilter = onSetFilter,
                         onSetSort = onSetSort,
-                        onToggleTaskComplete = onToggleTaskComplete,
-                        onDeleteTask = onDeleteTask,
+                        onToggleTaskComplete = { task ->
+                            onToggleTaskComplete(task)
+                            if (!isOnline) {
+                                showOfflineSnackbar = true
+                            }
+                        },
+                        onDeleteTask = { taskId ->
+                            onDeleteTask(taskId)
+                            if (!isOnline) {
+                                showOfflineSnackbar = true
+                            }
+                        },
                     )
                 }
             }
@@ -552,7 +598,7 @@ private fun SortOption(
     }
 }
 
-@Suppress("UnusedParameter")
+@Suppress("UnusedParameter", "LongParameterList")
 @Composable
 private fun TasksContent(
     padding: PaddingValues,
@@ -562,6 +608,7 @@ private fun TasksContent(
     taskFilter: com.nextcloud.tasks.domain.model.TaskFilter,
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     searchQuery: String,
+    isOnline: Boolean,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
@@ -640,8 +687,8 @@ private fun TasksContent(
                         }
                     }
 
-                    items(listTasks) { task ->
-                        TaskCard(
+                    items(listTasks, key = { it.id }) { task ->
+                        AnimatedTaskCard(
                             task = task,
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
@@ -670,8 +717,8 @@ private fun TasksContent(
 
                 // Erledigte Tasks (wenn aufgeklappt)
                 if (showCompletedTasks) {
-                    items(completedTasks) { task ->
-                        TaskCard(
+                    items(completedTasks, key = { it.id }) { task ->
+                        AnimatedTaskCard(
                             task = task,
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
@@ -1018,6 +1065,48 @@ private fun AccountItem(
     }
 }
 
+/**
+ * Animated wrapper for TaskCard that provides smooth exit animations
+ * when a task is completed or deleted.
+ */
+@Composable
+private fun AnimatedTaskCard(
+    task: Task,
+    onToggleComplete: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var isVisible by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+
+    AnimatedVisibility(
+        visible = isVisible,
+        exit =
+            shrinkVertically(
+                animationSpec = tween(durationMillis = 300),
+            ) + fadeOut(animationSpec = tween(durationMillis = 200)),
+    ) {
+        TaskCard(
+            task = task,
+            onToggleComplete = {
+                // Start animation, then trigger the actual completion
+                scope.launch {
+                    isVisible = false
+                    delay(150) // Small delay for visual feedback
+                    onToggleComplete()
+                }
+            },
+            onDelete = {
+                // Start animation, then trigger the actual deletion
+                scope.launch {
+                    isVisible = false
+                    delay(150)
+                    onDelete()
+                }
+            },
+        )
+    }
+}
+
 @Composable
 private fun TaskCard(
     task: Task,
@@ -1261,6 +1350,17 @@ class TaskListViewModel
 
         private val _searchQuery = MutableStateFlow("")
         val searchQuery = _searchQuery.asStateFlow()
+
+        // Network status and pending changes
+        val isOnline =
+            tasksRepository
+                .observeIsOnline()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+        val hasPendingChanges =
+            tasksRepository
+                .observeHasPendingChanges()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
         // Filtered and sorted tasks
         val tasks =
