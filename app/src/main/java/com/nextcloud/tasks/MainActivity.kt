@@ -98,6 +98,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -154,6 +155,7 @@ fun NextcloudTasksApp(
     val searchQuery by taskListViewModel.searchQuery.collectAsState()
     val isOnline by taskListViewModel.isOnline.collectAsState()
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
+    val transitioningTaskIds by taskListViewModel.transitioningTaskIds.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var forceShowLogin by remember { mutableStateOf(false) }
@@ -220,6 +222,7 @@ fun NextcloudTasksApp(
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
             onStartTaskTransition = taskListViewModel::startTaskTransition,
             onEndTaskTransition = taskListViewModel::endTaskTransition,
+            transitioningTaskIds = transitioningTaskIds,
             onDeleteTask = taskListViewModel::deleteTask,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
@@ -266,6 +269,7 @@ fun AuthenticatedHome(
     onToggleTaskComplete: (Task) -> Unit,
     onStartTaskTransition: (String) -> Unit,
     onEndTaskTransition: (String) -> Unit,
+    transitioningTaskIds: Set<String>,
     onDeleteTask: (String) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -350,6 +354,7 @@ fun AuthenticatedHome(
                         taskSort = taskSort,
                         searchQuery = searchQuery,
                         isOnline = isOnline,
+                        transitioningTaskIds = transitioningTaskIds,
                         onSetFilter = onSetFilter,
                         onSetSort = onSetSort,
                         onToggleTaskComplete = { task ->
@@ -615,6 +620,7 @@ private fun TasksContent(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     searchQuery: String,
     isOnline: Boolean,
+    transitioningTaskIds: Set<String>,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
@@ -628,8 +634,13 @@ private fun TasksContent(
     val taskListMap = remember(taskLists) { taskLists.associateBy { it.id } }
 
     // Group tasks by completion status
-    val openTasks = tasks.filter { !it.completed }
-    val completedTasks = tasks.filter { it.completed }
+    // Transitioning tasks appear in BOTH lists during animation so exit/entry animations can play
+    val openTasks = tasks.filter { task ->
+        !task.completed || transitioningTaskIds.contains(task.id)
+    }
+    val completedTasks = tasks.filter { task ->
+        task.completed || transitioningTaskIds.contains(task.id)
+    }
 
     // Group open tasks by list
     val openTasksByList = openTasks.groupBy { it.listId }
@@ -1454,7 +1465,9 @@ class TaskListViewModel
 
         // Tasks currently transitioning between completed/uncompleted states
         // These tasks should appear in both sections during animation
-        private val transitioningTaskIds = MutableStateFlow<Set<String>>(emptySet())
+        // Exposed publicly so TasksContent can keep tasks in both lists during transition
+        private val _transitioningTaskIds = MutableStateFlow<Set<String>>(emptySet())
+        val transitioningTaskIds: StateFlow<Set<String>> = _transitioningTaskIds.asStateFlow()
 
         // Data class to hold filter parameters (needed because combine only supports 5 params)
         private data class FilterParams(
@@ -1478,7 +1491,7 @@ class TaskListViewModel
                 ) { tasks, listId, filter, sort, query ->
                     FilterParams(tasks, listId, filter, sort, query)
                 },
-                transitioningTaskIds,
+                _transitioningTaskIds,
             ) { params, transitioning ->
                 params.tasks
                     .filter { task ->
@@ -1609,14 +1622,14 @@ class TaskListViewModel
          * The task will appear in both open and completed sections during the animation.
          */
         fun startTaskTransition(taskId: String) {
-            transitioningTaskIds.value = transitioningTaskIds.value + taskId
+            _transitioningTaskIds.value = _transitioningTaskIds.value + taskId
         }
 
         /**
          * Removes a task from the transitioning state after animation completes.
          */
         fun endTaskTransition(taskId: String) {
-            transitioningTaskIds.value = transitioningTaskIds.value - taskId
+            _transitioningTaskIds.value = _transitioningTaskIds.value - taskId
         }
 
         fun toggleTaskComplete(task: Task) {
