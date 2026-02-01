@@ -98,8 +98,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -155,7 +153,6 @@ fun NextcloudTasksApp(
     val searchQuery by taskListViewModel.searchQuery.collectAsState()
     val isOnline by taskListViewModel.isOnline.collectAsState()
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
-    val transitioningTaskIds by taskListViewModel.transitioningTaskIds.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var forceShowLogin by remember { mutableStateOf(false) }
@@ -220,9 +217,6 @@ fun NextcloudTasksApp(
             onRefresh = taskListViewModel::refresh,
             onCreateTask = { showCreateDialog = true },
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
-            onStartTaskTransition = taskListViewModel::startTaskTransition,
-            onEndTaskTransition = taskListViewModel::endTaskTransition,
-            transitioningTaskIds = transitioningTaskIds,
             onDeleteTask = taskListViewModel::deleteTask,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
@@ -267,9 +261,6 @@ fun AuthenticatedHome(
     onRefresh: () -> Unit,
     onCreateTask: () -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
-    onStartTaskTransition: (String) -> Unit,
-    onEndTaskTransition: (String) -> Unit,
-    transitioningTaskIds: Set<String>,
     onDeleteTask: (String) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -354,7 +345,6 @@ fun AuthenticatedHome(
                         taskSort = taskSort,
                         searchQuery = searchQuery,
                         isOnline = isOnline,
-                        transitioningTaskIds = transitioningTaskIds,
                         onSetFilter = onSetFilter,
                         onSetSort = onSetSort,
                         onToggleTaskComplete = { task ->
@@ -363,8 +353,6 @@ fun AuthenticatedHome(
                                 showOfflineSnackbar = true
                             }
                         },
-                        onStartTaskTransition = onStartTaskTransition,
-                        onEndTaskTransition = onEndTaskTransition,
                         onDeleteTask = { taskId ->
                             onDeleteTask(taskId)
                             if (!isOnline) {
@@ -620,12 +608,9 @@ private fun TasksContent(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     searchQuery: String,
     isOnline: Boolean,
-    transitioningTaskIds: Set<String>,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
-    onStartTaskTransition: (String) -> Unit,
-    onEndTaskTransition: (String) -> Unit,
     onDeleteTask: (String) -> Unit,
 ) {
     var showCompletedTasks by remember { mutableStateOf(false) }
@@ -634,13 +619,8 @@ private fun TasksContent(
     val taskListMap = remember(taskLists) { taskLists.associateBy { it.id } }
 
     // Group tasks by completion status
-    // Transitioning tasks appear in BOTH lists during animation so exit/entry animations can play
-    val openTasks = tasks.filter { task ->
-        !task.completed || transitioningTaskIds.contains(task.id)
-    }
-    val completedTasks = tasks.filter { task ->
-        task.completed || transitioningTaskIds.contains(task.id)
-    }
+    val openTasks = tasks.filter { !it.completed }
+    val completedTasks = tasks.filter { it.completed }
 
     // Group open tasks by list
     val openTasksByList = openTasks.groupBy { it.listId }
@@ -648,6 +628,7 @@ private fun TasksContent(
     LazyColumn(
         modifier = Modifier.padding(padding),
         contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (openTasks.isEmpty() && completedTasks.isEmpty()) {
             item {
@@ -678,8 +659,7 @@ private fun TasksContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier =
                                 Modifier.padding(
-                                    top = if (openTasksByList.keys.first() != listId) 16.dp else 0.dp,
-                                    bottom = 8.dp,
+                                    top = if (openTasksByList.keys.first() != listId) 8.dp else 0.dp,
                                 ),
                         ) {
                             // Color dot
@@ -707,11 +687,9 @@ private fun TasksContent(
                     }
 
                     items(listTasks, key = { it.id }) { task ->
-                        AnimatedTaskCard(
+                        SimpleAnimatedTaskCard(
                             task = task,
                             onToggleComplete = { onToggleTaskComplete(task) },
-                            onStartTransition = { onStartTaskTransition(task.id) },
-                            onEndTransition = { onEndTaskTransition(task.id) },
                             onDelete = { onDeleteTask(task.id) },
                         )
                     }
@@ -723,7 +701,7 @@ private fun TasksContent(
                 item {
                     TextButton(
                         onClick = { showCompletedTasks = !showCompletedTasks },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text(
                             text =
@@ -739,11 +717,9 @@ private fun TasksContent(
                 // Erledigte Tasks (wenn aufgeklappt)
                 if (showCompletedTasks) {
                     items(completedTasks, key = { it.id }) { task ->
-                        AnimatedTaskCard(
+                        SimpleAnimatedTaskCard(
                             task = task,
                             onToggleComplete = { onToggleTaskComplete(task) },
-                            onStartTransition = { onStartTaskTransition(task.id) },
-                            onEndTransition = { onEndTaskTransition(task.id) },
                             onDelete = { onDeleteTask(task.id) },
                         )
                     }
@@ -1089,119 +1065,48 @@ private fun AccountItem(
 }
 
 /**
- * Animated wrapper for TaskCard that provides smooth parallel animations
- * when a task is completed/uncompleted or deleted.
+ * Simple animated wrapper for TaskCard.
+ * - Toggle complete: Instant update (no animation complexity)
+ * - Delete: Fade out animation before deletion
  *
- * For toggle operations:
- * 1. Shows checkbox change for visual feedback (200ms)
- * 2. Starts transition (task appears in both sections)
- * 3. Exit animation (collapse) runs parallel to entry animation (expand) in other section
- * 4. After animation, removes task from transition state
- *
- * The spacing (12dp) is included inside the animated content so it collapses smoothly
- * with the card, preventing abrupt layout shifts.
+ * This is a stable, simple approach that avoids complex state coordination.
  */
 @Composable
-private fun AnimatedTaskCard(
+private fun SimpleAnimatedTaskCard(
     task: Task,
     onToggleComplete: () -> Unit,
-    onStartTransition: () -> Unit,
-    onEndTransition: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var isVisible by remember { mutableStateOf(true) }
-    var isExiting by remember { mutableStateOf(false) }
-    // Local state to show checkbox change before animation
-    var localCompleted by remember(task.id) { mutableStateOf(task.completed) }
+    var isDeleting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Sync local state when task changes (e.g., from server sync)
-    LaunchedEffect(task.completed) {
-        if (!isExiting) {
-            localCompleted = task.completed
-        }
-    }
-
-    // Entry animation on first appearance
-    var hasAppeared by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        hasAppeared = true
-    }
-
-    // Animation duration for coordinated expand/collapse
-    val animationDuration = 300
-
     AnimatedVisibility(
-        visible = isVisible && hasAppeared,
-        enter =
-            androidx.compose.animation.expandVertically(
-                animationSpec = tween(
-                    durationMillis = animationDuration,
-                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
-                ),
-                expandFrom = Alignment.Top,
-            ) + androidx.compose.animation.fadeIn(
-                animationSpec = tween(
-                    durationMillis = animationDuration,
-                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
-                ),
-            ),
-        exit =
-            shrinkVertically(
-                animationSpec = tween(
-                    durationMillis = animationDuration,
-                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
-                ),
-                shrinkTowards = Alignment.Top,
-            ) + fadeOut(
-                animationSpec = tween(
-                    durationMillis = animationDuration / 2,
-                    easing = androidx.compose.animation.core.FastOutSlowInEasing,
-                ),
-            ),
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(durationMillis = 200)),
+        exit = fadeOut(animationSpec = tween(durationMillis = 200)),
     ) {
-        // Column wraps TaskCard with bottom spacing so spacing animates with collapse
-        Column {
-            TaskCard(
-                task = task.copy(completed = localCompleted),
-                onToggleComplete = {
-                    if (!isExiting) {
-                        isExiting = true
-                        scope.launch {
-                            // First update local checkbox state to show visual feedback
-                            localCompleted = !localCompleted
-                            // Wait for user to see the checkbox change
-                            delay(200)
-                            // Start transition - task will appear in both sections
-                            onStartTransition()
-                            // Trigger the actual completion - this updates the data
-                            onToggleComplete()
-                            // Start exit animation
-                            isVisible = false
-                            // Wait for animation to complete
-                            delay(animationDuration.toLong() + 50)
-                            // End transition - task disappears from source section
-                            onEndTransition()
-                        }
+        TaskCard(
+            task = task,
+            onToggleComplete = {
+                // Simple instant update - no animation needed
+                // The item will just move to the other section naturally
+                onToggleComplete()
+            },
+            onDelete = {
+                if (!isDeleting) {
+                    isDeleting = true
+                    scope.launch {
+                        // Fade out first
+                        isVisible = false
+                        // Wait for animation
+                        delay(250)
+                        // Then delete
+                        onDelete()
                     }
-                },
-                onDelete = {
-                    if (!isExiting) {
-                        isExiting = true
-                        scope.launch {
-                            // Start exit animation
-                            isVisible = false
-                            // Wait for animation
-                            delay(animationDuration.toLong() + 50)
-                            // Then delete
-                            onDelete()
-                        }
-                    }
-                },
-            )
-            // Bottom spacing - included inside AnimatedVisibility so it collapses with the card
-            Spacer(modifier = Modifier.height(12.dp))
-        }
+                }
+            },
+        )
     }
 }
 
@@ -1463,61 +1368,37 @@ class TaskListViewModel
                 .observeHasPendingChanges()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-        // Tasks currently transitioning between completed/uncompleted states
-        // These tasks should appear in both sections during animation
-        // Exposed publicly so TasksContent can keep tasks in both lists during transition
-        private val _transitioningTaskIds = MutableStateFlow<Set<String>>(emptySet())
-        val transitioningTaskIds: StateFlow<Set<String>> = _transitioningTaskIds.asStateFlow()
-
-        // Data class to hold filter parameters (needed because combine only supports 5 params)
-        private data class FilterParams(
-            val tasks: List<com.nextcloud.tasks.domain.model.Task>,
-            val listId: String?,
-            val filter: com.nextcloud.tasks.domain.model.TaskFilter,
-            val sort: com.nextcloud.tasks.domain.model.TaskSort,
-            val query: String,
-        )
-
         // Internal filtered and sorted tasks (before freezing logic)
-        // Uses nested combine because Kotlin Flow's combine only supports up to 5 parameters
         private val filteredTasks =
             combine(
-                combine(
-                    allTasks,
-                    selectedListId,
-                    taskFilter,
-                    taskSort,
-                    searchQuery,
-                ) { tasks, listId, filter, sort, query ->
-                    FilterParams(tasks, listId, filter, sort, query)
-                },
-                _transitioningTaskIds,
-            ) { params, transitioning ->
-                params.tasks
+                allTasks,
+                selectedListId,
+                taskFilter,
+                taskSort,
+                searchQuery,
+            ) { tasks, listId, filter, sort, query ->
+                tasks
                     .filter { task ->
                         // Filter by selected list
-                        (params.listId == null || task.listId == params.listId)
+                        (listId == null || task.listId == listId)
                     }.filter { task ->
-                        // Filter by task status, but keep transitioning tasks in both sections
-                        val isTransitioning = transitioning.contains(task.id)
-                        when (params.filter) {
+                        // Filter by task status
+                        when (filter) {
                             com.nextcloud.tasks.domain.model.TaskFilter.ALL -> true
-                            com.nextcloud.tasks.domain.model.TaskFilter.CURRENT ->
-                                !task.completed || isTransitioning
-                            com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED ->
-                                task.completed || isTransitioning
+                            com.nextcloud.tasks.domain.model.TaskFilter.CURRENT -> !task.completed
+                            com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED -> task.completed
                         }
                     }.filter { task ->
                         // Filter by search query (case-insensitive)
-                        if (params.query.isBlank()) {
+                        if (query.isBlank()) {
                             true
                         } else {
-                            val searchLower = params.query.lowercase()
+                            val searchLower = query.lowercase()
                             task.title.lowercase().contains(searchLower) ||
                                 task.description?.lowercase()?.contains(searchLower) == true
                         }
                     }.sortedWith(
-                        when (params.sort) {
+                        when (sort) {
                             com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE ->
                                 compareBy(
                                     nullsLast(),
@@ -1615,21 +1496,6 @@ class TaskListViewModel
                     timber.log.Timber.e(ignored, "Failed to create task")
                 }
             }
-        }
-
-        /**
-         * Marks a task as transitioning (for parallel animations).
-         * The task will appear in both open and completed sections during the animation.
-         */
-        fun startTaskTransition(taskId: String) {
-            _transitioningTaskIds.value = _transitioningTaskIds.value + taskId
-        }
-
-        /**
-         * Removes a task from the transitioning state after animation completes.
-         */
-        fun endTaskTransition(taskId: String) {
-            _transitioningTaskIds.value = _transitioningTaskIds.value - taskId
         }
 
         fun toggleTaskComplete(task: Task) {
