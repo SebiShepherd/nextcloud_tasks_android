@@ -630,7 +630,8 @@ private fun TasksContent(
     LazyColumn(
         modifier = Modifier.padding(padding),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        // Note: No spacedBy - task items include their own bottom spacing
+        // which animates with shrinkVertically to prevent jerky transitions
     ) {
         if (openTasks.isEmpty() && completedTasks.isEmpty()) {
             item {
@@ -661,7 +662,8 @@ private fun TasksContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier =
                                 Modifier.padding(
-                                    top = if (openTasksByList.keys.first() != listId) 8.dp else 0.dp,
+                                    top = if (openTasksByList.keys.first() != listId) 16.dp else 0.dp,
+                                    bottom = 8.dp,
                                 ),
                         ) {
                             // Color dot
@@ -703,7 +705,7 @@ private fun TasksContent(
                 item {
                     TextButton(
                         onClick = { showCompletedTasks = !showCompletedTasks },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     ) {
                         Text(
                             text =
@@ -1082,7 +1084,16 @@ private fun SimpleAnimatedTaskCard(
 ) {
     var isVisible by remember { mutableStateOf(true) }
     var isAnimating by remember { mutableStateOf(false) }
+    // Local checkbox state to show change before animation
+    var localCompleted by remember(task.id) { mutableStateOf(task.completed) }
     val scope = rememberCoroutineScope()
+
+    // Sync local state when task changes (e.g., from server sync)
+    LaunchedEffect(task.completed) {
+        if (!isAnimating) {
+            localCompleted = task.completed
+        }
+    }
 
     AnimatedVisibility(
         visible = isVisible,
@@ -1091,35 +1102,44 @@ private fun SimpleAnimatedTaskCard(
             animationSpec = tween(durationMillis = 200),
         ) + fadeOut(animationSpec = tween(durationMillis = 150)),
     ) {
-        TaskCard(
-            task = task,
-            onToggleComplete = {
-                if (!isAnimating) {
-                    isAnimating = true
-                    scope.launch {
-                        // First fade out
-                        isVisible = false
-                        // Wait for animation to complete
-                        delay(250)
-                        // Then trigger the data change
-                        onToggleComplete()
+        // Column includes bottom spacing so it animates with shrinkVertically
+        Column {
+            TaskCard(
+                task = task.copy(completed = localCompleted),
+                onToggleComplete = {
+                    if (!isAnimating) {
+                        isAnimating = true
+                        scope.launch {
+                            // Show checkbox change first
+                            localCompleted = !localCompleted
+                            // Wait for user to see the change
+                            delay(200)
+                            // Then start fade/shrink animation
+                            isVisible = false
+                            // Wait for animation to complete
+                            delay(250)
+                            // Then trigger the data change
+                            onToggleComplete()
+                        }
                     }
-                }
-            },
-            onDelete = {
-                if (!isAnimating) {
-                    isAnimating = true
-                    scope.launch {
-                        // First fade out
-                        isVisible = false
-                        // Wait for animation to complete
-                        delay(250)
-                        // Then delete
-                        onDelete()
+                },
+                onDelete = {
+                    if (!isAnimating) {
+                        isAnimating = true
+                        scope.launch {
+                            // Start fade/shrink animation
+                            isVisible = false
+                            // Wait for animation to complete
+                            delay(250)
+                            // Then delete
+                            onDelete()
+                        }
                     }
-                }
-            },
-        )
+                },
+            )
+            // Bottom spacing - animates with shrinkVertically
+            Spacer(modifier = Modifier.height(12.dp))
+        }
     }
 }
 
