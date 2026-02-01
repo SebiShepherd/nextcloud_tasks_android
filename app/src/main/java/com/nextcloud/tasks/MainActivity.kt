@@ -1068,10 +1068,11 @@ private fun AccountItem(
 
 /**
  * Simple animated wrapper for TaskCard.
- * - Toggle complete: Instant update (no animation complexity)
- * - Delete: Fade out animation before deletion
+ * - Toggle complete: Fade out animation, then update
+ * - Delete: Fade out animation, then delete
  *
- * This is a stable, simple approach that avoids complex state coordination.
+ * IMPORTANT: Animation must complete BEFORE data changes,
+ * otherwise the composable is removed from composition immediately.
  */
 @Composable
 private fun SimpleAnimatedTaskCard(
@@ -1080,7 +1081,7 @@ private fun SimpleAnimatedTaskCard(
     onDelete: () -> Unit,
 ) {
     var isVisible by remember { mutableStateOf(true) }
-    var isDeleting by remember { mutableStateOf(false) }
+    var isAnimating by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     AnimatedVisibility(
@@ -1091,17 +1092,25 @@ private fun SimpleAnimatedTaskCard(
         TaskCard(
             task = task,
             onToggleComplete = {
-                // Simple instant update - no animation needed
-                // The item will just move to the other section naturally
-                onToggleComplete()
+                if (!isAnimating) {
+                    isAnimating = true
+                    scope.launch {
+                        // First fade out
+                        isVisible = false
+                        // Wait for animation to complete
+                        delay(250)
+                        // Then trigger the data change
+                        onToggleComplete()
+                    }
+                }
             },
             onDelete = {
-                if (!isDeleting) {
-                    isDeleting = true
+                if (!isAnimating) {
+                    isAnimating = true
                     scope.launch {
-                        // Fade out first
+                        // First fade out
                         isVisible = false
-                        // Wait for animation
+                        // Wait for animation to complete
                         delay(250)
                         // Then delete
                         onDelete()
