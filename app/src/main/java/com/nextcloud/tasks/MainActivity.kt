@@ -211,6 +211,7 @@ fun NextcloudTasksApp(
             searchQuery = searchQuery,
             isOnline = isOnline,
             hasPendingChanges = hasPendingChanges,
+            showCreateDialog = showCreateDialog,
             onLogout = loginFlowViewModel::onLogout,
             onSwitchAccount = handleSwitchAccount,
             onSelectList = taskListViewModel::selectList,
@@ -218,27 +219,17 @@ fun NextcloudTasksApp(
             onSetSort = taskListViewModel::setSort,
             onSetSearchQuery = taskListViewModel::setSearchQuery,
             onRefresh = taskListViewModel::refresh,
-            onCreateTask = { showCreateDialog = true },
+            onShowCreateDialog = { showCreateDialog = true },
+            onDismissCreateDialog = { showCreateDialog = false },
+            onCreateTask = { title, description, listId ->
+                taskListViewModel.createTask(title, description, listId)
+                showCreateDialog = false
+            },
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
             onDeleteTask = taskListViewModel::deleteTask,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
         )
-
-        // Create task dialog
-        if (showCreateDialog) {
-            val defaultListId = selectedListId ?: taskLists.firstOrNull()?.id
-            if (defaultListId != null) {
-                CreateTaskDialog(
-                    listId = defaultListId,
-                    onDismiss = { showCreateDialog = false },
-                    onCreate = { title, description, listId ->
-                        taskListViewModel.createTask(title, description, listId)
-                        showCreateDialog = false
-                    },
-                )
-            }
-        }
     }
 }
 
@@ -255,6 +246,7 @@ fun AuthenticatedHome(
     searchQuery: String,
     isOnline: Boolean,
     hasPendingChanges: Boolean,
+    showCreateDialog: Boolean,
     onLogout: (String) -> Unit,
     onSwitchAccount: (String) -> Unit,
     onSelectList: (String?) -> Unit,
@@ -262,7 +254,9 @@ fun AuthenticatedHome(
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onSetSearchQuery: (String) -> Unit,
     onRefresh: () -> Unit,
-    onCreateTask: () -> Unit,
+    onShowCreateDialog: () -> Unit,
+    onDismissCreateDialog: () -> Unit,
+    onCreateTask: (String, String?, String) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
     onDeleteTask: (String) -> Unit,
     onAddAccount: () -> Unit,
@@ -311,7 +305,7 @@ fun AuthenticatedHome(
                 }
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = onCreateTask) {
+                FloatingActionButton(onClick = onShowCreateDialog) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = stringResource(R.string.create_task_description),
@@ -365,6 +359,23 @@ fun AuthenticatedHome(
                     )
                 }
             }
+        }
+    }
+
+    // Create task dialog
+    if (showCreateDialog) {
+        val defaultListId = selectedListId ?: taskLists.firstOrNull()?.id
+        if (defaultListId != null) {
+            CreateTaskDialog(
+                listId = defaultListId,
+                onDismiss = onDismissCreateDialog,
+                onCreate = { title, description, listId ->
+                    onCreateTask(title, description, listId)
+                    if (!isOnline) {
+                        showOfflineSnackbar = true
+                    }
+                },
+            )
         }
     }
 }
