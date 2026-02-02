@@ -1083,11 +1083,17 @@ private fun SimpleAnimatedTaskCard(
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    var isVisible by remember { mutableStateOf(true) }
+    // Start invisible, then animate in
+    var isVisible by remember { mutableStateOf(false) }
     var isAnimating by remember { mutableStateOf(false) }
     // Local checkbox state to show change before animation
     var localCompleted by remember(task.id) { mutableStateOf(task.completed) }
     val scope = rememberCoroutineScope()
+
+    // Trigger entry animation on first composition
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
     // Sync local state when task changes (e.g., from server sync)
     LaunchedEffect(task.completed) {
