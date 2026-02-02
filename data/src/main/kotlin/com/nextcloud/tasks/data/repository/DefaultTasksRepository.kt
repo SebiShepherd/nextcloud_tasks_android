@@ -99,53 +99,27 @@ class DefaultTasksRepository
                 tasksDao.getTaskWithRelations(id)?.let(taskMapper::toDomain)
             }
 
+        /**
+         * Creates a task with optimistic UI update.
+         * The task is saved locally immediately and server sync happens in the background.
+         * If offline, the operation is queued for later sync.
+         */
         override suspend fun createTask(draft: TaskDraft): Task =
             withContext(ioDispatcher) {
-                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
                 val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
-                // Generate UID and create task domain model
+                // Generate UID and create task entity
                 val uid =
                     java.util.UUID
                         .randomUUID()
                         .toString()
                 val now = Instant.now()
-                val task =
-                    Task(
-                        id = uid, // Use UID as ID for consistency
-                        listId = draft.listId,
-                        title = draft.title,
-                        description = draft.description,
-                        completed = draft.completed,
-                        due = draft.due,
-                        updatedAt = now,
-                        tags = emptyList(), // Tags will be set separately if needed
-                        priority = null,
-                        status = if (draft.completed) "COMPLETED" else "NEEDS-ACTION",
-                        completedAt = if (draft.completed) now else null,
-                        uid = uid,
-                        etag = null,
-                        href = null,
-                        parentUid = null,
-                    )
 
-                // Generate iCalendar VTODO
-                val icalData = vTodoGenerator.generateVTodo(task)
-                val filename = vTodoGenerator.generateFilename(uid)
-
-                // Upload to server
-                val createResult = calDavService.createTodo(baseUrl, draft.listId, filename, icalData)
-                if (createResult.isFailure) {
-                    throw createResult.exceptionOrNull() ?: IOException("Failed to create task")
-                }
-
-                val etag = createResult.getOrThrow()
-                val href = "${draft.listId}/$filename"
-
-                // Save to local database
+                // Save to local database immediately (optimistic update)
+                // Note: href is null initially - will be set after server sync
                 val taskEntity =
                     TaskEntity(
-                        id = uid, // Use UID as ID for consistency
+                        id = uid,
                         accountId = accountId,
                         listId = draft.listId,
                         title = draft.title,
@@ -157,8 +131,8 @@ class DefaultTasksRepository
                         status = if (draft.completed) "COMPLETED" else "NEEDS-ACTION",
                         completedAt = if (draft.completed) now else null,
                         uid = uid,
-                        etag = etag,
-                        href = href,
+                        etag = null,
+                        href = null, // Will be set after server sync
                         parentUid = null,
                     )
 
@@ -166,8 +140,79 @@ class DefaultTasksRepository
                     tasksDao.upsertTask(taskEntity)
                 }
 
+                Timber.d("Task $uid created locally (optimistic)")
+
+                // Sync with server in background
+                if (networkMonitor.isCurrentlyOnline()) {
+                    backgroundScope.launch {
+                        syncCreateToServer(taskEntity, draft.listId, accountId)
+                    }
+                } else {
+                    // Queue for later sync when offline
+                    pendingOperationsManager.queueCreateOperation(taskEntity, draft.listId)
+                    Timber.d("Task $uid queued for sync (offline)")
+                }
+
                 getTask(taskEntity.id) ?: error("Created task missing from local database")
             }
+
+        /**
+         * Syncs a create operation to the server.
+         */
+        private suspend fun syncCreateToServer(
+            taskEntity: TaskEntity,
+            listId: String,
+            accountId: String,
+        ) {
+            try {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: return
+
+                // Build task domain model for generator
+                val task =
+                    Task(
+                        id = taskEntity.id,
+                        listId = taskEntity.listId,
+                        title = taskEntity.title,
+                        description = taskEntity.description,
+                        completed = taskEntity.completed,
+                        due = taskEntity.due,
+                        updatedAt = taskEntity.updatedAt,
+                        tags = emptyList(),
+                        priority = taskEntity.priority,
+                        status = taskEntity.status,
+                        completedAt = taskEntity.completedAt,
+                        uid = taskEntity.uid,
+                        etag = null,
+                        href = null,
+                        parentUid = null,
+                    )
+
+                // Generate iCalendar VTODO
+                val icalData = vTodoGenerator.generateVTodo(task)
+                val filename = vTodoGenerator.generateFilename(taskEntity.uid ?: taskEntity.id)
+
+                // Upload to server
+                val createResult = calDavService.createTodo(baseUrl, listId, filename, icalData)
+
+                if (createResult.isSuccess) {
+                    val etag = createResult.getOrThrow()
+                    val href = "$listId/$filename"
+
+                    // Update local database with server data (etag and href)
+                    database.withTransaction {
+                        tasksDao.upsertTask(taskEntity.copy(etag = etag, href = href))
+                    }
+                    Timber.d("Task ${taskEntity.id} synced to server successfully")
+                } else {
+                    // Queue for retry if sync failed
+                    Timber.w(createResult.exceptionOrNull(), "Failed to sync task ${taskEntity.id}, queuing for retry")
+                    pendingOperationsManager.queueCreateOperation(taskEntity, listId)
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error syncing task ${taskEntity.id}")
+                pendingOperationsManager.queueCreateOperation(taskEntity, listId)
+            }
+        }
 
         /**
          * Updates a task with optimistic UI update.
@@ -328,6 +373,13 @@ class DefaultTasksRepository
                         return@withContext
                     }
 
+                // IMPORTANT: Process pending operations FIRST before fetching from server
+                // This ensures local offline changes are synced before we fetch server state
+                if (networkMonitor.isCurrentlyOnline()) {
+                    Timber.d("Processing pending operations before refresh")
+                    pendingOperationsManager.processPendingOperations()
+                }
+
                 // CalDAV discovery
                 val principalResult = calDavService.discoverPrincipal(baseUrl)
                 if (principalResult.isFailure) {
@@ -397,10 +449,21 @@ class DefaultTasksRepository
 
                 Timber.d("Fetched total ${allTasks.size} tasks from CalDAV")
 
+                // Get task IDs with pending CREATE operations to protect them from deletion
+                val pendingCreateTaskIds = pendingOperationsManager.getTaskIdsWithPendingCreate()
+                if (pendingCreateTaskIds.isNotEmpty()) {
+                    Timber.d("Protecting ${pendingCreateTaskIds.size} offline-created tasks from deletion")
+                }
+
                 // Update database
                 database.withTransaction {
                     // Delete local-only (demo) tasks and lists before syncing
-                    tasksDao.deleteTasksWithoutHref()
+                    // But exclude tasks that have pending CREATE operations (offline-created)
+                    if (pendingCreateTaskIds.isEmpty()) {
+                        tasksDao.deleteTasksWithoutHref()
+                    } else {
+                        tasksDao.deleteTasksWithoutHrefExcluding(pendingCreateTaskIds)
+                    }
                     taskListsDao.deleteListsWithoutHref()
 
                     upsertTaskLists(taskLists)

@@ -152,6 +152,53 @@ class PendingOperationsManager
         }
 
         /**
+         * Queues a create operation to be synced later (for offline task creation).
+         */
+        suspend fun queueCreateOperation(
+            task: TaskEntity,
+            listId: String,
+        ) = withContext(ioDispatcher) {
+            val accountId =
+                authTokenProvider.activeAccountId() ?: run {
+                    Timber.w("No active account, cannot queue operation")
+                    return@withContext
+                }
+
+            // Remove any existing pending operations for this task
+            pendingOperationsDao.deleteByTaskId(task.id)
+
+            val payload =
+                CreatePayload(
+                    id = task.id,
+                    accountId = task.accountId,
+                    listId = listId,
+                    title = task.title,
+                    description = task.description,
+                    completed = task.completed,
+                    due = task.due,
+                    updatedAt = task.updatedAt,
+                    priority = task.priority,
+                    status = task.status,
+                    completedAt = task.completedAt,
+                    uid = task.uid,
+                )
+
+            val createPayloadAdapter = moshi.adapter(CreatePayload::class.java)
+
+            val operation =
+                PendingOperationEntity(
+                    accountId = accountId,
+                    taskId = task.id,
+                    operationType = PendingOperationEntity.OPERATION_CREATE,
+                    payload = createPayloadAdapter.toJson(payload),
+                    createdAt = Instant.now(),
+                )
+
+            pendingOperationsDao.insert(operation)
+            Timber.d("Queued create operation for task ${task.id}")
+        }
+
+        /**
          * Observes the count of pending operations for the active account.
          */
         fun observePendingCount(): Flow<Int> =
@@ -167,6 +214,16 @@ class PendingOperationsManager
          * Checks if there are pending operations.
          */
         fun hasPendingOperations(): Flow<Boolean> = observePendingCount().map { it > 0 }
+
+        /**
+         * Gets task IDs that have pending CREATE operations.
+         * Used to protect offline-created tasks from being deleted during refresh.
+         */
+        suspend fun getTaskIdsWithPendingCreate(): List<String> =
+            withContext(ioDispatcher) {
+                val accountId = authTokenProvider.activeAccountId() ?: return@withContext emptyList()
+                pendingOperationsDao.getTaskIdsWithPendingCreate(accountId)
+            }
 
         /**
          * Processes all pending operations for the active account.
@@ -194,6 +251,7 @@ class PendingOperationsManager
                         when (operation.operationType) {
                             PendingOperationEntity.OPERATION_UPDATE -> processUpdateOperation(baseUrl, operation)
                             PendingOperationEntity.OPERATION_DELETE -> processDeleteOperation(baseUrl, operation)
+                            PendingOperationEntity.OPERATION_CREATE -> processCreateOperation(baseUrl, operation)
                             else -> {
                                 Timber.w("Unknown operation type: ${operation.operationType}")
                                 pendingOperationsDao.delete(operation.id)
@@ -286,6 +344,71 @@ class PendingOperationsManager
             Timber.d("Successfully synced delete for task ${payload.taskId}")
         }
 
+        private suspend fun processCreateOperation(
+            baseUrl: String,
+            operation: PendingOperationEntity,
+        ) {
+            val createPayloadAdapter = moshi.adapter(CreatePayload::class.java)
+            val payload = createPayloadAdapter.fromJson(operation.payload) ?: return
+
+            // Build task domain model from payload
+            val task =
+                com.nextcloud.tasks.domain.model.Task(
+                    id = payload.id,
+                    listId = payload.listId,
+                    title = payload.title,
+                    description = payload.description,
+                    completed = payload.completed,
+                    due = payload.due,
+                    updatedAt = payload.updatedAt,
+                    tags = emptyList(),
+                    priority = payload.priority,
+                    status = payload.status,
+                    completedAt = payload.completedAt,
+                    uid = payload.uid,
+                    etag = null,
+                    href = null,
+                    parentUid = null,
+                )
+
+            // Generate iCalendar VTODO
+            val icalData = vTodoGenerator.generateVTodo(task)
+            val filename = vTodoGenerator.generateFilename(payload.uid ?: payload.id)
+
+            // Upload to server
+            val createResult = calDavService.createTodo(baseUrl, payload.listId, filename, icalData)
+            if (createResult.isSuccess) {
+                val etag = createResult.getOrNull()
+                val href = "${payload.listId}/$filename"
+
+                // Update local database with server data (etag and href)
+                val taskEntity =
+                    TaskEntity(
+                        id = payload.id,
+                        accountId = payload.accountId,
+                        listId = payload.listId,
+                        title = payload.title,
+                        description = payload.description,
+                        completed = payload.completed,
+                        due = payload.due,
+                        updatedAt = payload.updatedAt,
+                        priority = payload.priority,
+                        status = payload.status,
+                        completedAt = payload.completedAt,
+                        uid = payload.uid,
+                        etag = etag,
+                        href = href,
+                        parentUid = null,
+                    )
+                tasksDao.upsertTask(taskEntity)
+
+                pendingOperationsDao.delete(operation.id)
+                Timber.d("Successfully synced create for task ${payload.id}")
+            } else {
+                throw createResult.exceptionOrNull() ?: IOException("Unknown error during create")
+            }
+        }
+
         private fun taskEntityToDomain(entity: TaskEntity) =
             com.nextcloud.tasks.domain.model.Task(
                 id = entity.id,
@@ -362,6 +485,24 @@ data class DeletePayload(
     val taskId: String,
     val href: String?,
     val etag: String?,
+)
+
+/**
+ * Payload for create operations (offline task creation).
+ */
+data class CreatePayload(
+    val id: String,
+    val accountId: String,
+    val listId: String,
+    val title: String,
+    val description: String?,
+    val completed: Boolean,
+    val due: Instant?,
+    val updatedAt: Instant,
+    val priority: Int?,
+    val status: String?,
+    val completedAt: Instant?,
+    val uid: String?,
 )
 
 /**

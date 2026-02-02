@@ -48,4 +48,7 @@ interface PendingOperationsDao {
         id: Long,
         error: String?,
     )
+
+    @Query("SELECT task_id FROM pending_operations WHERE account_id = :accountId AND operation_type = 'CREATE'")
+    suspend fun getTaskIdsWithPendingCreate(accountId: String): List<String>
 }
