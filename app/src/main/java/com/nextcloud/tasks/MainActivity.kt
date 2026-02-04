@@ -156,6 +156,7 @@ fun NextcloudTasksApp(
     val searchQuery by taskListViewModel.searchQuery.collectAsState()
     val isOnline by taskListViewModel.isOnline.collectAsState()
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
+    val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var forceShowLogin by remember { mutableStateOf(false) }
@@ -211,6 +212,7 @@ fun NextcloudTasksApp(
             searchQuery = searchQuery,
             isOnline = isOnline,
             hasPendingChanges = hasPendingChanges,
+            animatingEntryTaskIds = animatingEntryTaskIds,
             showCreateDialog = showCreateDialog,
             onLogout = loginFlowViewModel::onLogout,
             onSwitchAccount = handleSwitchAccount,
@@ -227,6 +229,7 @@ fun NextcloudTasksApp(
             },
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
             onDeleteTask = taskListViewModel::deleteTask,
+            onClearAnimatingEntryTaskId = taskListViewModel::clearAnimatingEntryTaskId,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
         )
@@ -246,6 +249,7 @@ fun AuthenticatedHome(
     searchQuery: String,
     isOnline: Boolean,
     hasPendingChanges: Boolean,
+    animatingEntryTaskIds: Set<String>,
     showCreateDialog: Boolean,
     onLogout: (String) -> Unit,
     onSwitchAccount: (String) -> Unit,
@@ -259,6 +263,7 @@ fun AuthenticatedHome(
     onCreateTask: (String, String?, String) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
     onDeleteTask: (String) -> Unit,
+    onClearAnimatingEntryTaskId: (String) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -342,6 +347,7 @@ fun AuthenticatedHome(
                         taskSort = taskSort,
                         searchQuery = searchQuery,
                         isOnline = isOnline,
+                        animatingEntryTaskIds = animatingEntryTaskIds,
                         onSetFilter = onSetFilter,
                         onSetSort = onSetSort,
                         onToggleTaskComplete = { task ->
@@ -356,6 +362,7 @@ fun AuthenticatedHome(
                                 showOfflineSnackbar = true
                             }
                         },
+                        onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
                     )
                 }
             }
@@ -622,10 +629,12 @@ private fun TasksContent(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     searchQuery: String,
     isOnline: Boolean,
+    animatingEntryTaskIds: Set<String>,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
     onDeleteTask: (String) -> Unit,
+    onClearAnimatingEntryTaskId: (String) -> Unit,
 ) {
     var showCompletedTasks by remember { mutableStateOf(false) }
 
@@ -705,8 +714,10 @@ private fun TasksContent(
                     items(listTasks, key = { it.id }) { task ->
                         SimpleAnimatedTaskCard(
                             task = task,
+                            animateEntry = task.id in animatingEntryTaskIds,
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
+                            onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
                         )
                     }
                 }
@@ -735,8 +746,10 @@ private fun TasksContent(
                     items(completedTasks, key = { it.id }) { task ->
                         SimpleAnimatedTaskCard(
                             task = task,
+                            animateEntry = task.id in animatingEntryTaskIds,
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
+                            onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
                         )
                     }
                 }
@@ -1091,19 +1104,26 @@ private fun AccountItem(
 @Composable
 private fun SimpleAnimatedTaskCard(
     task: Task,
+    animateEntry: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
+    onEntryAnimationComplete: () -> Unit = {},
 ) {
-    // Start invisible, then animate in
-    var isVisible by remember { mutableStateOf(false) }
+    // Only start invisible if this task should animate entry (recently toggled)
+    var isVisible by remember { mutableStateOf(!animateEntry) }
     var isAnimating by remember { mutableStateOf(false) }
     // Local checkbox state to show change before animation
     var localCompleted by remember(task.id) { mutableStateOf(task.completed) }
     val scope = rememberCoroutineScope()
 
-    // Trigger entry animation on first composition
-    LaunchedEffect(Unit) {
-        isVisible = true
+    // Trigger entry animation only for recently toggled tasks
+    LaunchedEffect(animateEntry) {
+        if (animateEntry && !isVisible) {
+            isVisible = true
+            // Clear the animating flag after a short delay so it doesn't retrigger
+            delay(250)
+            onEntryAnimationComplete()
+        }
     }
 
     // Sync local state when task changes (e.g., from server sync)
@@ -1410,6 +1430,14 @@ class TaskListViewModel
         // Frozen tasks during sync to prevent UI flicker
         private val frozenTasksForSync = MutableStateFlow<List<Task>?>(null)
 
+        // Track task IDs that were recently toggled and should animate entry in their new section
+        private val _animatingEntryTaskIds = MutableStateFlow<Set<String>>(emptySet())
+        val animatingEntryTaskIds = _animatingEntryTaskIds.asStateFlow()
+
+        fun clearAnimatingEntryTaskId(taskId: String) {
+            _animatingEntryTaskIds.update { it - taskId }
+        }
+
         // Network status and pending changes
         val isOnline =
             tasksRepository
@@ -1552,6 +1580,8 @@ class TaskListViewModel
         }
 
         fun toggleTaskComplete(task: Task) {
+            // Mark task for entry animation in the new section
+            _animatingEntryTaskIds.update { it + task.id }
             viewModelScope.launch {
                 try {
                     val updated =
