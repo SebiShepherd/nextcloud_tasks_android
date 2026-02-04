@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.IOException
@@ -53,6 +55,10 @@ class PendingOperationsManager
         private val taskPayloadAdapter = moshi.adapter(TaskPayload::class.java)
 
         private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
+        // Ensures only one processPendingOperations() runs at a time.
+        // Prevents race conditions between network-monitor-triggered sync and manual refresh.
+        private val processingMutex = Mutex()
 
         init {
             // Start monitoring network changes and process pending operations when online
@@ -230,41 +236,43 @@ class PendingOperationsManager
          * Called when network becomes available.
          */
         suspend fun processPendingOperations() =
-            withContext(ioDispatcher) {
-                val accountId =
-                    authTokenProvider.activeAccountId() ?: run {
-                        Timber.w("No active account, skipping pending operations")
-                        return@withContext
-                    }
+            processingMutex.withLock {
+                withContext(ioDispatcher) {
+                    val accountId =
+                        authTokenProvider.activeAccountId() ?: run {
+                            Timber.w("No active account, skipping pending operations")
+                            return@withContext
+                        }
 
-                val baseUrl =
-                    authTokenProvider.activeServerUrl() ?: run {
-                        Timber.w("No active server URL, skipping pending operations")
-                        return@withContext
-                    }
+                    val baseUrl =
+                        authTokenProvider.activeServerUrl() ?: run {
+                            Timber.w("No active server URL, skipping pending operations")
+                            return@withContext
+                        }
 
-                val operations = pendingOperationsDao.getPendingOperations(accountId)
-                Timber.d("Processing ${operations.size} pending operations")
+                    val operations = pendingOperationsDao.getPendingOperations(accountId)
+                    Timber.d("Processing ${operations.size} pending operations")
 
-                for (operation in operations) {
-                    try {
-                        when (operation.operationType) {
-                            PendingOperationEntity.OPERATION_UPDATE -> processUpdateOperation(baseUrl, operation)
-                            PendingOperationEntity.OPERATION_DELETE -> processDeleteOperation(baseUrl, operation)
-                            PendingOperationEntity.OPERATION_CREATE -> processCreateOperation(baseUrl, operation)
-                            else -> {
-                                Timber.w("Unknown operation type: ${operation.operationType}")
+                    for (operation in operations) {
+                        try {
+                            when (operation.operationType) {
+                                PendingOperationEntity.OPERATION_UPDATE -> processUpdateOperation(baseUrl, operation)
+                                PendingOperationEntity.OPERATION_DELETE -> processDeleteOperation(baseUrl, operation)
+                                PendingOperationEntity.OPERATION_CREATE -> processCreateOperation(baseUrl, operation)
+                                else -> {
+                                    Timber.w("Unknown operation type: ${operation.operationType}")
+                                    pendingOperationsDao.delete(operation.id)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "Failed to process operation ${operation.id}, will retry later")
+                            pendingOperationsDao.incrementRetryCount(operation.id, e.message)
+
+                            // If too many retries, give up
+                            if (operation.retryCount >= MAX_RETRIES) {
+                                Timber.w("Max retries reached for operation ${operation.id}, removing")
                                 pendingOperationsDao.delete(operation.id)
                             }
-                        }
-                    } catch (e: Exception) {
-                        Timber.e(e, "Failed to process operation ${operation.id}, will retry later")
-                        pendingOperationsDao.incrementRetryCount(operation.id, e.message)
-
-                        // If too many retries, give up
-                        if (operation.retryCount >= MAX_RETRIES) {
-                            Timber.w("Max retries reached for operation ${operation.id}, removing")
-                            pendingOperationsDao.delete(operation.id)
                         }
                     }
                 }
