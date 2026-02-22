@@ -13,6 +13,7 @@ class TaskFieldMergerTest {
     private val now = Instant.ofEpochMilli(1700000000000L)
     private val later = Instant.ofEpochMilli(1700001000000L)
 
+    @Suppress("LongParameterList")
     private fun createTask(
         id: String = "task-1",
         title: String = "Original Title",

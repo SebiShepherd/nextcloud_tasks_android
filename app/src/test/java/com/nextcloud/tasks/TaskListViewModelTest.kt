@@ -34,6 +34,7 @@ class TaskListViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val now = Instant.ofEpochMilli(1700000000000L)
 
+    @Suppress("LongParameterList")
     private fun createTask(
         id: String = "task-1",
         listId: String = "list-1",

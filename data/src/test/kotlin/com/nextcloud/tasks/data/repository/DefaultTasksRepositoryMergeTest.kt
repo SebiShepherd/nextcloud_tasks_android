@@ -10,7 +10,6 @@ import com.nextcloud.tasks.data.database.dao.PendingOperationsDao
 import com.nextcloud.tasks.data.database.dao.TagsDao
 import com.nextcloud.tasks.data.database.dao.TaskListsDao
 import com.nextcloud.tasks.data.database.dao.TasksDao
-import com.nextcloud.tasks.data.database.entity.TaskEntity
 import com.nextcloud.tasks.data.mapper.TagMapper
 import com.nextcloud.tasks.data.mapper.TaskListMapper
 import com.nextcloud.tasks.data.mapper.TaskMapper
@@ -27,7 +26,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import java.time.Instant
 import kotlin.test.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -83,33 +81,6 @@ class DefaultTasksRepositoryMergeTest {
             ioDispatcher = testDispatcher,
         )
     }
-
-    private val now = Instant.ofEpochMilli(1700000000000L)
-
-    private fun createEntity(
-        id: String = "task-1",
-        accountId: String = "account-1",
-        listId: String = "list-1",
-        etag: String? = "etag-1",
-        baseSnapshot: String? = null,
-    ) = TaskEntity(
-        id = id,
-        accountId = accountId,
-        listId = listId,
-        title = "Test Task",
-        description = null,
-        completed = false,
-        due = null,
-        updatedAt = now,
-        priority = null,
-        status = "NEEDS-ACTION",
-        completedAt = null,
-        uid = "uid-$id",
-        etag = etag,
-        href = "$listId/$id.ics",
-        parentUid = null,
-        baseSnapshot = baseSnapshot,
-    )
 
     // --- clearAccountData ---
 
