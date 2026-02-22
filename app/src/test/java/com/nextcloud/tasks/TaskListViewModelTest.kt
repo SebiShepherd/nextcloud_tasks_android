@@ -70,11 +70,12 @@ class TaskListViewModelTest {
             every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
             every { observeActiveAccountUseCase() } returns accountFlow
 
-            val vm = TaskListViewModel(
-                loadTasksUseCase = loadTasksUseCase,
-                tasksRepository = tasksRepository,
-                observeActiveAccountUseCase = observeActiveAccountUseCase,
-            )
+            val vm =
+                TaskListViewModel(
+                    loadTasksUseCase = loadTasksUseCase,
+                    tasksRepository = tasksRepository,
+                    observeActiveAccountUseCase = observeActiveAccountUseCase,
+                )
             block(vm)
         } finally {
             Dispatchers.resetMain()
@@ -98,11 +99,12 @@ class TaskListViewModelTest {
             every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
             every { observeActiveAccountUseCase() } returns flowOf(null)
 
-            val vm = TaskListViewModel(
-                loadTasksUseCase = loadTasksUseCase,
-                tasksRepository = tasksRepository,
-                observeActiveAccountUseCase = observeActiveAccountUseCase,
-            )
+            val vm =
+                TaskListViewModel(
+                    loadTasksUseCase = loadTasksUseCase,
+                    tasksRepository = tasksRepository,
+                    observeActiveAccountUseCase = observeActiveAccountUseCase,
+                )
             block(vm, tasksRepository)
         } finally {
             Dispatchers.resetMain()
@@ -163,10 +165,11 @@ class TaskListViewModelTest {
     @Test
     fun `tasks are filtered by selected list`() =
         runTest(testDispatcher) {
-            val tasks = listOf(
-                createTask(id = "1", listId = "list-1"),
-                createTask(id = "2", listId = "list-2"),
-            )
+            val tasks =
+                listOf(
+                    createTask(id = "1", listId = "list-1"),
+                    createTask(id = "2", listId = "list-2"),
+                )
             withViewModel(tasks = tasks) { vm ->
                 vm.selectList("list-1")
                 val result = vm.tasks.first()
@@ -178,10 +181,11 @@ class TaskListViewModelTest {
     @Test
     fun `tasks are filtered by completion status`() =
         runTest(testDispatcher) {
-            val tasks = listOf(
-                createTask(id = "1", completed = false),
-                createTask(id = "2", completed = true),
-            )
+            val tasks =
+                listOf(
+                    createTask(id = "1", completed = false),
+                    createTask(id = "2", completed = true),
+                )
             withViewModel(tasks = tasks) { vm ->
                 vm.setFilter(TaskFilter.CURRENT)
                 val current = vm.tasks.first()
@@ -198,11 +202,12 @@ class TaskListViewModelTest {
     @Test
     fun `tasks are filtered by search query case-insensitively`() =
         runTest(testDispatcher) {
-            val tasks = listOf(
-                createTask(id = "1", title = "Buy Groceries"),
-                createTask(id = "2", title = "Read Book"),
-                createTask(id = "3", title = "Buy Milk", description = "grocery store"),
-            )
+            val tasks =
+                listOf(
+                    createTask(id = "1", title = "Buy Groceries"),
+                    createTask(id = "2", title = "Read Book"),
+                    createTask(id = "3", title = "Buy Milk", description = "grocery store"),
+                )
             withViewModel(tasks = tasks) { vm ->
                 vm.setSearchQuery("buy")
                 val result = vm.tasks.first()
@@ -213,9 +218,10 @@ class TaskListViewModelTest {
     @Test
     fun `search query matches description`() =
         runTest(testDispatcher) {
-            val tasks = listOf(
-                createTask(id = "1", title = "Task", description = "important note"),
-            )
+            val tasks =
+                listOf(
+                    createTask(id = "1", title = "Task", description = "important note"),
+                )
             withViewModel(tasks = tasks) { vm ->
                 vm.setSearchQuery("important")
                 val result = vm.tasks.first()
@@ -228,11 +234,12 @@ class TaskListViewModelTest {
     @Test
     fun `tasks sorted by title`() =
         runTest(testDispatcher) {
-            val tasks = listOf(
-                createTask(id = "1", title = "Charlie"),
-                createTask(id = "2", title = "Alpha"),
-                createTask(id = "3", title = "Bravo"),
-            )
+            val tasks =
+                listOf(
+                    createTask(id = "1", title = "Charlie"),
+                    createTask(id = "2", title = "Alpha"),
+                    createTask(id = "3", title = "Bravo"),
+                )
             withViewModel(tasks = tasks) { vm ->
                 vm.setSort(TaskSort.TITLE)
                 val result = vm.tasks.first()
@@ -247,11 +254,12 @@ class TaskListViewModelTest {
         runTest(testDispatcher) {
             val early = Instant.ofEpochMilli(1000L)
             val late = Instant.ofEpochMilli(2000L)
-            val tasks = listOf(
-                createTask(id = "1", due = late),
-                createTask(id = "2", due = early),
-                createTask(id = "3", due = null),
-            )
+            val tasks =
+                listOf(
+                    createTask(id = "1", due = late),
+                    createTask(id = "2", due = early),
+                    createTask(id = "3", due = null),
+                )
             withViewModel(tasks = tasks) { vm ->
                 vm.setSort(TaskSort.DUE_DATE)
                 val result = vm.tasks.first()
@@ -266,10 +274,11 @@ class TaskListViewModelTest {
         runTest(testDispatcher) {
             val early = Instant.ofEpochMilli(1000L)
             val late = Instant.ofEpochMilli(2000L)
-            val tasks = listOf(
-                createTask(id = "1").copy(updatedAt = early),
-                createTask(id = "2").copy(updatedAt = late),
-            )
+            val tasks =
+                listOf(
+                    createTask(id = "1").copy(updatedAt = early),
+                    createTask(id = "2").copy(updatedAt = late),
+                )
             withViewModel(tasks = tasks) { vm ->
                 vm.setSort(TaskSort.UPDATED_AT)
                 val result = vm.tasks.first()

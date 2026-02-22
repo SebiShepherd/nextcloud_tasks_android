@@ -57,14 +57,15 @@ class TaskFieldMergerTest {
 
     @Test
     fun `createSnapshot handles null fields`() {
-        val task = createTask(
-            description = null,
-            due = null,
-            priority = null,
-            status = null,
-            completedAt = null,
-            parentUid = null,
-        )
+        val task =
+            createTask(
+                description = null,
+                due = null,
+                priority = null,
+                status = null,
+                completedAt = null,
+                parentUid = null,
+            )
         val json = merger.createSnapshot(task)
         assertNotNull(json)
     }
@@ -285,11 +286,12 @@ class TaskFieldMergerTest {
 
         // Server: changed title + priority; Local: changed description + completed
         val serverTask = createTask(title = "Server Title", priority = 1)
-        val localTask = createTask(
-            description = "Local Desc",
-            completed = true,
-            baseSnapshot = snapshot,
-        )
+        val localTask =
+            createTask(
+                description = "Local Desc",
+                completed = true,
+                baseSnapshot = snapshot,
+            )
 
         val merged = merger.mergeTask(serverTask, localTask)
 
