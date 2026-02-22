@@ -33,12 +33,19 @@ class NetworkMonitor
             callbackFlow {
                 val callback =
                     object : ConnectivityManager.NetworkCallback() {
+                        // After onAvailable, onCapabilitiesChanged may briefly report
+                        // hasInternet=false before VALIDATED is set. Suppress that blip.
+                        private var availableSince = 0L
+                        private val validationGraceMs = 3_000L
+
                         override fun onAvailable(network: Network) {
+                            availableSince = android.os.SystemClock.elapsedRealtime()
                             Timber.d("Default network available")
                             trySend(true)
                         }
 
                         override fun onLost(network: Network) {
+                            availableSince = 0L
                             Timber.d("Default network lost")
                             trySend(false)
                         }
@@ -50,6 +57,13 @@ class NetworkMonitor
                             val hasInternet =
                                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                                     capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                            if (!hasInternet &&
+                                availableSince > 0 &&
+                                android.os.SystemClock.elapsedRealtime() - availableSince < validationGraceMs
+                            ) {
+                                Timber.d("Default network capabilities changed, hasInternet: false (suppressed, awaiting validation)")
+                                return
+                            }
                             Timber.d("Default network capabilities changed, hasInternet: $hasInternet")
                             trySend(hasInternet)
                         }
