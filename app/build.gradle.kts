@@ -156,8 +156,12 @@ dependencies {
     implementation(libs.material)
     implementation(libs.timber)
     implementation(libs.coil.compose)
+    implementation(libs.androidx.compose.material3.wsc)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    kapt(libs.androidx.hilt.compiler)
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 

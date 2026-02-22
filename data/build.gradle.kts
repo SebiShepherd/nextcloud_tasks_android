@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     implementation(libs.ical4j.core)
+    implementation(libs.androidx.work.runtime.ktx)
     kapt(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
     testImplementation(kotlin("test"))

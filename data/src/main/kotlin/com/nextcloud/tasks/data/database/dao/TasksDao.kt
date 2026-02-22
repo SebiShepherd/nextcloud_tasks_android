@@ -49,6 +49,9 @@ interface TasksDao {
     @Query("SELECT updated_at FROM tasks WHERE id = :taskId LIMIT 1")
     suspend fun getTaskUpdatedAt(taskId: String): Instant?
 
+    @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
+    suspend fun getTaskEntity(taskId: String): TaskEntity?
+
     @Query("SELECT COUNT(*) FROM tasks")
     suspend fun countTasks(): Int
 }

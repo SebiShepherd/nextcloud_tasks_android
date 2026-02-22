@@ -29,6 +29,7 @@ nextcloudAndroidLibrary = "2.22.2"
 nextcloudAndroidCommon = "1.0.0"
 coil = "2.7.0"
 datastore = "1.1.1"
+workManager = "2.10.0"
 browser = "1.8.0"
 androidSingleSignOn = "1.0.0"
 desugarJdkLibs = "2.0.4"
@@ -46,6 +47,7 @@ androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = 
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterial3" }
+androidx-compose-material3-wsc = { module = "androidx.compose.material3:material3-window-size-class", version.ref = "composeMaterial3" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIcons" }
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
@@ -74,6 +76,9 @@ nextcloud-android-library = { module = "com.github.nextcloud:android-library", v
 nextcloud-android-common-ui = { module = "com.github.nextcloud.android-common:ui", version.ref = "nextcloudAndroidCommon" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workManager" }
+androidx-hilt-work = { module = "androidx.hilt:hilt-work", version = "1.2.0" }
+androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version = "1.2.0" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
 android-singlesignon = { module = "com.github.nextcloud:Android-SingleSignOn", version.ref = "androidSingleSignOn" }
 desugar-jdk-libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }

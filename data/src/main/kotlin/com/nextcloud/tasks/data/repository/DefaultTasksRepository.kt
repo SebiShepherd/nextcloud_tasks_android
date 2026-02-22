@@ -13,6 +13,7 @@ import com.nextcloud.tasks.data.mapper.TaskListMapper
 import com.nextcloud.tasks.data.mapper.TaskMapper
 import com.nextcloud.tasks.data.network.NetworkMonitor
 import com.nextcloud.tasks.data.sync.PendingOperationsManager
+import com.nextcloud.tasks.data.sync.TaskFieldMerger
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskDraft
@@ -48,6 +49,7 @@ class DefaultTasksRepository
         private val authTokenProvider: AuthTokenProvider,
         private val networkMonitor: NetworkMonitor,
         private val pendingOperationsManager: PendingOperationsManager,
+        private val taskFieldMerger: TaskFieldMerger,
         private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     ) : TasksRepository {
         private val backgroundScope = CoroutineScope(SupervisorJob() + ioDispatcher)
@@ -197,9 +199,12 @@ class DefaultTasksRepository
                     val etag = createResult.getOrThrow()
                     val href = "$listId/$filename"
 
-                    // Update local database with server data (etag and href)
+                    // Update local database with server data (etag, href, and base snapshot)
+                    val syncedEntity = taskEntity.copy(etag = etag, href = href)
                     database.withTransaction {
-                        tasksDao.upsertTask(taskEntity.copy(etag = etag, href = href))
+                        tasksDao.upsertTask(
+                            syncedEntity.copy(baseSnapshot = taskFieldMerger.createSnapshot(syncedEntity)),
+                        )
                     }
                     Timber.d("Task ${taskEntity.id} synced to server successfully")
                 } else {
@@ -282,9 +287,12 @@ class DefaultTasksRepository
 
                 if (updateResult.isSuccess) {
                     val newEtag = updateResult.getOrThrow()
-                    // Update etag in database
+                    // Update etag and base snapshot in database
+                    val syncedEntity = taskEntity.copy(etag = newEtag)
                     database.withTransaction {
-                        tasksDao.upsertTask(taskEntity.copy(etag = newEtag))
+                        tasksDao.upsertTask(
+                            syncedEntity.copy(baseSnapshot = taskFieldMerger.createSnapshot(syncedEntity)),
+                        )
                     }
                     Timber.d("Task ${task.id} synced to server successfully")
                 } else {
@@ -494,25 +502,38 @@ class DefaultTasksRepository
             }
         }
 
-        private suspend fun shouldReplaceTask(task: TaskEntity): Boolean {
-            val currentUpdatedAt = tasksDao.getTaskUpdatedAt(task.id)
-            return currentUpdatedAt == null || !currentUpdatedAt.isAfter(task.updatedAt)
-        }
-
         private suspend fun shouldReplaceList(list: TaskListEntity): Boolean {
             val currentUpdatedAt = taskListsDao.getUpdatedAt(list.id)
             return currentUpdatedAt == null || !currentUpdatedAt.isAfter(list.updatedAt)
         }
 
+        /**
+         * Upserts tasks from CalDAV using field-level merge.
+         *
+         * For each server task:
+         * - New task (not in local DB): insert with base_snapshot set
+         * - Existing task with same etag: skip (no changes)
+         * - Existing task with different etag: perform field-level merge
+         */
         private suspend fun upsertTasksFromCalDav(tasks: List<TaskEntity>) {
-            tasks.forEach { task ->
-                if (shouldReplaceTask(task)) {
-                    tasksDao.upsertTask(task)
-                    // Clear existing tag associations
-                    tasksDao.clearTagsForTask(task.id)
-                    // Note: CalDAV tags will be handled separately if needed
+            tasks.forEach { serverTask ->
+                val localTask = tasksDao.getTaskEntity(serverTask.id)
+
+                if (localTask == null) {
+                    // New task from server — insert with base snapshot
+                    val taskWithSnapshot = serverTask.copy(
+                        baseSnapshot = taskFieldMerger.createSnapshot(serverTask),
+                    )
+                    tasksDao.upsertTask(taskWithSnapshot)
+                    tasksDao.clearTagsForTask(serverTask.id)
+                } else if (localTask.etag != null && localTask.etag == serverTask.etag) {
+                    // Same etag — no server changes, skip
+                    Timber.d("Skipped task %s (etag unchanged)", serverTask.id)
                 } else {
-                    Timber.d("Skipped task %s because local version is newer", task.id)
+                    // Server has changes — perform field-level merge
+                    val merged = taskFieldMerger.mergeTask(serverTask, localTask)
+                    tasksDao.upsertTask(merged)
+                    tasksDao.clearTagsForTask(serverTask.id)
                 }
             }
         }
