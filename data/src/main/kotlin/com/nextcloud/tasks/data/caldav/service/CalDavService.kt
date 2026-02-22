@@ -229,7 +229,10 @@ class CalDavService
 
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
-                    throw CalDavHttpException(response.code, "Failed to create todo: ${response.code} - ${response.message}")
+                    throw CalDavHttpException(
+                        response.code,
+                        "Failed to create todo: ${response.code} - ${response.message}",
+                    )
                 }
 
                 // Extract ETag from response
@@ -269,7 +272,10 @@ class CalDavService
                     if (response.code == 412) {
                         throw IOException("Conflict: Task was modified on server (ETag mismatch)")
                     }
-                    throw CalDavHttpException(response.code, "Failed to update todo: ${response.code} - ${response.message}")
+                    throw CalDavHttpException(
+                        response.code,
+                        "Failed to update todo: ${response.code} - ${response.message}",
+                    )
                 }
 
                 // Return new ETag
@@ -309,7 +315,10 @@ class CalDavService
                         // Already deleted, consider success
                         return@runCatching
                     }
-                    throw CalDavHttpException(response.code, "Failed to delete todo: ${response.code} - ${response.message}")
+                    throw CalDavHttpException(
+                        response.code,
+                        "Failed to delete todo: ${response.code} - ${response.message}",
+                    )
                 }
             }
 
