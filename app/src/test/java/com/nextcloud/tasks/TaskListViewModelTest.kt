@@ -54,10 +54,10 @@ class TaskListViewModelTest {
         priority = priority,
     )
 
-    private fun withViewModel(
+    private suspend fun withViewModel(
         tasks: List<Task> = emptyList(),
         accountFlow: kotlinx.coroutines.flow.Flow<NextcloudAccount?> = flowOf(null),
-        block: (TaskListViewModel) -> Unit,
+        block: suspend (TaskListViewModel) -> Unit,
     ) {
         Dispatchers.setMain(testDispatcher)
         try {
@@ -84,9 +84,9 @@ class TaskListViewModelTest {
     }
 
     /** Variant that also exposes the mocked repository for verification. */
-    private fun withViewModelAndRepo(
+    private suspend fun withViewModelAndRepo(
         tasks: List<Task> = emptyList(),
-        block: (TaskListViewModel, TasksRepository) -> Unit,
+        block: suspend (TaskListViewModel, TasksRepository) -> Unit,
     ) {
         Dispatchers.setMain(testDispatcher)
         try {
@@ -115,51 +115,55 @@ class TaskListViewModelTest {
     // --- selectList ---
 
     @Test
-    fun `selectList updates selectedListId`() {
-        withViewModel {
-            it.selectList("list-1")
-            assertEquals("list-1", it.selectedListId.value)
+    fun `selectList updates selectedListId`() =
+        runTest(testDispatcher) {
+            withViewModel {
+                it.selectList("list-1")
+                assertEquals("list-1", it.selectedListId.value)
 
-            it.selectList(null)
-            assertNull(it.selectedListId.value)
+                it.selectList(null)
+                assertNull(it.selectedListId.value)
+            }
         }
-    }
 
     // --- setFilter ---
 
     @Test
-    fun `setFilter updates taskFilter`() {
-        withViewModel {
-            it.setFilter(TaskFilter.COMPLETED)
-            assertEquals(TaskFilter.COMPLETED, it.taskFilter.value)
+    fun `setFilter updates taskFilter`() =
+        runTest(testDispatcher) {
+            withViewModel {
+                it.setFilter(TaskFilter.COMPLETED)
+                assertEquals(TaskFilter.COMPLETED, it.taskFilter.value)
 
-            it.setFilter(TaskFilter.CURRENT)
-            assertEquals(TaskFilter.CURRENT, it.taskFilter.value)
+                it.setFilter(TaskFilter.CURRENT)
+                assertEquals(TaskFilter.CURRENT, it.taskFilter.value)
+            }
         }
-    }
 
     // --- setSort ---
 
     @Test
-    fun `setSort updates taskSort`() {
-        withViewModel {
-            it.setSort(TaskSort.TITLE)
-            assertEquals(TaskSort.TITLE, it.taskSort.value)
+    fun `setSort updates taskSort`() =
+        runTest(testDispatcher) {
+            withViewModel {
+                it.setSort(TaskSort.TITLE)
+                assertEquals(TaskSort.TITLE, it.taskSort.value)
 
-            it.setSort(TaskSort.PRIORITY)
-            assertEquals(TaskSort.PRIORITY, it.taskSort.value)
+                it.setSort(TaskSort.PRIORITY)
+                assertEquals(TaskSort.PRIORITY, it.taskSort.value)
+            }
         }
-    }
 
     // --- setSearchQuery ---
 
     @Test
-    fun `setSearchQuery updates searchQuery`() {
-        withViewModel {
-            it.setSearchQuery("test")
-            assertEquals("test", it.searchQuery.value)
+    fun `setSearchQuery updates searchQuery`() =
+        runTest(testDispatcher) {
+            withViewModel {
+                it.setSearchQuery("test")
+                assertEquals("test", it.searchQuery.value)
+            }
         }
-    }
 
     // --- filtering tasks ---
 
@@ -515,17 +519,20 @@ class TaskListViewModelTest {
     // --- default values ---
 
     @Test
-    fun `default filter is ALL`() {
-        withViewModel { assertEquals(TaskFilter.ALL, it.taskFilter.value) }
-    }
+    fun `default filter is ALL`() =
+        runTest(testDispatcher) {
+            withViewModel { assertEquals(TaskFilter.ALL, it.taskFilter.value) }
+        }
 
     @Test
-    fun `default sort is DUE_DATE`() {
-        withViewModel { assertEquals(TaskSort.DUE_DATE, it.taskSort.value) }
-    }
+    fun `default sort is DUE_DATE`() =
+        runTest(testDispatcher) {
+            withViewModel { assertEquals(TaskSort.DUE_DATE, it.taskSort.value) }
+        }
 
     @Test
-    fun `default search query is empty`() {
-        withViewModel { assertEquals("", it.searchQuery.value) }
-    }
+    fun `default search query is empty`() =
+        runTest(testDispatcher) {
+            withViewModel { assertEquals("", it.searchQuery.value) }
+        }
 }
