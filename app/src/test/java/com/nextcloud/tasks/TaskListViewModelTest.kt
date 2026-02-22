@@ -22,6 +22,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Before
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,6 +35,16 @@ import kotlin.test.assertTrue
 class TaskListViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val now = Instant.ofEpochMilli(1700000000000L)
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Suppress("LongParameterList")
     private fun createTask(
@@ -59,28 +71,23 @@ class TaskListViewModelTest {
         accountFlow: kotlinx.coroutines.flow.Flow<NextcloudAccount?> = flowOf(null),
         block: suspend (TaskListViewModel) -> Unit,
     ) {
-        Dispatchers.setMain(testDispatcher)
-        try {
-            val tasksRepository = mockk<TasksRepository>(relaxed = true)
-            val loadTasksUseCase = mockk<LoadTasksUseCase>()
-            val observeActiveAccountUseCase = mockk<ObserveActiveAccountUseCase>()
+        val tasksRepository = mockk<TasksRepository>(relaxed = true)
+        val loadTasksUseCase = mockk<LoadTasksUseCase>()
+        val observeActiveAccountUseCase = mockk<ObserveActiveAccountUseCase>()
 
-            every { loadTasksUseCase() } returns flowOf(tasks)
-            every { tasksRepository.observeLists() } returns flowOf(emptyList())
-            every { tasksRepository.observeIsOnline() } returns flowOf(true)
-            every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
-            every { observeActiveAccountUseCase() } returns accountFlow
+        every { loadTasksUseCase() } returns flowOf(tasks)
+        every { tasksRepository.observeLists() } returns flowOf(emptyList())
+        every { tasksRepository.observeIsOnline() } returns flowOf(true)
+        every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
+        every { observeActiveAccountUseCase() } returns accountFlow
 
-            val vm =
-                TaskListViewModel(
-                    loadTasksUseCase = loadTasksUseCase,
-                    tasksRepository = tasksRepository,
-                    observeActiveAccountUseCase = observeActiveAccountUseCase,
-                )
-            block(vm)
-        } finally {
-            Dispatchers.resetMain()
-        }
+        val vm =
+            TaskListViewModel(
+                loadTasksUseCase = loadTasksUseCase,
+                tasksRepository = tasksRepository,
+                observeActiveAccountUseCase = observeActiveAccountUseCase,
+            )
+        block(vm)
     }
 
     /** Variant that also exposes the mocked repository for verification. */
@@ -88,28 +95,23 @@ class TaskListViewModelTest {
         tasks: List<Task> = emptyList(),
         block: suspend (TaskListViewModel, TasksRepository) -> Unit,
     ) {
-        Dispatchers.setMain(testDispatcher)
-        try {
-            val tasksRepository = mockk<TasksRepository>(relaxed = true)
-            val loadTasksUseCase = mockk<LoadTasksUseCase>()
-            val observeActiveAccountUseCase = mockk<ObserveActiveAccountUseCase>()
+        val tasksRepository = mockk<TasksRepository>(relaxed = true)
+        val loadTasksUseCase = mockk<LoadTasksUseCase>()
+        val observeActiveAccountUseCase = mockk<ObserveActiveAccountUseCase>()
 
-            every { loadTasksUseCase() } returns flowOf(tasks)
-            every { tasksRepository.observeLists() } returns flowOf(emptyList())
-            every { tasksRepository.observeIsOnline() } returns flowOf(true)
-            every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
-            every { observeActiveAccountUseCase() } returns flowOf(null)
+        every { loadTasksUseCase() } returns flowOf(tasks)
+        every { tasksRepository.observeLists() } returns flowOf(emptyList())
+        every { tasksRepository.observeIsOnline() } returns flowOf(true)
+        every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
+        every { observeActiveAccountUseCase() } returns flowOf(null)
 
-            val vm =
-                TaskListViewModel(
-                    loadTasksUseCase = loadTasksUseCase,
-                    tasksRepository = tasksRepository,
-                    observeActiveAccountUseCase = observeActiveAccountUseCase,
-                )
-            block(vm, tasksRepository)
-        } finally {
-            Dispatchers.resetMain()
-        }
+        val vm =
+            TaskListViewModel(
+                loadTasksUseCase = loadTasksUseCase,
+                tasksRepository = tasksRepository,
+                observeActiveAccountUseCase = observeActiveAccountUseCase,
+            )
+        block(vm, tasksRepository)
     }
 
     // --- selectList ---
