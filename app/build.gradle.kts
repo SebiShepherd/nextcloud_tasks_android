@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.playPublisher)
     alias(libs.plugins.composeCompiler)
-    kotlin("kapt")
+    alias(libs.plugins.ksp)
 }
 
 /**
@@ -134,11 +134,6 @@ android {
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 
-kapt {
-    correctErrorTypes = true
-    useBuildCache = true
-}
-
 kotlin {
     jvmToolchain(17)
 }
@@ -161,11 +156,11 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
-    kapt(libs.androidx.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
