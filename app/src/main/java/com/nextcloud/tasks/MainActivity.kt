@@ -1667,7 +1667,7 @@ class TaskListViewModel
                     timber.log.Timber.e(e, "Failed to refresh tasks (timeout)")
                     _refreshError.value = RefreshError.NETWORK_ERROR
                 } catch (
-                    @Suppress("TooGenericExceptionCaught") e: Exception
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
                     timber.log.Timber.e(e, "Failed to refresh tasks")
                     _refreshError.value = RefreshError.UNKNOWN
