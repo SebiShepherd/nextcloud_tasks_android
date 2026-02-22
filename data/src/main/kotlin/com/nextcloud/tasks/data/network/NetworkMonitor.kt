@@ -50,6 +50,8 @@ class NetworkMonitor
                             trySend(false)
                         }
 
+                        private var lastEmitted: Boolean? = null
+
                         override fun onCapabilitiesChanged(
                             network: Network,
                             capabilities: NetworkCapabilities,
@@ -61,10 +63,13 @@ class NetworkMonitor
                                 availableSince > 0 &&
                                 android.os.SystemClock.elapsedRealtime() - availableSince < validationGraceMs
                             ) {
-                                Timber.d("Default network capabilities changed, hasInternet: false (suppressed, awaiting validation)")
+                                Timber.v("Default network capabilities changed, hasInternet: false (suppressed, awaiting validation)")
                                 return
                             }
-                            Timber.d("Default network capabilities changed, hasInternet: $hasInternet")
+                            if (hasInternet != lastEmitted) {
+                                Timber.d("Default network capabilities changed, hasInternet: $hasInternet")
+                                lastEmitted = hasInternet
+                            }
                             trySend(hasInternet)
                         }
                     }

@@ -519,6 +519,9 @@ private fun UnifiedSearchBar(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                } else {
+                    // Extra start padding on expanded screens where hamburger icon is absent
+                    Spacer(Modifier.width(8.dp))
                 }
 
                 // Search text field

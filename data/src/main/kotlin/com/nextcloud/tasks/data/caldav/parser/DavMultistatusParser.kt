@@ -201,16 +201,12 @@ class DavMultistatusParser
          * Extract principal URL from multistatus response
          */
         fun parsePrincipalUrl(multistatus: DavMultistatus): PrincipalInfo? {
-            timber.log.Timber.d("Parsing principal from ${multistatus.responses.size} responses")
-            multistatus.responses.forEach { response ->
-                timber.log.Timber.d("Response href: ${response.href}, properties: ${response.properties}")
-            }
             val principalHref =
                 multistatus.responses
                     .firstOrNull()
                     ?.properties
                     ?.get(DavProperty.CURRENT_USER_PRINCIPAL)
-            timber.log.Timber.d("Principal href found: $principalHref")
+            Timber.v("Parsed principal href: %s", principalHref)
             return principalHref?.let { PrincipalInfo(it) }
         }
 
