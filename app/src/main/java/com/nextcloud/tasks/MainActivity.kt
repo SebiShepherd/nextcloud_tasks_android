@@ -307,28 +307,7 @@ fun AuthenticatedHome(
         }
     }
 
-    // Show snackbar for refresh errors (429, auth, network, etc.)
-    val rateLimitedMsg = stringResource(R.string.error_rate_limited)
-    val authFailedMsg = stringResource(R.string.error_auth_failed_refresh)
-    val serverErrorMsg = stringResource(R.string.error_server)
-    val networkErrorMsg = stringResource(R.string.error_network)
-    val unknownErrorMsg = stringResource(R.string.error_unknown)
-
-    LaunchedEffect(refreshError) {
-        val message =
-            when (refreshError) {
-                RefreshError.RATE_LIMITED -> rateLimitedMsg
-                RefreshError.AUTH_FAILED -> authFailedMsg
-                RefreshError.SERVER_ERROR -> serverErrorMsg
-                RefreshError.NETWORK_ERROR -> networkErrorMsg
-                RefreshError.UNKNOWN -> unknownErrorMsg
-                null -> null
-            }
-        if (message != null) {
-            snackbarHostState.showSnackbar(message)
-            onClearRefreshError()
-        }
-    }
+    RefreshErrorEffect(refreshError, snackbarHostState, onClearRefreshError)
 
     val mainContent: @Composable () -> Unit = {
         Scaffold(
@@ -444,6 +423,35 @@ fun AuthenticatedHome(
                     }
                 },
             )
+        }
+    }
+}
+
+@Composable
+private fun RefreshErrorEffect(
+    refreshError: RefreshError?,
+    snackbarHostState: SnackbarHostState,
+    onClearRefreshError: () -> Unit,
+) {
+    val rateLimitedMsg = stringResource(R.string.error_rate_limited)
+    val authFailedMsg = stringResource(R.string.error_auth_failed_refresh)
+    val serverErrorMsg = stringResource(R.string.error_server)
+    val networkErrorMsg = stringResource(R.string.error_network)
+    val unknownErrorMsg = stringResource(R.string.error_unknown)
+
+    LaunchedEffect(refreshError) {
+        val message =
+            when (refreshError) {
+                RefreshError.RATE_LIMITED -> rateLimitedMsg
+                RefreshError.AUTH_FAILED -> authFailedMsg
+                RefreshError.SERVER_ERROR -> serverErrorMsg
+                RefreshError.NETWORK_ERROR -> networkErrorMsg
+                RefreshError.UNKNOWN -> unknownErrorMsg
+                null -> null
+            }
+        if (message != null) {
+            snackbarHostState.showSnackbar(message)
+            onClearRefreshError()
         }
     }
 }
@@ -1658,7 +1666,9 @@ class TaskListViewModel
                 } catch (e: java.net.SocketTimeoutException) {
                     timber.log.Timber.e(e, "Failed to refresh tasks (timeout)")
                     _refreshError.value = RefreshError.NETWORK_ERROR
-                } catch (e: Exception) {
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception
+                ) {
                     timber.log.Timber.e(e, "Failed to refresh tasks")
                     _refreshError.value = RefreshError.UNKNOWN
                 } finally {
