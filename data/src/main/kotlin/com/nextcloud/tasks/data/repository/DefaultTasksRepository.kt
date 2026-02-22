@@ -521,9 +521,10 @@ class DefaultTasksRepository
 
                 if (localTask == null) {
                     // New task from server — insert with base snapshot
-                    val taskWithSnapshot = serverTask.copy(
-                        baseSnapshot = taskFieldMerger.createSnapshot(serverTask),
-                    )
+                    val taskWithSnapshot =
+                        serverTask.copy(
+                            baseSnapshot = taskFieldMerger.createSnapshot(serverTask),
+                        )
                     tasksDao.upsertTask(taskWithSnapshot)
                     tasksDao.clearTagsForTask(serverTask.id)
                 } else if (localTask.etag != null && localTask.etag == serverTask.etag) {

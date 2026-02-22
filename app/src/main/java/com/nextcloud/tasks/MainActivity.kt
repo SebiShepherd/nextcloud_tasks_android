@@ -682,20 +682,22 @@ private fun TasksContent(
     val openTasksByList = openTasks.groupBy { it.listId }
 
     // On expanded screens, constrain max content width for readability
-    val contentModifier = if (isExpandedScreen) {
-        Modifier.padding(padding).fillMaxWidth().widthIn(max = 720.dp)
-    } else {
-        Modifier.padding(padding)
-    }
+    val contentModifier =
+        if (isExpandedScreen) {
+            Modifier.padding(padding).fillMaxWidth().widthIn(max = 720.dp)
+        } else {
+            Modifier.padding(padding)
+        }
 
     LazyColumn(
         modifier = contentModifier,
-        contentPadding = PaddingValues(
-            start = if (isExpandedScreen) 24.dp else 16.dp,
-            end = if (isExpandedScreen) 24.dp else 16.dp,
-            top = 16.dp,
-            bottom = 16.dp,
-        ),
+        contentPadding =
+            PaddingValues(
+                start = if (isExpandedScreen) 24.dp else 16.dp,
+                end = if (isExpandedScreen) 24.dp else 16.dp,
+                top = 16.dp,
+                bottom = 16.dp,
+            ),
     ) {
         if (openTasks.isEmpty() && completedTasks.isEmpty()) {
             item {
