@@ -528,7 +528,18 @@ class DefaultTasksRepository
                     tasksDao.upsertTask(taskWithSnapshot)
                     tasksDao.clearTagsForTask(serverTask.id)
                 } else if (localTask.etag != null && localTask.etag == serverTask.etag) {
-                    // Same etag — no server changes, skip
+                    // Same etag — no server changes
+                    // But update account_id and listId if they changed (e.g. after re-login)
+                    if (localTask.accountId != serverTask.accountId ||
+                        localTask.listId != serverTask.listId
+                    ) {
+                        tasksDao.upsertTask(
+                            localTask.copy(
+                                accountId = serverTask.accountId,
+                                listId = serverTask.listId,
+                            ),
+                        )
+                    }
                     Timber.d("Skipped task %s (etag unchanged)", serverTask.id)
                 } else {
                     // Server has changes — perform field-level merge
