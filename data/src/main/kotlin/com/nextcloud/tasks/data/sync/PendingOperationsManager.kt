@@ -262,7 +262,7 @@ class PendingOperationsManager
                                     pendingOperationsDao.delete(operation.id)
                                 }
                             }
-                        } catch (e: Exception) {
+                        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                             Timber.e(e, "Failed to process operation ${operation.id}, will retry later")
                             pendingOperationsDao.incrementRetryCount(operation.id, e.message)
 

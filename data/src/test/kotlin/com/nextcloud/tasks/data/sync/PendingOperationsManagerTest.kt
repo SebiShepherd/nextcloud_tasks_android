@@ -352,8 +352,6 @@ class PendingOperationsManagerTest {
     fun `processPendingOperations continues after one operation fails`() =
         runTest(testDispatcher) {
             val manager = createManager()
-            val task1 = createTaskEntity(id = "task-1")
-            val task2 = createTaskEntity(id = "task-2")
 
             val op1 =
                 PendingOperationEntity(

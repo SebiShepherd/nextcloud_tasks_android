@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 /**
  * DAO for managing pending operations that need to be synchronized with the server.
  */
+@Suppress("TooManyFunctions")
 @Dao
 interface PendingOperationsDao {
     @Query("SELECT * FROM pending_operations WHERE account_id = :accountId ORDER BY created_at ASC")

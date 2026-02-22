@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package com.nextcloud.tasks
 
 import android.content.res.Configuration
@@ -249,6 +251,7 @@ fun AuthenticatedHome(
     isRefreshing: Boolean,
     searchQuery: String,
     isOnline: Boolean,
+    @Suppress("UnusedParameter")
     hasPendingChanges: Boolean,
     animatingEntryTaskIds: Set<String>,
     showCreateDialog: Boolean,

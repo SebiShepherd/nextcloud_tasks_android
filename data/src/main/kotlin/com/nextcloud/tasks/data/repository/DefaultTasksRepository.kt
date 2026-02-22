@@ -145,7 +145,7 @@ class DefaultTasksRepository
                 // Sync with server in background
                 if (networkMonitor.isCurrentlyOnline()) {
                     backgroundScope.launch {
-                        syncCreateToServer(taskEntity, draft.listId, accountId)
+                        syncCreateToServer(taskEntity, draft.listId)
                     }
                 } else {
                     // Queue for later sync when offline
@@ -162,7 +162,6 @@ class DefaultTasksRepository
         private suspend fun syncCreateToServer(
             taskEntity: TaskEntity,
             listId: String,
-            accountId: String,
         ) {
             try {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: return
@@ -208,7 +207,7 @@ class DefaultTasksRepository
                     Timber.w(createResult.exceptionOrNull(), "Failed to sync task ${taskEntity.id}, queuing for retry")
                     pendingOperationsManager.queueCreateOperation(taskEntity, listId)
                 }
-            } catch (e: Exception) {
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 Timber.e(e, "Error syncing task ${taskEntity.id}")
                 pendingOperationsManager.queueCreateOperation(taskEntity, listId)
             }
@@ -252,7 +251,7 @@ class DefaultTasksRepository
                 // Sync with server in background
                 if (networkMonitor.isCurrentlyOnline() && task.href != null) {
                     backgroundScope.launch {
-                        syncTaskToServer(task, taskEntity, accountId)
+                        syncTaskToServer(task, taskEntity)
                     }
                 } else {
                     // Queue for later sync when offline or no href
@@ -271,7 +270,6 @@ class DefaultTasksRepository
         private suspend fun syncTaskToServer(
             task: Task,
             taskEntity: TaskEntity,
-            accountId: String,
         ) {
             try {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: return
@@ -292,7 +290,7 @@ class DefaultTasksRepository
                     Timber.w(updateResult.exceptionOrNull(), "Failed to sync task ${task.id}, queuing for retry")
                     pendingOperationsManager.queueUpdateOperation(taskEntity)
                 }
-            } catch (e: Exception) {
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 Timber.e(e, "Error syncing task ${task.id}")
                 pendingOperationsManager.queueUpdateOperation(taskEntity)
             }
@@ -352,7 +350,7 @@ class DefaultTasksRepository
                 } else {
                     Timber.d("Task $taskId deleted from server successfully")
                 }
-            } catch (e: Exception) {
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 Timber.e(e, "Error deleting task $taskId from server")
                 pendingOperationsManager.queueDeleteOperation(taskId, href, etag)
             }
