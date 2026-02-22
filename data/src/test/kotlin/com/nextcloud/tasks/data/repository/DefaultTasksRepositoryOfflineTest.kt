@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.data.repository
 
+import androidx.room.withTransaction
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.caldav.generator.VTodoGenerator
 import com.nextcloud.tasks.data.caldav.parser.VTodoParser
@@ -148,6 +149,11 @@ class DefaultTasksRepositoryOfflineTest {
             every { taskMapper.toDomain(taskWithRelations) } returns domainTask
             coEvery { tasksDao.getTaskWithRelations(any()) } returns taskWithRelations
 
+            // Set up online sync mocks so background sync succeeds
+            every { vTodoGenerator.generateVTodo(any()) } returns "BEGIN:VCALENDAR\nEND:VCALENDAR"
+            every { vTodoGenerator.generateFilename(any()) } returns "test.ics"
+            coEvery { calDavService.createTodo(any(), any(), any(), any()) } returns Result.success("etag-new")
+
             val draft =
                 TaskDraft(
                     listId = "list-1",
@@ -198,6 +204,10 @@ class DefaultTasksRepositoryOfflineTest {
             val taskWithRelations = mockk<TaskWithRelations>()
             every { taskMapper.toDomain(taskWithRelations) } returns task
             coEvery { tasksDao.getTaskWithRelations("task-1") } returns taskWithRelations
+
+            // Set up online sync mocks so background sync succeeds
+            every { vTodoGenerator.generateVTodo(any()) } returns "BEGIN:VCALENDAR\nEND:VCALENDAR"
+            coEvery { calDavService.updateTodo(any(), any(), any(), any()) } returns Result.success("etag-new")
 
             repo.updateTask(task)
 
@@ -266,6 +276,9 @@ class DefaultTasksRepositoryOfflineTest {
             val taskWithRelations = mockk<TaskWithRelations>()
             every { taskMapper.toDomain(taskWithRelations) } returns task
             coEvery { tasksDao.getTaskWithRelations("task-1") } returns taskWithRelations
+
+            // Set up online sync mocks so background sync succeeds
+            coEvery { calDavService.deleteTodo(any(), any(), any()) } returns Result.success(Unit)
 
             repo.deleteTask("task-1")
 
