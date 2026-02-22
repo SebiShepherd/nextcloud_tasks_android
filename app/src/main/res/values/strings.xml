@@ -86,6 +86,10 @@
     <string name="error_login_failed">Login failed</string>
     <string name="error_switch_account_failed">Failed to switch account</string>
     <string name="error_logout_failed">Failed to logout</string>
+    <string name="error_rate_limited">Server is busy. Please try again in a moment.</string>
+    <string name="error_auth_failed_refresh">Authentication failed. Please check your credentials.</string>
+    <string name="error_server">Server error. Please try again later.</string>
+    <string name="error_network">Could not connect to server. Check your internet connection.</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

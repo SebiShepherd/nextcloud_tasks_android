@@ -86,6 +86,10 @@
     <string name="error_login_failed">Anmeldung fehlgeschlagen</string>
     <string name="error_switch_account_failed">Kontowechsel fehlgeschlagen</string>
     <string name="error_logout_failed">Abmeldung fehlgeschlagen</string>
+    <string name="error_rate_limited">Server ist ausgelastet. Bitte versuche es gleich nochmal.</string>
+    <string name="error_auth_failed_refresh">Anmeldung fehlgeschlagen. Bitte überprüfe deine Zugangsdaten.</string>
+    <string name="error_server">Serverfehler. Bitte versuche es später erneut.</string>
+    <string name="error_network">Keine Verbindung zum Server. Prüfe deine Internetverbindung.</string>
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>

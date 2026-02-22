@@ -321,7 +321,11 @@ class DefaultTasksRepositoryOfflineTest {
             coEvery { calDavService.discoverPrincipal(any()) } returns
                 Result.failure(Exception("Not relevant for this test"))
 
-            repo.refresh()
+            try {
+                repo.refresh()
+            } catch (_: Exception) {
+                // Expected: refresh now propagates CalDAV errors
+            }
 
             // Should process pending operations first
             coVerify(exactly = 1) { pendingOperationsManager.processPendingOperations() }

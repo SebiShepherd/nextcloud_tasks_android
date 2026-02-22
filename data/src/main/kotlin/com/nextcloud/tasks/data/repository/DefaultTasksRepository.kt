@@ -392,26 +392,30 @@ class DefaultTasksRepository
                     pendingOperationsManager.processPendingOperations()
                 }
 
-                // CalDAV discovery
+                // CalDAV discovery — propagate errors to the caller so the UI can
+                // show meaningful messages (429 rate limiting, 401 auth failure, etc.)
                 val principalResult = calDavService.discoverPrincipal(baseUrl)
                 if (principalResult.isFailure) {
-                    Timber.e(principalResult.exceptionOrNull(), "Failed to discover principal")
-                    return@withContext
+                    val ex = principalResult.exceptionOrNull()!!
+                    Timber.e(ex, "Failed to discover principal")
+                    throw ex
                 }
 
                 val principal = principalResult.getOrThrow()
                 val calendarHomeResult = calDavService.discoverCalendarHome(baseUrl, principal.principalUrl)
                 if (calendarHomeResult.isFailure) {
-                    Timber.e(calendarHomeResult.exceptionOrNull(), "Failed to discover calendar home")
-                    return@withContext
+                    val ex = calendarHomeResult.exceptionOrNull()!!
+                    Timber.e(ex, "Failed to discover calendar home")
+                    throw ex
                 }
 
                 val calendarHome = calendarHomeResult.getOrThrow()
                 val collectionsResult =
                     calDavService.enumerateCalendarCollections(baseUrl, calendarHome.calendarHomeUrl)
                 if (collectionsResult.isFailure) {
-                    Timber.e(collectionsResult.exceptionOrNull(), "Failed to enumerate collections")
-                    return@withContext
+                    val ex = collectionsResult.exceptionOrNull()!!
+                    Timber.e(ex, "Failed to enumerate collections")
+                    throw ex
                 }
 
                 val collections = collectionsResult.getOrThrow()

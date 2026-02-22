@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -35,16 +34,13 @@ class NetworkMonitor
                 val callback =
                     object : ConnectivityManager.NetworkCallback() {
                         override fun onAvailable(network: Network) {
-                            Timber.d("Network available")
+                            Timber.d("Default network available")
                             trySend(true)
                         }
 
                         override fun onLost(network: Network) {
-                            // onLost fires per-network, not device-wide.
-                            // Check if device is still online via another network.
-                            val stillOnline = isCurrentlyOnline()
-                            Timber.d("Network lost, still online: $stillOnline")
-                            trySend(stillOnline)
+                            Timber.d("Default network lost")
+                            trySend(false)
                         }
 
                         override fun onCapabilitiesChanged(
@@ -54,29 +50,18 @@ class NetworkMonitor
                             val hasInternet =
                                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                                     capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                            if (hasInternet) {
-                                Timber.d("Network capabilities changed, hasInternet: true")
-                                trySend(true)
-                            } else {
-                                // This specific network lost capability, but device
-                                // might still be online via another network.
-                                val stillOnline = isCurrentlyOnline()
-                                Timber.d("Network capabilities changed, hasInternet: false, still online: $stillOnline")
-                                trySend(stillOnline)
-                            }
+                            Timber.d("Default network capabilities changed, hasInternet: $hasInternet")
+                            trySend(hasInternet)
                         }
                     }
-
-                val request =
-                    NetworkRequest
-                        .Builder()
-                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                        .build()
 
                 // Emit initial state
                 trySend(isCurrentlyOnline())
 
-                connectivityManager.registerNetworkCallback(request, callback)
+                // registerDefaultNetworkCallback only tracks the system's default
+                // (active) network, avoiding false offline reports from secondary
+                // network changes (e.g. cellular going down while WiFi is active).
+                connectivityManager.registerDefaultNetworkCallback(callback)
 
                 awaitClose {
                     connectivityManager.unregisterNetworkCallback(callback)

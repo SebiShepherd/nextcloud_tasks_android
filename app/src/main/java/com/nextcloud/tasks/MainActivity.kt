@@ -171,6 +171,7 @@ fun NextcloudTasksApp(
     val searchQuery by taskListViewModel.searchQuery.collectAsState()
     val isOnline by taskListViewModel.isOnline.collectAsState()
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
+    val refreshError by taskListViewModel.refreshError.collectAsState()
     val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -249,6 +250,8 @@ fun NextcloudTasksApp(
             onClearAnimatingEntryTaskId = taskListViewModel::clearAnimatingEntryTaskId,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
+            refreshError = refreshError,
+            onClearRefreshError = taskListViewModel::clearRefreshError,
         )
     }
 }
@@ -285,6 +288,8 @@ fun AuthenticatedHome(
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
+    refreshError: RefreshError? = null,
+    onClearRefreshError: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -298,6 +303,29 @@ fun AuthenticatedHome(
         if (showOfflineSnackbar && !isOnline) {
             snackbarHostState.showSnackbar(offlineMessage)
             showOfflineSnackbar = false
+        }
+    }
+
+    // Show snackbar for refresh errors (429, auth, network, etc.)
+    val rateLimitedMsg = stringResource(R.string.error_rate_limited)
+    val authFailedMsg = stringResource(R.string.error_auth_failed_refresh)
+    val serverErrorMsg = stringResource(R.string.error_server)
+    val networkErrorMsg = stringResource(R.string.error_network)
+    val unknownErrorMsg = stringResource(R.string.error_unknown)
+
+    LaunchedEffect(refreshError) {
+        val message =
+            when (refreshError) {
+                RefreshError.RATE_LIMITED -> rateLimitedMsg
+                RefreshError.AUTH_FAILED -> authFailedMsg
+                RefreshError.SERVER_ERROR -> serverErrorMsg
+                RefreshError.NETWORK_ERROR -> networkErrorMsg
+                RefreshError.UNKNOWN -> unknownErrorMsg
+                null -> null
+            }
+        if (message != null) {
+            snackbarHostState.showSnackbar(message)
+            onClearRefreshError()
         }
     }
 
@@ -1439,6 +1467,14 @@ fun NoSearchResultsState(
     }
 }
 
+enum class RefreshError {
+    RATE_LIMITED,
+    AUTH_FAILED,
+    SERVER_ERROR,
+    NETWORK_ERROR,
+    UNKNOWN,
+}
+
 @HiltViewModel
 class TaskListViewModel
     @Inject
@@ -1495,6 +1531,13 @@ class TaskListViewModel
             tasksRepository
                 .observeHasPendingChanges()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+        private val _refreshError = MutableStateFlow<RefreshError?>(null)
+        val refreshError = _refreshError.asStateFlow()
+
+        fun clearRefreshError() {
+            _refreshError.value = null
+        }
 
         // Internal filtered and sorted tasks (before freezing logic)
         private val filteredTasks =
@@ -1590,10 +1633,30 @@ class TaskListViewModel
                 // Freeze the current task list to prevent UI flicker during sync
                 frozenTasksForSync.value = tasks.value
                 _isRefreshing.value = true
+                _refreshError.value = null
                 try {
                     tasksRepository.refresh()
-                } catch (ignored: Exception) {
-                    timber.log.Timber.e(ignored, "Failed to refresh tasks")
+                } catch (e: com.nextcloud.tasks.data.caldav.service.CalDavHttpException) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks (HTTP ${e.statusCode})")
+                    _refreshError.value =
+                        when (e.statusCode) {
+                            429 -> RefreshError.RATE_LIMITED
+                            401, 403 -> RefreshError.AUTH_FAILED
+                            in 500..599 -> RefreshError.SERVER_ERROR
+                            else -> RefreshError.SERVER_ERROR
+                        }
+                } catch (e: java.net.UnknownHostException) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks (DNS)")
+                    _refreshError.value = RefreshError.NETWORK_ERROR
+                } catch (e: java.net.ConnectException) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks (connection)")
+                    _refreshError.value = RefreshError.NETWORK_ERROR
+                } catch (e: java.net.SocketTimeoutException) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks (timeout)")
+                    _refreshError.value = RefreshError.NETWORK_ERROR
+                } catch (e: Exception) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks")
+                    _refreshError.value = RefreshError.UNKNOWN
                 } finally {
                     _isRefreshing.value = false
                     // Unfreeze - show the updated list

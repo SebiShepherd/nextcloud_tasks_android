@@ -14,6 +14,14 @@ import javax.inject.Inject
 import javax.inject.Named
 
 /**
+ * IOException subclass that carries the HTTP status code from a failed CalDAV request.
+ */
+class CalDavHttpException(
+    val statusCode: Int,
+    message: String,
+) : IOException(message)
+
+/**
  * Service for CalDAV operations
  */
 class CalDavService
@@ -56,7 +64,7 @@ class CalDavService
 
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
-                    throw IOException("Failed to discover principal: ${response.code}")
+                    throw CalDavHttpException(response.code, "Failed to discover principal: ${response.code}")
                 }
 
                 val responseBody = response.body?.string() ?: throw IOException("Empty response")
@@ -98,7 +106,7 @@ class CalDavService
 
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
-                    throw IOException("Failed to discover calendar home: ${response.code}")
+                    throw CalDavHttpException(response.code, "Failed to discover calendar home: ${response.code}")
                 }
 
                 val responseBody = response.body?.string() ?: throw IOException("Empty response")
@@ -144,7 +152,7 @@ class CalDavService
 
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
-                    throw IOException("Failed to enumerate collections: ${response.code}")
+                    throw CalDavHttpException(response.code, "Failed to enumerate collections: ${response.code}")
                 }
 
                 val responseBody = response.body?.string() ?: throw IOException("Empty response")
@@ -190,7 +198,7 @@ class CalDavService
 
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
-                    throw IOException("Failed to fetch todos: ${response.code}")
+                    throw CalDavHttpException(response.code, "Failed to fetch todos: ${response.code}")
                 }
 
                 val responseBody = response.body?.string() ?: throw IOException("Empty response")
@@ -222,7 +230,7 @@ class CalDavService
 
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
-                    throw IOException("Failed to create todo: ${response.code} - ${response.message}")
+                    throw CalDavHttpException(response.code, "Failed to create todo: ${response.code} - ${response.message}")
                 }
 
                 // Extract ETag from response
@@ -262,7 +270,7 @@ class CalDavService
                     if (response.code == 412) {
                         throw IOException("Conflict: Task was modified on server (ETag mismatch)")
                     }
-                    throw IOException("Failed to update todo: ${response.code} - ${response.message}")
+                    throw CalDavHttpException(response.code, "Failed to update todo: ${response.code} - ${response.message}")
                 }
 
                 // Return new ETag
@@ -302,7 +310,7 @@ class CalDavService
                         // Already deleted, consider success
                         return@runCatching
                     }
-                    throw IOException("Failed to delete todo: ${response.code} - ${response.message}")
+                    throw CalDavHttpException(response.code, "Failed to delete todo: ${response.code} - ${response.message}")
                 }
             }
 
