@@ -1139,12 +1139,14 @@ private fun SimpleAnimatedTaskCard(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = expandVertically(
-            animationSpec = tween(durationMillis = 200),
-        ) + fadeIn(animationSpec = tween(durationMillis = 200)),
-        exit = shrinkVertically(
-            animationSpec = tween(durationMillis = 200),
-        ) + fadeOut(animationSpec = tween(durationMillis = 150)),
+        enter =
+            expandVertically(
+                animationSpec = tween(durationMillis = 200),
+            ) + fadeIn(animationSpec = tween(durationMillis = 200)),
+        exit =
+            shrinkVertically(
+                animationSpec = tween(durationMillis = 200),
+            ) + fadeOut(animationSpec = tween(durationMillis = 150)),
     ) {
         // Column includes bottom spacing so it animates with shrinkVertically
         Column {

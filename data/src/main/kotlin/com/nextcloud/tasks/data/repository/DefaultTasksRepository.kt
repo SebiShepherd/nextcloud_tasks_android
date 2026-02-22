@@ -207,7 +207,9 @@ class DefaultTasksRepository
                     Timber.w(createResult.exceptionOrNull(), "Failed to sync task ${taskEntity.id}, queuing for retry")
                     pendingOperationsManager.queueCreateOperation(taskEntity, listId)
                 }
-            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
                 Timber.e(e, "Error syncing task ${taskEntity.id}")
                 pendingOperationsManager.queueCreateOperation(taskEntity, listId)
             }
@@ -290,7 +292,9 @@ class DefaultTasksRepository
                     Timber.w(updateResult.exceptionOrNull(), "Failed to sync task ${task.id}, queuing for retry")
                     pendingOperationsManager.queueUpdateOperation(taskEntity)
                 }
-            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
                 Timber.e(e, "Error syncing task ${task.id}")
                 pendingOperationsManager.queueUpdateOperation(taskEntity)
             }
@@ -350,7 +354,9 @@ class DefaultTasksRepository
                 } else {
                     Timber.d("Task $taskId deleted from server successfully")
                 }
-            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
                 Timber.e(e, "Error deleting task $taskId from server")
                 pendingOperationsManager.queueDeleteOperation(taskId, href, etag)
             }

@@ -9,7 +9,6 @@ import com.nextcloud.tasks.data.database.dao.PendingOperationsDao
 import com.nextcloud.tasks.data.database.dao.TagsDao
 import com.nextcloud.tasks.data.database.dao.TaskListsDao
 import com.nextcloud.tasks.data.database.dao.TasksDao
-import com.nextcloud.tasks.data.database.entity.TaskEntity
 import com.nextcloud.tasks.data.database.model.TaskWithRelations
 import com.nextcloud.tasks.data.mapper.TagMapper
 import com.nextcloud.tasks.data.mapper.TaskListMapper
@@ -30,8 +29,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import java.time.Instant
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DefaultTasksRepositoryOfflineTest {

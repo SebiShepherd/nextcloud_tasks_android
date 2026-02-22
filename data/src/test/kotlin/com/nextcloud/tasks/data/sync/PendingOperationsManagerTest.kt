@@ -23,7 +23,6 @@ import java.io.IOException
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -508,8 +507,10 @@ class PendingOperationsManagerTest {
         private val moshi =
             com.squareup.moshi.Moshi
                 .Builder()
-                .add(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
-                .add(InstantAdapter())
+                .add(
+                    com.squareup.moshi.kotlin.reflect
+                        .KotlinJsonAdapterFactory(),
+                ).add(InstantAdapter())
                 .build()
     }
 }
