@@ -14,6 +14,23 @@ interface TasksRepository {
 
     fun observeTags(): Flow<List<Tag>>
 
+    /**
+     * Observes the network connectivity status.
+     * Emits true when online, false when offline.
+     */
+    fun observeIsOnline(): Flow<Boolean>
+
+    /**
+     * Observes whether there are pending changes that need to be synced.
+     * Emits true when there are pending operations, false otherwise.
+     */
+    fun observeHasPendingChanges(): Flow<Boolean>
+
+    /**
+     * Checks if the device is currently online.
+     */
+    fun isCurrentlyOnline(): Boolean
+
     suspend fun getTask(id: String): Task?
 
     suspend fun createTask(draft: TaskDraft): Task

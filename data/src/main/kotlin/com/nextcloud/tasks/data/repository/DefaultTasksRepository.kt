@@ -11,18 +11,23 @@ import com.nextcloud.tasks.data.database.entity.TaskListEntity
 import com.nextcloud.tasks.data.mapper.TagMapper
 import com.nextcloud.tasks.data.mapper.TaskListMapper
 import com.nextcloud.tasks.data.mapper.TaskMapper
+import com.nextcloud.tasks.data.network.NetworkMonitor
+import com.nextcloud.tasks.data.sync.PendingOperationsManager
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskDraft
 import com.nextcloud.tasks.domain.model.TaskList
 import com.nextcloud.tasks.domain.repository.TasksRepository
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.IOException
@@ -41,8 +46,11 @@ class DefaultTasksRepository
         private val vTodoParser: VTodoParser,
         private val vTodoGenerator: VTodoGenerator,
         private val authTokenProvider: AuthTokenProvider,
+        private val networkMonitor: NetworkMonitor,
+        private val pendingOperationsManager: PendingOperationsManager,
         private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     ) : TasksRepository {
+        private val backgroundScope = CoroutineScope(SupervisorJob() + ioDispatcher)
         private val tasksDao get() = database.tasksDao()
         private val taskListsDao get() = database.taskListsDao()
         private val tagsDao get() = database.tagsDao()
@@ -80,58 +88,38 @@ class DefaultTasksRepository
                 tags.map(tagMapper::toDomain)
             }
 
+        override fun observeIsOnline(): Flow<Boolean> = networkMonitor.isOnline
+
+        override fun observeHasPendingChanges(): Flow<Boolean> = pendingOperationsManager.hasPendingOperations()
+
+        override fun isCurrentlyOnline(): Boolean = networkMonitor.isCurrentlyOnline()
+
         override suspend fun getTask(id: String): Task? =
             withContext(ioDispatcher) {
                 tasksDao.getTaskWithRelations(id)?.let(taskMapper::toDomain)
             }
 
+        /**
+         * Creates a task with optimistic UI update.
+         * The task is saved locally immediately and server sync happens in the background.
+         * If offline, the operation is queued for later sync.
+         */
         override suspend fun createTask(draft: TaskDraft): Task =
             withContext(ioDispatcher) {
-                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
                 val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
-                // Generate UID and create task domain model
+                // Generate UID and create task entity
                 val uid =
                     java.util.UUID
                         .randomUUID()
                         .toString()
                 val now = Instant.now()
-                val task =
-                    Task(
-                        id = uid, // Use UID as ID for consistency
-                        listId = draft.listId,
-                        title = draft.title,
-                        description = draft.description,
-                        completed = draft.completed,
-                        due = draft.due,
-                        updatedAt = now,
-                        tags = emptyList(), // Tags will be set separately if needed
-                        priority = null,
-                        status = if (draft.completed) "COMPLETED" else "NEEDS-ACTION",
-                        completedAt = if (draft.completed) now else null,
-                        uid = uid,
-                        etag = null,
-                        href = null,
-                        parentUid = null,
-                    )
 
-                // Generate iCalendar VTODO
-                val icalData = vTodoGenerator.generateVTodo(task)
-                val filename = vTodoGenerator.generateFilename(uid)
-
-                // Upload to server
-                val createResult = calDavService.createTodo(baseUrl, draft.listId, filename, icalData)
-                if (createResult.isFailure) {
-                    throw createResult.exceptionOrNull() ?: IOException("Failed to create task")
-                }
-
-                val etag = createResult.getOrThrow()
-                val href = "${draft.listId}/$filename"
-
-                // Save to local database
+                // Save to local database immediately (optimistic update)
+                // Note: href is null initially - will be set after server sync
                 val taskEntity =
                     TaskEntity(
-                        id = uid, // Use UID as ID for consistency
+                        id = uid,
                         accountId = accountId,
                         listId = draft.listId,
                         title = draft.title,
@@ -143,8 +131,8 @@ class DefaultTasksRepository
                         status = if (draft.completed) "COMPLETED" else "NEEDS-ACTION",
                         completedAt = if (draft.completed) now else null,
                         uid = uid,
-                        etag = etag,
-                        href = href,
+                        etag = null,
+                        href = null, // Will be set after server sync
                         parentUid = null,
                     )
 
@@ -152,28 +140,91 @@ class DefaultTasksRepository
                     tasksDao.upsertTask(taskEntity)
                 }
 
+                Timber.d("Task $uid created locally (optimistic)")
+
+                // Sync with server in background
+                if (networkMonitor.isCurrentlyOnline()) {
+                    backgroundScope.launch {
+                        syncCreateToServer(taskEntity, draft.listId)
+                    }
+                } else {
+                    // Queue for later sync when offline
+                    pendingOperationsManager.queueCreateOperation(taskEntity, draft.listId)
+                    Timber.d("Task $uid queued for sync (offline)")
+                }
+
                 getTask(taskEntity.id) ?: error("Created task missing from local database")
             }
 
+        /**
+         * Syncs a create operation to the server.
+         */
+        private suspend fun syncCreateToServer(
+            taskEntity: TaskEntity,
+            listId: String,
+        ) {
+            try {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: return
+
+                // Build task domain model for generator
+                val task =
+                    Task(
+                        id = taskEntity.id,
+                        listId = taskEntity.listId,
+                        title = taskEntity.title,
+                        description = taskEntity.description,
+                        completed = taskEntity.completed,
+                        due = taskEntity.due,
+                        updatedAt = taskEntity.updatedAt,
+                        tags = emptyList(),
+                        priority = taskEntity.priority,
+                        status = taskEntity.status,
+                        completedAt = taskEntity.completedAt,
+                        uid = taskEntity.uid,
+                        etag = null,
+                        href = null,
+                        parentUid = null,
+                    )
+
+                // Generate iCalendar VTODO
+                val icalData = vTodoGenerator.generateVTodo(task)
+                val filename = vTodoGenerator.generateFilename(taskEntity.uid ?: taskEntity.id)
+
+                // Upload to server
+                val createResult = calDavService.createTodo(baseUrl, listId, filename, icalData)
+
+                if (createResult.isSuccess) {
+                    val etag = createResult.getOrThrow()
+                    val href = "$listId/$filename"
+
+                    // Update local database with server data (etag and href)
+                    database.withTransaction {
+                        tasksDao.upsertTask(taskEntity.copy(etag = etag, href = href))
+                    }
+                    Timber.d("Task ${taskEntity.id} synced to server successfully")
+                } else {
+                    // Queue for retry if sync failed
+                    Timber.w(createResult.exceptionOrNull(), "Failed to sync task ${taskEntity.id}, queuing for retry")
+                    pendingOperationsManager.queueCreateOperation(taskEntity, listId)
+                }
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                Timber.e(e, "Error syncing task ${taskEntity.id}")
+                pendingOperationsManager.queueCreateOperation(taskEntity, listId)
+            }
+        }
+
+        /**
+         * Updates a task with optimistic UI update.
+         * The local database is updated immediately, and server sync happens in the background.
+         * If offline, the operation is queued for later sync.
+         */
         override suspend fun updateTask(task: Task): Task =
             withContext(ioDispatcher) {
-                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
                 val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
-                val href = task.href ?: throw IOException("Cannot update task without href")
-
-                // Generate updated iCalendar VTODO
-                val icalData = vTodoGenerator.generateVTodo(task)
-
-                // Upload to server with ETag for optimistic locking
-                val updateResult = calDavService.updateTodo(baseUrl, href, icalData, task.etag)
-                if (updateResult.isFailure) {
-                    throw updateResult.exceptionOrNull() ?: IOException("Failed to update task")
-                }
-
-                val newEtag = updateResult.getOrThrow()
-
-                // Update local database
+                // Update local database immediately (optimistic update)
                 val taskEntity =
                     TaskEntity(
                         id = task.id,
@@ -188,7 +239,7 @@ class DefaultTasksRepository
                         status = task.status,
                         completedAt = task.completedAt,
                         uid = task.uid,
-                        etag = newEtag,
+                        etag = task.etag,
                         href = task.href,
                         parentUid = task.parentUid,
                     )
@@ -197,29 +248,119 @@ class DefaultTasksRepository
                     tasksDao.upsertTask(taskEntity)
                 }
 
-                getTask(task.id) ?: error("Updated task missing from local database")
-            }
+                Timber.d("Task ${task.id} updated locally (optimistic)")
 
-        override suspend fun deleteTask(taskId: String) =
-            withContext(ioDispatcher) {
-                val baseUrl = authTokenProvider.activeServerUrl()
-                val task = getTask(taskId)
-                val taskHref = task?.href
-
-                if (baseUrl != null && taskHref != null) {
-                    // Delete from server
-                    val deleteResult = calDavService.deleteTodo(baseUrl, taskHref, task.etag)
-                    if (deleteResult.isFailure) {
-                        Timber.w(deleteResult.exceptionOrNull(), "Failed to delete task from server, deleting locally")
+                // Sync with server in background
+                if (networkMonitor.isCurrentlyOnline() && task.href != null) {
+                    backgroundScope.launch {
+                        syncTaskToServer(task, taskEntity)
+                    }
+                } else {
+                    // Queue for later sync when offline or no href
+                    if (task.href != null) {
+                        pendingOperationsManager.queueUpdateOperation(taskEntity)
+                        Timber.d("Task ${task.id} queued for sync (offline)")
                     }
                 }
 
-                // Delete from local database
+                getTask(task.id) ?: error("Updated task missing from local database")
+            }
+
+        /**
+         * Syncs a single task to the server.
+         */
+        private suspend fun syncTaskToServer(
+            task: Task,
+            taskEntity: TaskEntity,
+        ) {
+            try {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: return
+                val href = task.href ?: return
+
+                val icalData = vTodoGenerator.generateVTodo(task)
+                val updateResult = calDavService.updateTodo(baseUrl, href, icalData, task.etag)
+
+                if (updateResult.isSuccess) {
+                    val newEtag = updateResult.getOrThrow()
+                    // Update etag in database
+                    database.withTransaction {
+                        tasksDao.upsertTask(taskEntity.copy(etag = newEtag))
+                    }
+                    Timber.d("Task ${task.id} synced to server successfully")
+                } else {
+                    // Queue for retry if sync failed
+                    Timber.w(updateResult.exceptionOrNull(), "Failed to sync task ${task.id}, queuing for retry")
+                    pendingOperationsManager.queueUpdateOperation(taskEntity)
+                }
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                Timber.e(e, "Error syncing task ${task.id}")
+                pendingOperationsManager.queueUpdateOperation(taskEntity)
+            }
+        }
+
+        /**
+         * Deletes a task with optimistic UI update.
+         * The local database is updated immediately, and server sync happens in the background.
+         * If offline, the operation is queued for later sync.
+         */
+        override suspend fun deleteTask(taskId: String): Unit =
+            withContext(ioDispatcher) {
+                val task = getTask(taskId)
+                val taskHref = task?.href
+                val taskEtag = task?.etag
+
+                // Delete from local database immediately (optimistic update)
                 database.withTransaction {
                     tasksDao.clearTagsForTask(taskId)
                     tasksDao.deleteTask(taskId)
                 }
+
+                Timber.d("Task $taskId deleted locally (optimistic)")
+
+                // Sync with server in background
+                if (networkMonitor.isCurrentlyOnline() && taskHref != null) {
+                    backgroundScope.launch {
+                        syncDeleteToServer(taskId, taskHref, taskEtag)
+                    }
+                } else if (taskHref != null) {
+                    // Queue for later sync when offline
+                    pendingOperationsManager.queueDeleteOperation(taskId, taskHref, taskEtag)
+                    Timber.d("Task $taskId delete queued for sync (offline)")
+                }
+                Unit
             }
+
+        /**
+         * Syncs a delete operation to the server.
+         */
+        private suspend fun syncDeleteToServer(
+            taskId: String,
+            href: String,
+            etag: String?,
+        ) {
+            try {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: return
+
+                val deleteResult = calDavService.deleteTodo(baseUrl, href, etag)
+                if (deleteResult.isFailure) {
+                    val error = deleteResult.exceptionOrNull()
+                    // 404 means already deleted, which is fine
+                    if (error?.message?.contains("404") != true) {
+                        Timber.w(error, "Failed to delete task $taskId from server")
+                        pendingOperationsManager.queueDeleteOperation(taskId, href, etag)
+                    }
+                } else {
+                    Timber.d("Task $taskId deleted from server successfully")
+                }
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                Timber.e(e, "Error deleting task $taskId from server")
+                pendingOperationsManager.queueDeleteOperation(taskId, href, etag)
+            }
+        }
 
         @Suppress("LongMethod")
         override suspend fun refresh() =
@@ -235,6 +376,13 @@ class DefaultTasksRepository
                         Timber.w("No active account, skipping refresh")
                         return@withContext
                     }
+
+                // IMPORTANT: Process pending operations FIRST before fetching from server
+                // This ensures local offline changes are synced before we fetch server state
+                if (networkMonitor.isCurrentlyOnline()) {
+                    Timber.d("Processing pending operations before refresh")
+                    pendingOperationsManager.processPendingOperations()
+                }
 
                 // CalDAV discovery
                 val principalResult = calDavService.discoverPrincipal(baseUrl)
@@ -305,10 +453,21 @@ class DefaultTasksRepository
 
                 Timber.d("Fetched total ${allTasks.size} tasks from CalDAV")
 
+                // Get task IDs with pending CREATE operations to protect them from deletion
+                val pendingCreateTaskIds = pendingOperationsManager.getTaskIdsWithPendingCreate()
+                if (pendingCreateTaskIds.isNotEmpty()) {
+                    Timber.d("Protecting ${pendingCreateTaskIds.size} offline-created tasks from deletion")
+                }
+
                 // Update database
                 database.withTransaction {
                     // Delete local-only (demo) tasks and lists before syncing
-                    tasksDao.deleteTasksWithoutHref()
+                    // But exclude tasks that have pending CREATE operations (offline-created)
+                    if (pendingCreateTaskIds.isEmpty()) {
+                        tasksDao.deleteTasksWithoutHref()
+                    } else {
+                        tasksDao.deleteTasksWithoutHrefExcluding(pendingCreateTaskIds)
+                    }
                     taskListsDao.deleteListsWithoutHref()
 
                     upsertTaskLists(taskLists)

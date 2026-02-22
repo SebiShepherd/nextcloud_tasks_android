@@ -40,6 +40,9 @@ interface TasksDao {
     @Query("DELETE FROM tasks WHERE href IS NULL")
     suspend fun deleteTasksWithoutHref()
 
+    @Query("DELETE FROM tasks WHERE href IS NULL AND id NOT IN (:excludeIds)")
+    suspend fun deleteTasksWithoutHrefExcluding(excludeIds: List<String>)
+
     @Query("DELETE FROM tasks WHERE account_id = :accountId")
     suspend fun deleteTasksByAccount(accountId: String)
 
