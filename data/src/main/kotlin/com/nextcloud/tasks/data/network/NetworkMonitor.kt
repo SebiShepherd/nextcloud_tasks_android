@@ -63,7 +63,7 @@ class NetworkMonitor
                                 availableSince > 0 &&
                                 android.os.SystemClock.elapsedRealtime() - availableSince < validationGraceMs
                             ) {
-                                Timber.v("Default network capabilities changed, hasInternet: false (suppressed, awaiting validation)")
+                                Timber.v("Capabilities changed: false (suppressed, awaiting validation)")
                                 return
                             }
                             if (hasInternet != lastEmitted) {
