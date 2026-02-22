@@ -53,6 +53,8 @@ class PendingOperationsManager
                 .add(InstantAdapter())
                 .build()
         private val taskPayloadAdapter = moshi.adapter(TaskPayload::class.java)
+        private val deletePayloadAdapter = moshi.adapter(DeletePayload::class.java)
+        private val createPayloadAdapter = moshi.adapter(CreatePayload::class.java)
 
         private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
@@ -142,8 +144,6 @@ class PendingOperationsManager
                     etag = etag,
                 )
 
-            val deletePayloadAdapter = moshi.adapter(DeletePayload::class.java)
-
             val operation =
                 PendingOperationEntity(
                     accountId = accountId,
@@ -188,8 +188,6 @@ class PendingOperationsManager
                     completedAt = task.completedAt,
                     uid = task.uid,
                 )
-
-            val createPayloadAdapter = moshi.adapter(CreatePayload::class.java)
 
             val operation =
                 PendingOperationEntity(
@@ -332,7 +330,6 @@ class PendingOperationsManager
             baseUrl: String,
             operation: PendingOperationEntity,
         ) {
-            val deletePayloadAdapter = moshi.adapter(DeletePayload::class.java)
             val payload = deletePayloadAdapter.fromJson(operation.payload) ?: return
 
             val href = payload.href
@@ -356,7 +353,6 @@ class PendingOperationsManager
             baseUrl: String,
             operation: PendingOperationEntity,
         ) {
-            val createPayloadAdapter = moshi.adapter(CreatePayload::class.java)
             val payload = createPayloadAdapter.fromJson(operation.payload) ?: return
 
             // Build task domain model from payload
