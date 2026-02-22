@@ -40,8 +40,11 @@ class NetworkMonitor
                         }
 
                         override fun onLost(network: Network) {
-                            Timber.d("Network lost")
-                            trySend(false)
+                            // onLost fires per-network, not device-wide.
+                            // Check if device is still online via another network.
+                            val stillOnline = isCurrentlyOnline()
+                            Timber.d("Network lost, still online: $stillOnline")
+                            trySend(stillOnline)
                         }
 
                         override fun onCapabilitiesChanged(
@@ -51,8 +54,16 @@ class NetworkMonitor
                             val hasInternet =
                                 capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
                                     capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                            Timber.d("Network capabilities changed, hasInternet: $hasInternet")
-                            trySend(hasInternet)
+                            if (hasInternet) {
+                                Timber.d("Network capabilities changed, hasInternet: true")
+                                trySend(true)
+                            } else {
+                                // This specific network lost capability, but device
+                                // might still be online via another network.
+                                val stillOnline = isCurrentlyOnline()
+                                Timber.d("Network capabilities changed, hasInternet: false, still online: $stillOnline")
+                                trySend(stillOnline)
+                            }
                         }
                     }
 
