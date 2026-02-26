@@ -73,7 +73,7 @@ class NetworkMonitor
                                 // Schedule a re-check after grace period so we don't get stuck on true
                                 if (graceCheckJob?.isActive != true) {
                                     graceCheckJob =
-                                        launch {
+                                        this@callbackFlow.launch {
                                             delay(validationGraceMs)
                                             trySend(isCurrentlyOnline())
                                         }

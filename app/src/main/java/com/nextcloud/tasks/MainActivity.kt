@@ -724,7 +724,7 @@ private fun TasksContent(
     // On expanded screens, constrain max content width for readability
     val contentModifier =
         if (isExpandedScreen) {
-            Modifier.padding(padding).fillMaxWidth().widthIn(max = 720.dp)
+            Modifier.padding(padding).widthIn(max = 720.dp).fillMaxWidth()
         } else {
             Modifier.padding(padding)
         }

@@ -5,7 +5,7 @@ import kotlin.test.assertEquals
 
 class DatabaseMigrationsTest {
     @Test
-    fun `all migrations contains all five migrations in order`() {
+    fun `all migrations in order`() {
         val all = DatabaseMigrations.all
 
         assertEquals(5, all.size)
