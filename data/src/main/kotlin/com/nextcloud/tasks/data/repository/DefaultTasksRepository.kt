@@ -533,14 +533,18 @@ class DefaultTasksRepository
                     tasksDao.clearTagsForTask(serverTask.id)
                 } else if (localTask.etag != null && localTask.etag == serverTask.etag) {
                     // Same etag — no server changes
-                    // But update account_id and listId if they changed (e.g. after re-login)
+                    // But update account_id, listId, or missing baseSnapshot (schema migration backfill)
                     if (localTask.accountId != serverTask.accountId ||
-                        localTask.listId != serverTask.listId
+                        localTask.listId != serverTask.listId ||
+                        localTask.baseSnapshot == null
                     ) {
                         tasksDao.upsertTask(
                             localTask.copy(
                                 accountId = serverTask.accountId,
                                 listId = serverTask.listId,
+                                baseSnapshot =
+                                    localTask.baseSnapshot
+                                        ?: taskFieldMerger.createSnapshot(localTask),
                             ),
                         )
                     }
