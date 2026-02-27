@@ -1,6 +1,6 @@
 # AI Agent Guide - Nextcloud Tasks Android
 
-**Last Updated**: 2026-01-09
+**Last Updated**: 2026-02-27
 **Project Version**: 1.0.0
 **Target Audience**: Claude Code, AI assistants, and automated agents working on this codebase
 
@@ -41,10 +41,14 @@
 - Multi-account support with account switching
 - CalDAV-based task synchronization
 - VTODO (iCalendar) parsing and generation
-- Offline-first architecture with Room database
+- Offline-first architecture with Room database and pending operations queue
+- Periodic background synchronization via WorkManager (every 15 minutes)
+- Field-level merge conflict resolution (preserves local changes to different fields)
+- Adaptive layouts for tablets and large screens (permanent navigation drawer, constrained content width)
 - Pull-to-refresh synchronization
 - Task lists with color coding
 - Task filtering and sorting
+- Network connectivity monitoring with validation grace period
 - Material 3 design with dynamic theming
 
 ---
@@ -91,9 +95,12 @@ The project follows Clean Architecture with strict dependency rules:
 - **Source**: `app/src/main/java/` (uses 'java' directory for Kotlin)
 - **Purpose**: UI layer with Jetpack Compose screens
 - **Key Files**:
-  - `MainActivity.kt` - Entry point with all UI composables
+  - `MainActivity.kt` - Entry point with all UI composables (adaptive layout support)
   - `TasksApp.kt` - Application class with `@HiltAndroidApp`
+  - `TaskListViewModel.kt` - Task list state management and business logic
   - `auth/LoginScreen.kt`, `auth/LoginViewModel.kt` - Authentication UI
+  - `sync/SyncScheduler.kt` - Periodic background sync scheduling via WorkManager
+  - `sync/SyncWorker.kt` - Background sync worker implementation
   - `di/AppModule.kt` - Hilt module for use cases
   - `ui/theme/Theme.kt`, `Color.kt`, `Type.kt` - Material 3 theming
 
@@ -107,7 +114,8 @@ The project follows Clean Architecture with strict dependency rules:
   - `caldav/` - CalDAV service, parsers (VTodoParser, DavMultistatusParser), generators (VTodoGenerator)
   - `database/` - Room database, DAOs, entities
   - `repository/` - Repository implementations (DefaultTasksRepository, DefaultAuthRepository)
-  - `network/` - OkHttp clients, interceptors, SafeDns
+  - `network/` - OkHttp clients, interceptors, SafeDns, NetworkMonitor
+  - `sync/` - SyncManager, TaskFieldMerger (field-level merge), PendingOperationsManager
   - `auth/` - Authentication token provider
   - `mapper/` - Entity ↔ Domain model mappers
   - `di/` - Hilt modules (DataModule, NetworkModule)
@@ -169,10 +177,14 @@ The app uses **CalDAV protocol** for task synchronization:
 com.nextcloud.tasks/
 ├── MainActivity.kt              # Main activity with all Compose screens
 ├── TasksApp.kt                  # Application class (@HiltAndroidApp)
+├── TaskListViewModel.kt         # Task list state, filtering, sorting, sync errors
 ├── auth/
 │   ├── LoginScreen.kt           # Login UI
 │   ├── LoginViewModel.kt        # Login business logic
 │   └── LoginCallbacks.kt        # Login event callbacks
+├── sync/
+│   ├── SyncScheduler.kt         # Periodic background sync (WorkManager)
+│   └── SyncWorker.kt            # Background sync worker
 ├── di/
 │   └── AppModule.kt             # Hilt module (provides use cases)
 └── ui/
@@ -209,7 +221,12 @@ com.nextcloud.tasks.data/
 │   ├── NextcloudService.kt
 │   ├── NextcloudClientFactory.kt
 │   ├── AuthenticationInterceptors.kt
+│   ├── NetworkMonitor.kt          # Connectivity monitoring with validation grace period
 │   └── SafeDns.kt
+├── sync/
+│   ├── SyncManager.kt
+│   ├── TaskFieldMerger.kt         # Field-level 3-way merge for sync conflicts
+│   └── PendingOperationsManager.kt # Offline operations queue
 ├── auth/
 │   ├── AuthToken.kt
 │   └── AuthTokenProvider.kt     # Token management
@@ -217,8 +234,6 @@ com.nextcloud.tasks.data/
 │   ├── TaskMapper.kt            # Entity ↔ Domain
 │   ├── TaskListMapper.kt
 │   └── TagMapper.kt
-├── sync/
-│   └── SyncManager.kt
 └── di/
     ├── DataModule.kt            # Provides DB, Retrofit, CalDAV
     └── NetworkModule.kt         # Provides OkHttp, interceptors
@@ -670,9 +685,20 @@ end
 ### Test Structure
 
 ```
-src/test/kotlin/          # Unit tests
-src/androidTest/kotlin/   # Instrumentation tests (future)
+app/src/test/java/        # App module unit tests (uses 'java' dir for Kotlin)
+data/src/test/kotlin/     # Data module unit tests
+domain/src/test/kotlin/   # Domain module unit tests (future)
 ```
+
+### Existing Test Files
+
+| Test File | Module | Covers |
+|-----------|--------|--------|
+| `TaskListViewModelTest.kt` | `:app` | ViewModel state, filtering, sorting, refresh errors, account switching |
+| `TaskFieldMergerTest.kt` | `:data` | 3-way field-level merge, snapshot creation/parsing, conflict resolution |
+| `DatabaseMigrationsTest.kt` | `:data` | Migration version ranges, contiguity, completeness |
+| `DefaultTasksRepositoryMergeTest.kt` | `:data` | Repository clearAccountData, observeIsOnline, refresh skipping |
+| `DefaultTasksRepositoryOfflineTest.kt` | `:data` | Offline-first pending operations |
 
 ### Running Tests
 
@@ -688,17 +714,18 @@ src/androidTest/kotlin/   # Instrumentation tests (future)
 
 ### Testing Conventions
 
-- Use `kotlin("test")` framework
-- Test repository implementations with fake data
-- Test use cases with mock repositories
-- Test ViewModels with `kotlinx-coroutines-test`
+- Use `kotlin("test")` framework with JUnit 4 (`@Test`, `@Before`, `@After`)
+- Use `io.mockk` for mocking (coEvery, coVerify, every, mockk)
+- Test ViewModels with `kotlinx-coroutines-test` (`UnconfinedTestDispatcher`, `runTest`)
+- Set `Dispatchers.setMain()` in `@Before`, reset in `@After` for ViewModel tests
+- Use helper functions (e.g., `withViewModel`, `withViewModelAndRepo`) to reduce test boilerplate
 - Test Composables with `androidx.compose.ui.test`
 
 ### Test File Naming
 
 - Test file: `TasksRepositoryTest.kt`
 - Test class: `class TasksRepositoryTest { ... }`
-- Test function: `fun `should create task when draft is valid`() { ... }`
+- Test function: `` fun `should create task when draft is valid`() { ... } ``
 
 ---
 
@@ -870,8 +897,10 @@ git push -u origin <branch-name>
 
 3. **Database Migrations**
    - Room schema changes require migrations in `DatabaseMigrations.kt`
+   - Add new migrations to `DatabaseMigrations.all` array and update tests
    - Export schema to `data/schemas/` directory
    - Update version number in `NextcloudTasksDatabase`
+   - Current schema: v6 (migrations: 1→2 CalDAV fields, 2→3 parent_uid, 3→4 account_id, 4→5 pending_operations table, 5→6 base_snapshot column)
 
 4. **CalDAV Sync**
    - Always handle `Result<T>` from CalDAV service methods
