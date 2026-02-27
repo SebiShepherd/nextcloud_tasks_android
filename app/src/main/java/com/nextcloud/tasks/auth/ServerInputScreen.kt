@@ -99,7 +99,7 @@ private fun ServerInputContent(
     ) {
         // Nextcloud Tasks Icon (centered)
         Image(
-            painter = painterResource(R.mipmap.ic_launcher_foreground),
+            painter = painterResource(R.drawable.ic_launcher_monochrome),
             contentDescription = stringResource(R.string.app_name),
             modifier = Modifier.size(120.dp),
         )
