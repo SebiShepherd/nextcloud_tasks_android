@@ -8,5 +8,6 @@
         <item name="android:enforceNavigationBarContrast">true</item>
         <item name="android:forceDarkAllowed">false</item>
         <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_monochrome</item>
     </style>
 </resources>
