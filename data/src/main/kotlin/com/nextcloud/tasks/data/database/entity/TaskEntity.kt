@@ -29,4 +29,6 @@ data class TaskEntity(
     val href: String?,
     @ColumnInfo(name = "parent_uid")
     val parentUid: String?,
+    @ColumnInfo(name = "base_snapshot", defaultValue = "NULL")
+    val baseSnapshot: String? = null,
 )

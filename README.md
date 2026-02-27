@@ -20,7 +20,7 @@ A modern, native Android client for Nextcloud Tasks built with Jetpack Compose a
 ### 🔐 **Multi-Account Support**
 - Connect multiple Nextcloud accounts simultaneously
 - Easy account switching via the drawer menu
-- Each account maintains its own task lists and settings
+- Each account maintains its own task lists (app settings like language are global)
 - Secure credential storage with encrypted preferences
 
 ### 📋 **Task Management**
@@ -33,15 +33,15 @@ A modern, native Android client for Nextcloud Tasks built with Jetpack Compose a
 ### 🔄 **Seamless Synchronization**
 - Real-time sync with your Nextcloud server via CalDAV
 - Pull-to-refresh for manual sync
-- Background synchronization (coming soon)
+- Periodic background synchronization via WorkManager (every 15 minutes when online)
 - Optimistic locking with ETags to prevent conflicts
-- Automatic conflict resolution
+- Field-level merge conflict resolution (local changes to different fields are preserved)
 
 ### 🎨 **Modern Material Design**
 - Material 3 design language throughout the app
 - Dynamic color theming (Android 12+)
 - Light and dark theme support
-- Adaptive layouts for tablets and large screens
+- Adaptive layouts for tablets and large screens (permanent navigation drawer, optimized content width)
 - Smooth animations and transitions
 
 ### 🌍 **Internationalization**
@@ -126,6 +126,7 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) guide for instructions on building th
 - **Database**: Room (SQLite)
 - **Networking**: Retrofit + OkHttp
 - **CalDAV**: iCal4j for VTODO parsing/generation
+- **Background Sync**: WorkManager
 - **Async**: Kotlin Coroutines + Flow
 - **Build System**: Gradle with Kotlin DSL
 

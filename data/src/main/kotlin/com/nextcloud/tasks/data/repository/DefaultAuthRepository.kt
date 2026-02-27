@@ -153,7 +153,7 @@ class DefaultAuthRepository
                     service.pollLoginFlowV2(pollUrl, token)
                 }.getOrElse { throwable ->
                     // Network errors during polling should be treated as pending, not errors
-                    Timber.w(throwable, "Error during Login Flow v2 polling, treating as pending")
+                    Timber.v(throwable, "Error during Login Flow v2 polling, treating as pending")
                     return LoginFlowV2PollResult.Pending
                 }
 

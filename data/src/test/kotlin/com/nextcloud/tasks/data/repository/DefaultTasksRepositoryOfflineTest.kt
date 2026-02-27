@@ -16,6 +16,7 @@ import com.nextcloud.tasks.data.mapper.TaskListMapper
 import com.nextcloud.tasks.data.mapper.TaskMapper
 import com.nextcloud.tasks.data.network.NetworkMonitor
 import com.nextcloud.tasks.data.sync.PendingOperationsManager
+import com.nextcloud.tasks.data.sync.TaskFieldMerger
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskDraft
 import io.mockk.coEvery
@@ -52,6 +53,7 @@ class DefaultTasksRepositoryOfflineTest {
     private val vTodoGenerator = mockk<VTodoGenerator>()
     private val networkMonitor = mockk<NetworkMonitor>()
     private val pendingOperationsManager = mockk<PendingOperationsManager>(relaxed = true)
+    private val taskFieldMerger = mockk<TaskFieldMerger>(relaxed = true)
     private val authTokenProvider =
         mockk<AuthTokenProvider> {
             coEvery { activeAccountId() } returns "account-1"
@@ -80,6 +82,7 @@ class DefaultTasksRepositoryOfflineTest {
             authTokenProvider = authTokenProvider,
             networkMonitor = networkMonitor,
             pendingOperationsManager = pendingOperationsManager,
+            taskFieldMerger = taskFieldMerger,
             ioDispatcher = testDispatcher,
         )
     }
@@ -318,7 +321,11 @@ class DefaultTasksRepositoryOfflineTest {
             coEvery { calDavService.discoverPrincipal(any()) } returns
                 Result.failure(Exception("Not relevant for this test"))
 
-            repo.refresh()
+            try {
+                repo.refresh()
+            } catch (_: Exception) {
+                // Expected: refresh now propagates CalDAV errors
+            }
 
             // Should process pending operations first
             coVerify(exactly = 1) { pendingOperationsManager.processPendingOperations() }

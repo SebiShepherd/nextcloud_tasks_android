@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.hilt)
-    kotlin("kapt")
     alias(libs.plugins.ksp)
 }
 
@@ -30,11 +29,6 @@ android {
     }
 }
 
-kapt {
-    correctErrorTypes = true
-    useBuildCache = true
-}
-
 kotlin {
     jvmToolchain(17)
 }
@@ -54,7 +48,8 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.androidx.security.crypto)
     implementation(libs.ical4j.core)
-    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.work.runtime.ktx)
+    ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
     testImplementation(kotlin("test"))
     testImplementation(libs.mockk)

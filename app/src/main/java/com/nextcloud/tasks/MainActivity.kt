@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -59,6 +61,8 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PermanentDrawerSheet
+import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -69,6 +73,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -114,6 +121,7 @@ class MainActivity : AppCompatActivity() {
     private val taskListViewModel: TaskListViewModel by viewModels()
     private val loginFlowViewModel: LoginFlowViewModel by viewModels()
 
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -122,6 +130,9 @@ class MainActivity : AppCompatActivity() {
         AppCompatDelegate.getApplicationLocales()
 
         setContent {
+            val windowSizeClass = calculateWindowSizeClass(this)
+            val isExpandedScreen = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+
             NextcloudTasksTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -130,6 +141,7 @@ class MainActivity : AppCompatActivity() {
                     NextcloudTasksApp(
                         loginFlowViewModel = loginFlowViewModel,
                         taskListViewModel = taskListViewModel,
+                        isExpandedScreen = isExpandedScreen,
                     )
                 }
             }
@@ -148,6 +160,7 @@ class MainActivity : AppCompatActivity() {
 fun NextcloudTasksApp(
     loginFlowViewModel: LoginFlowViewModel,
     taskListViewModel: TaskListViewModel,
+    isExpandedScreen: Boolean = false,
 ) {
     val loginState by loginFlowViewModel.uiState.collectAsState()
     val tasks by taskListViewModel.tasks.collectAsState()
@@ -159,6 +172,7 @@ fun NextcloudTasksApp(
     val searchQuery by taskListViewModel.searchQuery.collectAsState()
     val isOnline by taskListViewModel.isOnline.collectAsState()
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
+    val refreshError by taskListViewModel.refreshError.collectAsState()
     val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -167,7 +181,8 @@ fun NextcloudTasksApp(
 
     // Track whether we've loaded tasks for the current account
     // This ensures refresh happens after initial login when account becomes active
-    var lastLoadedAccountId by remember { mutableStateOf<String?>(null) }
+    // Using rememberSaveable to survive configuration changes (e.g. rotation)
+    var lastLoadedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Auto-refresh when account becomes active (initial login or account switch from another source)
     LaunchedEffect(loginState.activeAccount?.id) {
@@ -217,6 +232,7 @@ fun NextcloudTasksApp(
             hasPendingChanges = hasPendingChanges,
             animatingEntryTaskIds = animatingEntryTaskIds,
             showCreateDialog = showCreateDialog,
+            isExpandedScreen = isExpandedScreen,
             onLogout = loginFlowViewModel::onLogout,
             onSwitchAccount = handleSwitchAccount,
             onSelectList = taskListViewModel::selectList,
@@ -235,6 +251,8 @@ fun NextcloudTasksApp(
             onClearAnimatingEntryTaskId = taskListViewModel::clearAnimatingEntryTaskId,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
+            refreshError = refreshError,
+            onClearRefreshError = taskListViewModel::clearRefreshError,
         )
     }
 }
@@ -255,6 +273,7 @@ fun AuthenticatedHome(
     hasPendingChanges: Boolean,
     animatingEntryTaskIds: Set<String>,
     showCreateDialog: Boolean,
+    isExpandedScreen: Boolean = false,
     onLogout: (String) -> Unit,
     onSwitchAccount: (String) -> Unit,
     onSelectList: (String?) -> Unit,
@@ -270,6 +289,8 @@ fun AuthenticatedHome(
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
+    refreshError: RefreshError? = null,
+    onClearRefreshError: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -286,23 +307,9 @@ fun AuthenticatedHome(
         }
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                TaskListsDrawer(
-                    taskLists = taskLists,
-                    selectedListId = selectedListId,
-                    onSelectList = onSelectList,
-                    onCloseDrawer = { scope.launch { drawerState.close() } },
-                    onOpenSettings = {
-                        onOpenSettings()
-                        scope.launch { drawerState.close() }
-                    },
-                )
-            }
-        },
-    ) {
+    RefreshErrorEffect(refreshError, snackbarHostState, onClearRefreshError)
+
+    val mainContent: @Composable () -> Unit = {
         Scaffold(
             snackbarHost = {
                 SnackbarHost(hostState = snackbarHostState) { data ->
@@ -323,12 +330,11 @@ fun AuthenticatedHome(
             },
         ) { padding ->
             Column(modifier = Modifier.padding(padding)) {
-                // Durchgehende Search Bar mit allen Elementen
                 UnifiedSearchBar(
                     state = state,
                     searchQuery = searchQuery,
                     onSearchQueryChange = onSetSearchQuery,
-                    onOpenDrawer = { scope.launch { drawerState.open() } },
+                    onOpenDrawer = if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
                     onSwitchAccount = onSwitchAccount,
                     onLogout = onLogout,
                     taskSort = taskSort,
@@ -336,7 +342,6 @@ fun AuthenticatedHome(
                     onAddAccount = onAddAccount,
                 )
 
-                // Pull-to-Refresh Content
                 PullToRefreshBox(
                     isRefreshing = isRefreshing,
                     onRefresh = onRefresh,
@@ -352,6 +357,7 @@ fun AuthenticatedHome(
                         searchQuery = searchQuery,
                         isOnline = isOnline,
                         animatingEntryTaskIds = animatingEntryTaskIds,
+                        isExpandedScreen = isExpandedScreen,
                         onSetFilter = onSetFilter,
                         onSetSort = onSetSort,
                         onToggleTaskComplete = { task ->
@@ -373,6 +379,36 @@ fun AuthenticatedHome(
         }
     }
 
+    val drawerContent: @Composable () -> Unit = {
+        TaskListsDrawer(
+            taskLists = taskLists,
+            selectedListId = selectedListId,
+            onSelectList = onSelectList,
+            onCloseDrawer = { if (!isExpandedScreen) scope.launch { drawerState.close() } },
+            onOpenSettings = {
+                onOpenSettings()
+                if (!isExpandedScreen) scope.launch { drawerState.close() }
+            },
+        )
+    }
+
+    if (isExpandedScreen) {
+        PermanentNavigationDrawer(
+            drawerContent = {
+                PermanentDrawerSheet { drawerContent() }
+            },
+            content = mainContent,
+        )
+    } else {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet { drawerContent() }
+            },
+            content = mainContent,
+        )
+    }
+
     // Create task dialog
     if (showCreateDialog) {
         val defaultListId = selectedListId ?: taskLists.firstOrNull()?.id
@@ -392,11 +428,40 @@ fun AuthenticatedHome(
 }
 
 @Composable
+private fun RefreshErrorEffect(
+    refreshError: RefreshError?,
+    snackbarHostState: SnackbarHostState,
+    onClearRefreshError: () -> Unit,
+) {
+    val rateLimitedMsg = stringResource(R.string.error_rate_limited)
+    val authFailedMsg = stringResource(R.string.error_auth_failed_refresh)
+    val serverErrorMsg = stringResource(R.string.error_server)
+    val networkErrorMsg = stringResource(R.string.error_network)
+    val unknownErrorMsg = stringResource(R.string.error_unknown)
+
+    LaunchedEffect(refreshError) {
+        val message =
+            when (refreshError) {
+                RefreshError.RATE_LIMITED -> rateLimitedMsg
+                RefreshError.AUTH_FAILED -> authFailedMsg
+                RefreshError.SERVER_ERROR -> serverErrorMsg
+                RefreshError.NETWORK_ERROR -> networkErrorMsg
+                RefreshError.UNKNOWN -> unknownErrorMsg
+                null -> null
+            }
+        if (message != null) {
+            snackbarHostState.showSnackbar(message)
+            onClearRefreshError()
+        }
+    }
+}
+
+@Composable
 private fun UnifiedSearchBar(
     state: LoginFlowUiState,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    onOpenDrawer: () -> Unit,
+    onOpenDrawer: (() -> Unit)?,
     onSwitchAccount: (String) -> Unit,
     onLogout: (String) -> Unit,
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
@@ -454,8 +519,8 @@ private fun UnifiedSearchBar(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                } else {
-                    // Hamburger menu in normal state
+                } else if (onOpenDrawer != null) {
+                    // Hamburger menu in normal state (hidden on expanded screens with permanent drawer)
                     IconButton(onClick = onOpenDrawer) {
                         Icon(
                             imageVector = Icons.Default.Menu,
@@ -463,6 +528,9 @@ private fun UnifiedSearchBar(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                } else {
+                    // Extra start padding on expanded screens where hamburger icon is absent
+                    Spacer(Modifier.width(8.dp))
                 }
 
                 // Search text field
@@ -634,6 +702,7 @@ private fun TasksContent(
     searchQuery: String,
     isOnline: Boolean,
     animatingEntryTaskIds: Set<String>,
+    isExpandedScreen: Boolean = false,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
@@ -652,11 +721,23 @@ private fun TasksContent(
     // Group open tasks by list
     val openTasksByList = openTasks.groupBy { it.listId }
 
+    // On expanded screens, constrain max content width for readability
+    val contentModifier =
+        if (isExpandedScreen) {
+            Modifier.padding(padding).widthIn(max = 720.dp).fillMaxWidth()
+        } else {
+            Modifier.padding(padding)
+        }
+
     LazyColumn(
-        modifier = Modifier.padding(padding),
-        contentPadding = PaddingValues(16.dp),
-        // Note: No spacedBy - task items include their own bottom spacing
-        // which animates with shrinkVertically to prevent jerky transitions
+        modifier = contentModifier,
+        contentPadding =
+            PaddingValues(
+                start = if (isExpandedScreen) 24.dp else 16.dp,
+                end = if (isExpandedScreen) 24.dp else 16.dp,
+                top = 16.dp,
+                bottom = 16.dp,
+            ),
     ) {
         if (openTasks.isEmpty() && completedTasks.isEmpty()) {
             item {
@@ -1398,6 +1479,14 @@ fun NoSearchResultsState(
     }
 }
 
+enum class RefreshError {
+    RATE_LIMITED,
+    AUTH_FAILED,
+    SERVER_ERROR,
+    NETWORK_ERROR,
+    UNKNOWN,
+}
+
 @HiltViewModel
 class TaskListViewModel
     @Inject
@@ -1454,6 +1543,13 @@ class TaskListViewModel
             tasksRepository
                 .observeHasPendingChanges()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+        private val _refreshError = MutableStateFlow<RefreshError?>(null)
+        val refreshError = _refreshError.asStateFlow()
+
+        fun clearRefreshError() {
+            _refreshError.value = null
+        }
 
         // Internal filtered and sorted tasks (before freezing logic)
         private val filteredTasks =
@@ -1549,10 +1645,32 @@ class TaskListViewModel
                 // Freeze the current task list to prevent UI flicker during sync
                 frozenTasksForSync.value = tasks.value
                 _isRefreshing.value = true
+                _refreshError.value = null
                 try {
                     tasksRepository.refresh()
-                } catch (ignored: Exception) {
-                    timber.log.Timber.e(ignored, "Failed to refresh tasks")
+                } catch (e: com.nextcloud.tasks.data.caldav.service.CalDavHttpException) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks (HTTP ${e.statusCode})")
+                    _refreshError.value =
+                        when (e.statusCode) {
+                            429 -> RefreshError.RATE_LIMITED
+                            401, 403 -> RefreshError.AUTH_FAILED
+                            in 500..599 -> RefreshError.SERVER_ERROR
+                            else -> RefreshError.SERVER_ERROR
+                        }
+                } catch (e: java.net.UnknownHostException) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks (DNS)")
+                    _refreshError.value = RefreshError.NETWORK_ERROR
+                } catch (e: java.net.ConnectException) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks (connection)")
+                    _refreshError.value = RefreshError.NETWORK_ERROR
+                } catch (e: java.net.SocketTimeoutException) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks (timeout)")
+                    _refreshError.value = RefreshError.NETWORK_ERROR
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    timber.log.Timber.e(e, "Failed to refresh tasks")
+                    _refreshError.value = RefreshError.UNKNOWN
                 } finally {
                     _isRefreshing.value = false
                     // Unfreeze - show the updated list
