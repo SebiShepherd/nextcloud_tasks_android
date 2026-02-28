@@ -53,7 +53,7 @@ jobs:
         run: ./gradlew ktlintCheck detekt :app:lintRelease
 
       - name: Run tests
-        run: ./gradlew testReleaseUnitTest
+        run: ./gradlew testDebugUnitTest
 
       - name: Build signed Release APK
         env:
