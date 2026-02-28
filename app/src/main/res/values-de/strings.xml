@@ -1,6 +1,6 @@
 <resources>
     <!-- App Name -->
-    <string name="app_name">Nextcloud Aufgaben</string>
+    <string name="app_name">Aufgaben</string>
 
     <!-- Login Screen -->
     <string name="welcome_message">Willkommen zu Ihren Nextcloud Aufgaben</string>
