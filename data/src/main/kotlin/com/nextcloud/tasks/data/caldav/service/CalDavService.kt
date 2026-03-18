@@ -424,7 +424,9 @@ class CalDavService
                         Timber.w("PROPPATCH calendar-color returned %d for %s", response.code, collectionHref)
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to set calendar color via PROPPATCH")
+            } catch (e: IllegalStateException) {
                 Timber.w(e, "Failed to set calendar color via PROPPATCH")
             }
         }
