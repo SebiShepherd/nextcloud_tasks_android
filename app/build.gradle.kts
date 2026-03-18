@@ -179,7 +179,7 @@ play {
     val serviceAccountPath = System.getenv("PLAY_SERVICE_ACCOUNT_JSON")
     if (!serviceAccountPath.isNullOrBlank() && file(serviceAccountPath).exists()) {
         serviceAccountCredentials.set(file(serviceAccountPath))
-        track.set("internal")
+        track.set("production")
         defaultToAppBundles.set(true)
         resolutionStrategy.set(com.github.triplet.gradle.androidpublisher.ResolutionStrategy.AUTO)
     } else {
