@@ -373,12 +373,13 @@ class CalDavService
                         .header("Content-Type", "application/xml; charset=utf-8")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(
-                        response.code,
-                        "Failed to create calendar collection: ${response.code} - ${response.message}",
-                    )
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to create calendar collection: ${response.code} - ${response.message}",
+                        )
+                    }
                 }
 
                 // After collection creation, set color via PROPPATCH if provided
@@ -418,11 +419,12 @@ class CalDavService
                         .method("PROPPATCH", requestBody)
                         .header("Content-Type", "application/xml; charset=utf-8")
                         .build()
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    Timber.w("PROPPATCH calendar-color returned %d for %s", response.code, collectionHref)
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        Timber.w("PROPPATCH calendar-color returned %d for %s", response.code, collectionHref)
+                    }
                 }
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 Timber.w(e, "Failed to set calendar color via PROPPATCH")
             }
         }

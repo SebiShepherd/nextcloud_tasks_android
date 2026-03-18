@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -91,6 +92,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
@@ -1570,7 +1574,6 @@ private val TASK_LIST_COLORS =
         "#0082C9", // Nextcloud blue
         "#8C00C9", // Purple
         "#C9007A", // Pink
-        "#888888", // Gray
     )
 
 @Composable
@@ -1606,15 +1609,23 @@ private fun CreateTaskListDialog(
                             androidx.compose.ui.graphics.Color(
                                 android.graphics.Color.parseColor(colorHex),
                             )
+                        val isSelected = selectedColor == colorHex
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier =
                                 Modifier
                                     .size(28.dp)
                                     .background(color, CircleShape)
-                                    .clickable { selectedColor = colorHex },
+                                    .selectable(
+                                        selected = isSelected,
+                                        onClick = { selectedColor = colorHex },
+                                        role = Role.RadioButton,
+                                    )
+                                    .semantics {
+                                        contentDescription = colorHex
+                                    },
                         ) {
-                            if (selectedColor == colorHex) {
+                            if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
