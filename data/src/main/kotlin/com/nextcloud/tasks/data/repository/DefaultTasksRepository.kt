@@ -487,8 +487,13 @@ class DefaultTasksRepository
                     // Delete lists that exist locally but were removed on the server
                     if (serverListHrefs.isNotEmpty()) {
                         taskListsDao.deleteListsNotInHrefs(accountId, serverListHrefs)
-                        // Also delete tasks belonging to those now-removed lists
-                        tasksDao.deleteTasksForRemovedLists(accountId, serverListHrefs, pendingCreateTaskIds)
+                        // Also delete tasks belonging to those now-removed lists.
+                        // Use separate query variants to avoid Room exceptions on empty IN-lists.
+                        if (pendingCreateTaskIds.isEmpty()) {
+                            tasksDao.deleteTasksForRemovedListsAll(accountId, serverListHrefs)
+                        } else {
+                            tasksDao.deleteTasksForRemovedLists(accountId, serverListHrefs, pendingCreateTaskIds)
+                        }
                     }
 
                     upsertTaskLists(taskLists)
