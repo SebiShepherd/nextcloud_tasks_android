@@ -9,6 +9,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import timber.log.Timber
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Named
@@ -343,16 +344,10 @@ class CalDavService
                     .replace("\"", "&quot;")
                     .replace("'", "&apos;")
 
-                val colorElement = if (color != null) {
-                    "\n                <i:calendar-color>$color</i:calendar-color>"
-                } else {
-                    ""
-                }
-
                 val requestBody =
                     """
                     <?xml version="1.0" encoding="UTF-8"?>
-                    <d:mkcol xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:i="http://apple.com/ns/ical/">
+                    <d:mkcol xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
                         <d:set>
                             <d:prop>
                                 <d:displayname>$escapedName</d:displayname>
@@ -362,7 +357,7 @@ class CalDavService
                                 </d:resourcetype>
                                 <c:supported-calendar-component-set>
                                     <c:comp name="VTODO"/>
-                                </c:supported-calendar-component-set>$colorElement
+                                </c:supported-calendar-component-set>
                             </d:prop>
                         </d:set>
                     </d:mkcol>
@@ -384,8 +379,51 @@ class CalDavService
                     )
                 }
 
+                // After collection creation, set color via PROPPATCH if provided
+                if (color != null) {
+                    setCalendarColor(baseUrl, collectionHref, color)
+                }
+
                 collectionHref
             }
+
+        /**
+         * Set the calendar color via PROPPATCH on an existing collection.
+         * Failures are logged but not propagated — the list was created successfully.
+         */
+        fun setCalendarColor(
+            baseUrl: String,
+            collectionHref: String,
+            color: String,
+        ) {
+            try {
+                val collectionUrl = buildFullUrl(baseUrl, collectionHref)
+                val requestBody =
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <d:propertyupdate xmlns:d="DAV:" xmlns:i="http://apple.com/ns/ical/">
+                        <d:set>
+                            <d:prop>
+                                <i:calendar-color>$color</i:calendar-color>
+                            </d:prop>
+                        </d:set>
+                    </d:propertyupdate>
+                    """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
+                val request =
+                    Request
+                        .Builder()
+                        .url(collectionUrl)
+                        .method("PROPPATCH", requestBody)
+                        .header("Content-Type", "application/xml; charset=utf-8")
+                        .build()
+                val response = okHttpClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    Timber.w("PROPPATCH calendar-color returned %d for %s", response.code, collectionHref)
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "Failed to set calendar color via PROPPATCH")
+            }
+        }
 
         /**
          * Build the DAV root URL

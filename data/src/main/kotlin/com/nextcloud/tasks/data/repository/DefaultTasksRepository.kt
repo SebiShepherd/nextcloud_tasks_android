@@ -471,6 +471,8 @@ class DefaultTasksRepository
                     Timber.d("Protecting ${pendingCreateTaskIds.size} offline-created tasks from deletion")
                 }
 
+                val serverListHrefs = taskLists.mapNotNull { it.href }
+
                 // Update database
                 database.withTransaction {
                     // Delete local-only (demo) tasks and lists before syncing
@@ -481,6 +483,13 @@ class DefaultTasksRepository
                         tasksDao.deleteTasksWithoutHrefExcluding(pendingCreateTaskIds)
                     }
                     taskListsDao.deleteListsWithoutHref()
+
+                    // Delete lists that exist locally but were removed on the server
+                    if (serverListHrefs.isNotEmpty()) {
+                        taskListsDao.deleteListsNotInHrefs(accountId, serverListHrefs)
+                        // Also delete tasks belonging to those now-removed lists
+                        tasksDao.deleteTasksForRemovedLists(accountId, serverListHrefs, pendingCreateTaskIds)
+                    }
 
                     upsertTaskLists(taskLists)
                     upsertTasksFromCalDav(allTasks)
