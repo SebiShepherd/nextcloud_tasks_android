@@ -344,6 +344,36 @@ Example: 1.2.3
 - PATCH (3): Bug fixes (backwards compatible)
 ```
 
+### When to bump which number?
+
+**PATCH (1.0.0 → 1.0.1)** — Bug fixes and small corrections
+- Fix: Task completion status not syncing correctly
+- Fix: App crashes when server is unreachable
+- Fix: Wrong date format in task details
+- Fix: Typo in German translation
+- Performance improvements without visible changes
+
+**MINOR (1.0.x → 1.1.0)** — New features, resets PATCH to 0
+- Add: Subtask support
+- Add: Filter tasks by priority
+- Add: Dark mode
+- Add: New language (e.g. French)
+- Change: Redesigned task detail screen (existing features still work the same)
+
+**MAJOR (1.x.x → 2.0.0)** — Breaking changes, resets MINOR and PATCH to 0
+- Change: Minimum Android version raised (e.g. from 8.0 to 10.0)
+- Change: Requires newer Nextcloud server version
+- Change: Complete app rewrite or fundamental architecture change
+- Change: Login/authentication flow changed (users must re-authenticate)
+- Remove: Previously supported feature removed entirely
+
+### Rules of thumb
+
+- When in doubt between PATCH and MINOR → use **MINOR**
+- When in doubt between MINOR and MAJOR → use **MINOR**
+- MAJOR bumps should be rare — only when users need to take action or lose functionality
+- A release can contain multiple changes — use the **highest** applicable level (e.g. a bug fix + a new feature = MINOR)
+
 **Version Code Calculation:**
 ```
 versionCode = MAJOR * 10000 + MINOR * 100 + PATCH
