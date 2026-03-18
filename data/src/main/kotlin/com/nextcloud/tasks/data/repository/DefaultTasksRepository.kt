@@ -588,7 +588,10 @@ class DefaultTasksRepository
                 }
             }
 
-        override suspend fun createTaskList(name: String, color: String?): TaskList =
+        override suspend fun createTaskList(
+            name: String,
+            color: String?,
+        ): TaskList =
             withContext(ioDispatcher) {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
                 val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
@@ -603,16 +606,17 @@ class DefaultTasksRepository
                 val href = hrefResult.getOrElse { throw IOException("Failed to create calendar collection", it) }
 
                 val now = Instant.now()
-                val entity = TaskListEntity(
-                    id = href,
-                    accountId = accountId,
-                    name = name,
-                    color = color,
-                    updatedAt = now,
-                    etag = null,
-                    href = href,
-                    order = null,
-                )
+                val entity =
+                    TaskListEntity(
+                        id = href,
+                        accountId = accountId,
+                        name = name,
+                        color = color,
+                        updatedAt = now,
+                        etag = null,
+                        href = href,
+                        order = null,
+                    )
 
                 taskListsDao.upsertTaskList(entity)
                 Timber.d("Task list '$name' created at $href")

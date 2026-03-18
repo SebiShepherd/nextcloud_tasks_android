@@ -11,6 +11,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
 import java.io.IOException
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -333,16 +334,17 @@ class CalDavService
             color: String? = null,
         ): Result<String> =
             runCatching {
-                val collectionSlug = java.util.UUID.randomUUID().toString()
+                val collectionSlug = UUID.randomUUID().toString()
                 val collectionHref = "${calendarHomeUrl.trimEnd('/')}/$collectionSlug/"
                 val collectionUrl = buildFullUrl(baseUrl, collectionHref)
 
-                val escapedName = displayName
-                    .replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-                    .replace("\"", "&quot;")
-                    .replace("'", "&apos;")
+                val escapedName =
+                    displayName
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("\"", "&quot;")
+                        .replace("'", "&apos;")
 
                 val requestBody =
                     """
