@@ -50,7 +50,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -258,8 +262,8 @@ fun NextcloudTasksApp(
             showCreateListDialog = showCreateListDialog,
             onShowCreateListDialog = { showCreateListDialog = true },
             onDismissCreateListDialog = { showCreateListDialog = false },
-            onCreateList = { name ->
-                taskListViewModel.createTaskList(name)
+            onCreateList = { name, color ->
+                taskListViewModel.createTaskList(name, color)
                 showCreateListDialog = false
             },
             createListError = createListError,
@@ -305,7 +309,7 @@ fun AuthenticatedHome(
     showCreateListDialog: Boolean = false,
     onShowCreateListDialog: () -> Unit = {},
     onDismissCreateListDialog: () -> Unit = {},
-    onCreateList: (String) -> Unit = {},
+    onCreateList: (String, String?) -> Unit = { _, _ -> },
     createListError: String? = null,
     onClearCreateListError: () -> Unit = {},
 ) {
@@ -435,20 +439,19 @@ fun AuthenticatedHome(
     }
 
     // Create task dialog
-    if (showCreateDialog) {
-        val defaultListId = selectedListId ?: taskLists.firstOrNull()?.id
-        if (defaultListId != null) {
-            CreateTaskDialog(
-                listId = defaultListId,
-                onDismiss = onDismissCreateDialog,
-                onCreate = { title, description, listId ->
-                    onCreateTask(title, description, listId)
-                    if (!isOnline) {
-                        showOfflineSnackbar = true
-                    }
-                },
-            )
-        }
+    if (showCreateDialog && taskLists.isNotEmpty()) {
+        CreateTaskDialog(
+            taskLists = taskLists,
+            initialListId = selectedListId ?: taskLists.first().id,
+            showListSelector = selectedListId == null,
+            onDismiss = onDismissCreateDialog,
+            onCreate = { title, description, listId ->
+                onCreateTask(title, description, listId)
+                if (!isOnline) {
+                    showOfflineSnackbar = true
+                }
+            },
+        )
     }
 
     // Create list dialog
@@ -929,16 +932,11 @@ private fun TaskListsDrawer(
         if (taskLists.isEmpty()) {
             Text(
                 text = stringResource(R.string.no_task_lists_sidebar),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            TextButton(
-                onClick = onShowCreateListDialog,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.create_first_list))
-            }
         } else {
             taskLists.forEach { taskList ->
                 NavigationDrawerItem(
@@ -972,6 +970,13 @@ private fun TaskListsDrawer(
                     },
                 )
             }
+        }
+
+        TextButton(
+            onClick = onShowCreateListDialog,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.create_new_list))
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -1445,20 +1450,69 @@ private fun TaskCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateTaskDialog(
-    listId: String,
+    taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
+    initialListId: String,
+    showListSelector: Boolean = false,
     onDismiss: () -> Unit,
     onCreate: (String, String?, String) -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var selectedListId by remember { mutableStateOf(initialListId) }
+    var listDropdownExpanded by remember { mutableStateOf(false) }
+    val selectedList = taskLists.firstOrNull { it.id == selectedListId } ?: taskLists.first()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.create_task_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (showListSelector) {
+                    ExposedDropdownMenuBox(
+                        expanded = listDropdownExpanded,
+                        onExpandedChange = { listDropdownExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedList.name,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.task_list_label)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = listDropdownExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = listDropdownExpanded,
+                            onDismissRequest = { listDropdownExpanded = false },
+                        ) {
+                            taskLists.forEach { list ->
+                                DropdownMenuItem(
+                                    text = { Text(list.name) },
+                                    onClick = {
+                                        selectedListId = list.id
+                                        listDropdownExpanded = false
+                                    },
+                                    leadingIcon = list.color?.let { colorHex ->
+                                        {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .background(
+                                                        color = androidx.compose.ui.graphics.Color(
+                                                            android.graphics.Color.parseColor(colorHex),
+                                                        ),
+                                                        shape = CircleShape,
+                                                    ),
+                                            )
+                                        }
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -1479,7 +1533,7 @@ private fun CreateTaskDialog(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onCreate(title.trim(), description.ifBlank { null }, listId)
+                        onCreate(title.trim(), description.ifBlank { null }, selectedListId)
                     }
                 },
                 enabled = title.isNotBlank(),
@@ -1495,30 +1549,75 @@ private fun CreateTaskDialog(
     )
 }
 
+private val TASK_LIST_COLORS = listOf(
+    "#E9322D", // Red
+    "#ECA700", // Orange
+    "#FFD800", // Yellow
+    "#46BA61", // Green
+    "#4DA8DA", // Light blue
+    "#0082C9", // Nextcloud blue
+    "#8C00C9", // Purple
+    "#C9007A", // Pink
+    "#888888", // Gray
+)
+
 @Composable
 private fun CreateTaskListDialog(
     onDismiss: () -> Unit,
-    onCreate: (String) -> Unit,
+    onCreate: (String, String?) -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
+    var selectedColor by remember { mutableStateOf<String?>(TASK_LIST_COLORS.first()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.create_list_dialog_title)) },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text(stringResource(R.string.list_name_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.list_name_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.list_color_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    TASK_LIST_COLORS.forEach { colorHex ->
+                        val color = androidx.compose.ui.graphics.Color(
+                            android.graphics.Color.parseColor(colorHex),
+                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(color, CircleShape)
+                                .clickable { selectedColor = colorHex },
+                        ) {
+                            if (selectedColor == colorHex) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = androidx.compose.ui.graphics.Color.White,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onCreate(name.trim())
+                        onCreate(name.trim(), selectedColor)
                     }
                 },
                 enabled = name.isNotBlank(),
@@ -1699,10 +1798,10 @@ class TaskListViewModel
             _createListError.value = null
         }
 
-        fun createTaskList(name: String) {
+        fun createTaskList(name: String, color: String? = null) {
             viewModelScope.launch {
                 try {
-                    val newList = tasksRepository.createTaskList(name)
+                    val newList = tasksRepository.createTaskList(name, color)
                     _selectedListId.value = newList.id
                 } catch (
                     @Suppress("TooGenericExceptionCaught") e: Exception,

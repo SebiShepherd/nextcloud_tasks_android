@@ -47,5 +47,5 @@ interface TasksRepository {
 
     suspend fun clearAccountData(accountId: String)
 
-    suspend fun createTaskList(name: String): TaskList
+    suspend fun createTaskList(name: String, color: String? = null): TaskList
 }

@@ -567,7 +567,7 @@ class DefaultTasksRepository
                 }
             }
 
-        override suspend fun createTaskList(name: String): TaskList =
+        override suspend fun createTaskList(name: String, color: String?): TaskList =
             withContext(ioDispatcher) {
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
                 val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
@@ -578,7 +578,7 @@ class DefaultTasksRepository
                 val calendarHomeResult = calDavService.discoverCalendarHome(baseUrl, principal.principalUrl)
                 val calendarHome = calendarHomeResult.getOrElse { throw IOException("Failed to discover calendar home", it) }
 
-                val hrefResult = calDavService.createCalendarCollection(baseUrl, calendarHome.calendarHomeUrl, name)
+                val hrefResult = calDavService.createCalendarCollection(baseUrl, calendarHome.calendarHomeUrl, name, color)
                 val href = hrefResult.getOrElse { throw IOException("Failed to create calendar collection", it) }
 
                 val now = Instant.now()
@@ -586,7 +586,7 @@ class DefaultTasksRepository
                     id = href,
                     accountId = accountId,
                     name = name,
-                    color = null,
+                    color = color,
                     updatedAt = now,
                     etag = null,
                     href = href,

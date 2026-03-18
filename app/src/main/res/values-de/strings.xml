@@ -103,11 +103,14 @@
     <string name="no_task_lists_title">Noch keine Aufgabenlisten</string>
     <string name="no_task_lists_hint">Erstellen Sie eine Aufgabenliste, um Ihre Aufgaben zu organisieren.</string>
     <string name="create_first_list">Erste Liste erstellen</string>
+    <string name="create_new_list">Neue Liste erstellen</string>
     <string name="no_task_lists_sidebar">Noch keine Listen</string>
 
     <!-- Create List Dialog -->
     <string name="create_list_dialog_title">Neue Liste erstellen</string>
     <string name="list_name_label">Listenname</string>
+    <string name="task_list_label">Liste</string>
+    <string name="list_color_label">Farbe</string>
     <string name="error_create_list_offline">Im Offline-Modus können keine Listen erstellt werden.</string>
     <string name="error_create_list_failed">Liste konnte nicht erstellt werden. Bitte versuchen Sie es erneut.</string>
 

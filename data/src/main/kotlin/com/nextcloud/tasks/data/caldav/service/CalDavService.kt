@@ -329,6 +329,7 @@ class CalDavService
             baseUrl: String,
             calendarHomeUrl: String,
             displayName: String,
+            color: String? = null,
         ): Result<String> =
             runCatching {
                 val collectionSlug = java.util.UUID.randomUUID().toString()
@@ -342,10 +343,16 @@ class CalDavService
                     .replace("\"", "&quot;")
                     .replace("'", "&apos;")
 
+                val colorElement = if (color != null) {
+                    "\n                <i:calendar-color>$color</i:calendar-color>"
+                } else {
+                    ""
+                }
+
                 val requestBody =
                     """
                     <?xml version="1.0" encoding="UTF-8"?>
-                    <d:mkcol xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+                    <d:mkcol xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:i="http://apple.com/ns/ical/">
                         <d:set>
                             <d:prop>
                                 <d:displayname>$escapedName</d:displayname>
@@ -355,7 +362,7 @@ class CalDavService
                                 </d:resourcetype>
                                 <c:supported-calendar-component-set>
                                     <c:comp name="VTODO"/>
-                                </c:supported-calendar-component-set>
+                                </c:supported-calendar-component-set>$colorElement
                             </d:prop>
                         </d:set>
                     </d:mkcol>
