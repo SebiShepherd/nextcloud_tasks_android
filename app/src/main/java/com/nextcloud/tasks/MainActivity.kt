@@ -54,8 +54,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -110,6 +110,7 @@ import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -118,7 +119,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -503,10 +503,11 @@ private fun CreateListErrorEffect(
 
     LaunchedEffect(error) {
         if (error != null) {
-            val message = when (error) {
-                is CreateListError.Offline -> offlineMsg
-                is CreateListError.Failed -> failedMsg
-            }
+            val message =
+                when (error) {
+                    is CreateListError.Offline -> offlineMsg
+                    is CreateListError.Failed -> failedMsg
+                }
             snackbarHostState.showSnackbar(message)
             onClearError()
         }
@@ -1497,20 +1498,23 @@ private fun CreateTaskDialog(
                                         selectedListId = list.id
                                         listDropdownExpanded = false
                                     },
-                                    leadingIcon = list.color?.let { colorHex ->
-                                        {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(12.dp)
-                                                    .background(
-                                                        color = androidx.compose.ui.graphics.Color(
-                                                            android.graphics.Color.parseColor(colorHex),
-                                                        ),
-                                                        shape = CircleShape,
-                                                    ),
-                                            )
-                                        }
-                                    },
+                                    leadingIcon =
+                                        list.color?.let { colorHex ->
+                                            {
+                                                Box(
+                                                    modifier =
+                                                        Modifier
+                                                            .size(12.dp)
+                                                            .background(
+                                                                color =
+                                                                    androidx.compose.ui.graphics.Color(
+                                                                        android.graphics.Color.parseColor(colorHex),
+                                                                    ),
+                                                                shape = CircleShape,
+                                                            ),
+                                                )
+                                            }
+                                        },
                                 )
                             }
                         }
@@ -1552,17 +1556,18 @@ private fun CreateTaskDialog(
     )
 }
 
-private val TASK_LIST_COLORS = listOf(
-    "#E9322D", // Red
-    "#ECA700", // Orange
-    "#FFD800", // Yellow
-    "#46BA61", // Green
-    "#4DA8DA", // Light blue
-    "#0082C9", // Nextcloud blue
-    "#8C00C9", // Purple
-    "#C9007A", // Pink
-    "#888888", // Gray
-)
+private val TASK_LIST_COLORS =
+    listOf(
+        "#E9322D", // Red
+        "#ECA700", // Orange
+        "#FFD800", // Yellow
+        "#46BA61", // Green
+        "#4DA8DA", // Light blue
+        "#0082C9", // Nextcloud blue
+        "#8C00C9", // Purple
+        "#C9007A", // Pink
+        "#888888", // Gray
+    )
 
 @Composable
 private fun CreateTaskListDialog(
@@ -1593,15 +1598,17 @@ private fun CreateTaskListDialog(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     TASK_LIST_COLORS.forEach { colorHex ->
-                        val color = androidx.compose.ui.graphics.Color(
-                            android.graphics.Color.parseColor(colorHex),
-                        )
+                        val color =
+                            androidx.compose.ui.graphics.Color(
+                                android.graphics.Color.parseColor(colorHex),
+                            )
                         Box(
                             contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(28.dp)
-                                .background(color, CircleShape)
-                                .clickable { selectedColor = colorHex },
+                            modifier =
+                                Modifier
+                                    .size(28.dp)
+                                    .background(color, CircleShape)
+                                    .clickable { selectedColor = colorHex },
                         ) {
                             if (selectedColor == colorHex) {
                                 Icon(
@@ -1732,6 +1739,7 @@ enum class RefreshError {
 
 sealed class CreateListError {
     data object Offline : CreateListError()
+
     data object Failed : CreateListError()
 }
 
@@ -1806,7 +1814,10 @@ class TaskListViewModel
             _createListError.value = null
         }
 
-        fun createTaskList(name: String, color: String? = null) {
+        fun createTaskList(
+            name: String,
+            color: String? = null,
+        ) {
             viewModelScope.launch {
                 try {
                     val newList = tasksRepository.createTaskList(name, color)
