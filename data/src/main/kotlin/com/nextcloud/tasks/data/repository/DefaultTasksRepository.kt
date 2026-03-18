@@ -475,20 +475,27 @@ class DefaultTasksRepository
 
                 // Update database
                 database.withTransaction {
-                    // Delete local-only (demo) tasks and lists before syncing
-                    // But exclude tasks that have pending CREATE operations (offline-created)
+                    // Remove local-only (never-synced) tasks, protecting pending creates
                     if (pendingCreateTaskIds.isEmpty()) {
                         tasksDao.deleteTasksWithoutHref()
                     } else {
                         tasksDao.deleteTasksWithoutHrefExcluding(pendingCreateTaskIds)
                     }
-                    taskListsDao.deleteListsWithoutHref()
 
-                    // Delete lists that exist locally but were removed on the server
-                    if (serverListHrefs.isNotEmpty()) {
-                        taskListsDao.deleteListsNotInHrefs(accountId, serverListHrefs)
-                        // Also delete tasks belonging to those now-removed lists.
-                        // Use separate query variants to avoid Room exceptions on empty IN-lists.
+                    // Replace all task lists with exact server state.
+                    // deleteListsByAccount covers both local-only and stale synced lists,
+                    // so there is no need to guard on serverListHrefs.isNotEmpty().
+                    taskListsDao.deleteListsByAccount(accountId)
+
+                    // Remove tasks whose list was deleted on the server, protecting pending creates.
+                    if (serverListHrefs.isEmpty()) {
+                        // Server has no lists — wipe all server-synced tasks for this account
+                        if (pendingCreateTaskIds.isEmpty()) {
+                            tasksDao.deleteSyncedTasksByAccount(accountId)
+                        } else {
+                            tasksDao.deleteSyncedTasksByAccountExcluding(accountId, pendingCreateTaskIds)
+                        }
+                    } else {
                         if (pendingCreateTaskIds.isEmpty()) {
                             tasksDao.deleteTasksForRemovedListsAll(accountId, serverListHrefs)
                         } else {
