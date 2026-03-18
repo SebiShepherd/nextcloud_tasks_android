@@ -19,15 +19,9 @@ interface TaskListsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTaskList(entity: TaskListEntity)
 
-    @Query("DELETE FROM task_lists WHERE href IS NULL")
-    suspend fun deleteListsWithoutHref()
-
     @Query("DELETE FROM task_lists WHERE account_id = :accountId")
     suspend fun deleteListsByAccount(accountId: String)
 
     @Query("SELECT updated_at FROM task_lists WHERE id = :listId LIMIT 1")
     suspend fun getUpdatedAt(listId: String): Instant?
-
-    @Query("DELETE FROM task_lists WHERE account_id = :accountId AND href IS NOT NULL AND href NOT IN (:hrefs)")
-    suspend fun deleteListsNotInHrefs(accountId: String, hrefs: List<String>)
 }
