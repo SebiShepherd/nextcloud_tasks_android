@@ -335,13 +335,20 @@ class CalDavService
                 val collectionHref = "${calendarHomeUrl.trimEnd('/')}/$collectionSlug/"
                 val collectionUrl = buildFullUrl(baseUrl, collectionHref)
 
+                val escapedName = displayName
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&apos;")
+
                 val requestBody =
                     """
                     <?xml version="1.0" encoding="UTF-8"?>
                     <d:mkcol xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
                         <d:set>
                             <d:prop>
-                                <d:displayname>$displayName</d:displayname>
+                                <d:displayname>$escapedName</d:displayname>
                                 <d:resourcetype>
                                     <d:collection/>
                                     <c:calendar/>
