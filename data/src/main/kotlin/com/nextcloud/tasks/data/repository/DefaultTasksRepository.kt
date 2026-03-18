@@ -597,13 +597,24 @@ class DefaultTasksRepository
                 val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
                 val principalResult = calDavService.discoverPrincipal(baseUrl)
-                val principal = principalResult.getOrElse { throw IOException("Failed to discover principal", it) }
+                val principal = principalResult.getOrElse {
+                    throw IOException("Failed to discover principal", it)
+                }
 
                 val calendarHomeResult = calDavService.discoverCalendarHome(baseUrl, principal.principalUrl)
-                val calendarHome = calendarHomeResult.getOrElse { throw IOException("Failed to discover calendar home", it) }
+                val calendarHome = calendarHomeResult.getOrElse {
+                    throw IOException("Failed to discover calendar home", it)
+                }
 
-                val hrefResult = calDavService.createCalendarCollection(baseUrl, calendarHome.calendarHomeUrl, name, color)
-                val href = hrefResult.getOrElse { throw IOException("Failed to create calendar collection", it) }
+                val hrefResult = calDavService.createCalendarCollection(
+                    baseUrl,
+                    calendarHome.calendarHomeUrl,
+                    name,
+                    color,
+                )
+                val href = hrefResult.getOrElse {
+                    throw IOException("Failed to create calendar collection", it)
+                }
 
                 val now = Instant.now()
                 val entity =

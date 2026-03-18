@@ -1484,7 +1484,11 @@ private fun CreateTaskDialog(
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(stringResource(R.string.task_list_label)) },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = listDropdownExpanded) },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(
+                                    expanded = listDropdownExpanded,
+                                )
+                            },
                             modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         )
                         ExposedDropdownMenu(
