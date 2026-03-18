@@ -130,6 +130,20 @@ jobs:
           echo "- Android 8.0 (API 26) or higher" >> release_notes.md
           echo "- Nextcloud server with Tasks app installed" >> release_notes.md
 
+      - name: Publish to Google Play (internal track)
+        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-')
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          VERSION_NAME: ${{ steps.version.outputs.version }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/play-service-account.json
+        run: |
+          echo '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > "$PLAY_SERVICE_ACCOUNT_JSON"
+          ./gradlew publishReleaseBundle
+          rm -f "$PLAY_SERVICE_ACCOUNT_JSON"
+
       - name: Create GitHub Release
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
