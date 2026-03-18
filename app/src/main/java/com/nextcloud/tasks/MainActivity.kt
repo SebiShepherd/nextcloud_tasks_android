@@ -310,7 +310,7 @@ fun AuthenticatedHome(
     onShowCreateListDialog: () -> Unit = {},
     onDismissCreateListDialog: () -> Unit = {},
     onCreateList: (String, String?) -> Unit = { _, _ -> },
-    createListError: String? = null,
+    createListError: CreateListError? = null,
     onClearCreateListError: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -494,7 +494,7 @@ private fun RefreshErrorEffect(
 
 @Composable
 private fun CreateListErrorEffect(
-    error: String?,
+    error: CreateListError?,
     snackbarHostState: SnackbarHostState,
     onClearError: () -> Unit,
 ) {
@@ -503,7 +503,10 @@ private fun CreateListErrorEffect(
 
     LaunchedEffect(error) {
         if (error != null) {
-            val message = if (error.contains("offline", ignoreCase = true)) offlineMsg else failedMsg
+            val message = when (error) {
+                is CreateListError.Offline -> offlineMsg
+                is CreateListError.Failed -> failedMsg
+            }
             snackbarHostState.showSnackbar(message)
             onClearError()
         }
@@ -1727,6 +1730,11 @@ enum class RefreshError {
     UNKNOWN,
 }
 
+sealed class CreateListError {
+    data object Offline : CreateListError()
+    data object Failed : CreateListError()
+}
+
 @HiltViewModel
 class TaskListViewModel
     @Inject
@@ -1791,7 +1799,7 @@ class TaskListViewModel
             _refreshError.value = null
         }
 
-        private val _createListError = MutableStateFlow<String?>(null)
+        private val _createListError = MutableStateFlow<CreateListError?>(null)
         val createListError = _createListError.asStateFlow()
 
         fun clearCreateListError() {
@@ -1807,7 +1815,12 @@ class TaskListViewModel
                     @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
                     timber.log.Timber.e(e, "Failed to create task list")
-                    _createListError.value = e.message
+                    _createListError.value =
+                        if (!tasksRepository.isCurrentlyOnline()) {
+                            CreateListError.Offline
+                        } else {
+                            CreateListError.Failed
+                        }
                 }
             }
         }
