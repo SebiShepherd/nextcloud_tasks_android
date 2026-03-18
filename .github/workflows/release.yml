@@ -131,7 +131,7 @@ jobs:
           echo "- Nextcloud server with Tasks app installed" >> release_notes.md
 
       - name: Publish to Google Play (internal track)
-        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-')
+        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && secrets.PLAY_SERVICE_ACCOUNT_JSON != ''
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
