@@ -566,4 +566,36 @@ class DefaultTasksRepository
                     Timber.d("Cleared all data for account: $accountId")
                 }
             }
+
+        override suspend fun createTaskList(name: String): TaskList =
+            withContext(ioDispatcher) {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
+
+                val principalResult = calDavService.discoverPrincipal(baseUrl)
+                val principal = principalResult.getOrElse { throw IOException("Failed to discover principal", it) }
+
+                val calendarHomeResult = calDavService.discoverCalendarHome(baseUrl, principal.principalUrl)
+                val calendarHome = calendarHomeResult.getOrElse { throw IOException("Failed to discover calendar home", it) }
+
+                val hrefResult = calDavService.createCalendarCollection(baseUrl, calendarHome.calendarHomeUrl, name)
+                val href = hrefResult.getOrElse { throw IOException("Failed to create calendar collection", it) }
+
+                val now = Instant.now()
+                val entity = TaskListEntity(
+                    id = href,
+                    accountId = accountId,
+                    name = name,
+                    color = null,
+                    updatedAt = now,
+                    etag = null,
+                    href = href,
+                    order = null,
+                )
+
+                taskListsDao.upsertTaskList(entity)
+                Timber.d("Task list '$name' created at $href")
+
+                taskListMapper.toDomain(entity)
+            }
     }

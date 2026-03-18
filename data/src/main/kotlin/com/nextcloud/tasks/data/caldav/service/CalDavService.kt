@@ -323,6 +323,57 @@ class CalDavService
             }
 
         /**
+         * Create a new calendar collection (task list) via MKCOL
+         */
+        suspend fun createCalendarCollection(
+            baseUrl: String,
+            calendarHomeUrl: String,
+            displayName: String,
+        ): Result<String> =
+            runCatching {
+                val collectionSlug = java.util.UUID.randomUUID().toString()
+                val collectionHref = "${calendarHomeUrl.trimEnd('/')}/$collectionSlug/"
+                val collectionUrl = buildFullUrl(baseUrl, collectionHref)
+
+                val requestBody =
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <d:mkcol xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+                        <d:set>
+                            <d:prop>
+                                <d:displayname>$displayName</d:displayname>
+                                <d:resourcetype>
+                                    <d:collection/>
+                                    <c:calendar/>
+                                </d:resourcetype>
+                                <c:supported-calendar-component-set>
+                                    <c:comp name="VTODO"/>
+                                </c:supported-calendar-component-set>
+                            </d:prop>
+                        </d:set>
+                    </d:mkcol>
+                    """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(collectionUrl)
+                        .method("MKCOL", requestBody)
+                        .header("Content-Type", "application/xml; charset=utf-8")
+                        .build()
+
+                val response = okHttpClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    throw CalDavHttpException(
+                        response.code,
+                        "Failed to create calendar collection: ${response.code} - ${response.message}",
+                    )
+                }
+
+                collectionHref
+            }
+
+        /**
          * Build the DAV root URL
          */
         private fun buildDavUrl(baseUrl: String): String {

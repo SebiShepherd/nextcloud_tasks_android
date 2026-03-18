@@ -99,6 +99,18 @@
     <string name="language_german">Deutsch</string>
     <string name="language_dialog_title">Select language</string>
 
+    <!-- No Lists Empty State -->
+    <string name="no_task_lists_title">No task lists yet</string>
+    <string name="no_task_lists_hint">Create a task list to start organizing your tasks.</string>
+    <string name="create_first_list">Create your first list</string>
+    <string name="no_task_lists_sidebar">No lists yet</string>
+
+    <!-- Create List Dialog -->
+    <string name="create_list_dialog_title">Create New List</string>
+    <string name="list_name_label">List name</string>
+    <string name="error_create_list_offline">Cannot create a list while offline.</string>
+    <string name="error_create_list_failed">Failed to create list. Please try again.</string>
+
     <!-- Offline Mode -->
     <string name="offline_message">You are currently offline. Your changes will be synced when you are back online.</string>
     <string name="syncing_pending_changes">Syncing pending changes\u2026</string>
