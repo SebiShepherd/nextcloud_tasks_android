@@ -131,6 +131,7 @@ jobs:
           echo "- Nextcloud server with Tasks app installed" >> release_notes.md
 
       - name: Publish to Google Play (internal track)
+        continue-on-error: true
         if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && secrets.PLAY_SERVICE_ACCOUNT_JSON != ''
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
@@ -140,7 +141,7 @@ jobs:
           VERSION_NAME: ${{ steps.version.outputs.version }}
           PLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/play-service-account.json
         run: |
-          echo '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > "$PLAY_SERVICE_ACCOUNT_JSON"
+          printf '%s' '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > "$PLAY_SERVICE_ACCOUNT_JSON"
           ./gradlew publishReleaseBundle
           rm -f "$PLAY_SERVICE_ACCOUNT_JSON"
 
