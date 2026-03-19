@@ -344,6 +344,36 @@ Example: 1.2.3
 - PATCH (3): Bug fixes (backwards compatible)
 ```
 
+### When to bump which number?
+
+**PATCH (1.0.0 → 1.0.1)** — Bug fixes and small corrections
+- Fix: Task completion status not syncing correctly
+- Fix: App crashes when server is unreachable
+- Fix: Wrong date format in task details
+- Fix: Typo in German translation
+- Performance improvements without visible changes
+
+**MINOR (1.0.x → 1.1.0)** — New features, resets PATCH to 0
+- Add: Subtask support
+- Add: Filter tasks by priority
+- Add: Dark mode
+- Add: New language (e.g. French)
+- Change: Redesigned task detail screen (existing features still work the same)
+
+**MAJOR (1.x.x → 2.0.0)** — Breaking changes, resets MINOR and PATCH to 0
+- Change: Minimum Android version raised (e.g. from 8.0 to 10.0)
+- Change: Requires newer Nextcloud server version
+- Change: Complete app rewrite or fundamental architecture change
+- Change: Login/authentication flow changed (users must re-authenticate)
+- Remove: Previously supported feature removed entirely
+
+### Rules of thumb
+
+- When in doubt between PATCH and MINOR → use **MINOR**
+- When in doubt between MINOR and MAJOR → use **MINOR**
+- MAJOR bumps should be rare — only when users need to take action or lose functionality
+- A release can contain multiple changes — use the **highest** applicable level (e.g. a bug fix + a new feature = MINOR)
+
 **Version Code Calculation:**
 ```
 versionCode = MAJOR * 10000 + MINOR * 100 + PATCH
@@ -390,7 +420,9 @@ Examples:
 7. **Build AAB** - Build signed release bundle
 8. **Rename** - Rename files with version number
 9. **Release Notes** - Generate automatic release notes
-10. **Create Release** - Create GitHub Release with APK and AAB
+10. **Play Store Release Notes** - Generate "What's new" from git commits (if Play secret is set)
+11. **Publish to Google Play** - Upload AAB to production track (if Play secret is set, non-blocking)
+12. **Create Release** - Create GitHub Release with APK and AAB
 
 **Outputs:**
 - GitHub Release with downloads
@@ -448,16 +480,30 @@ The APK can be installed directly on Android devices:
 
 ## 🎯 Google Play Store Publishing
 
-If you want to publish the app on Google Play Store later:
+### Automatic Publishing (Recommended)
 
-1. **Upload AAB:**
-   - Download `nextcloud-tasks-X.X.X.aab` from the release
-   - Go to Google Play Console
-   - Upload the AAB file
+When the `PLAY_SERVICE_ACCOUNT_JSON` secret is configured, stable tag releases are **automatically published** to the Google Play production track:
 
-2. **Automatic Publishing (Optional):**
-   - Configure `PLAY_SERVICE_ACCOUNT_JSON` secret
-   - The `play-internal` job in `ci.yml` will automatically publish to Internal Track
+1. **Setup** (one-time):
+   - Create a Google Cloud project and enable the Google Play Android Developer API
+   - Create a service account with a JSON key
+   - Invite the service account in Play Console under **Users and Permissions** with release management permissions
+   - Add the JSON key content as `PLAY_SERVICE_ACCOUNT_JSON` secret in GitHub
+
+2. **What happens on release:**
+   - Release notes are auto-generated from git commits and included as "What's new" in the Play Store (EN + DE)
+   - The AAB is uploaded and published to the **production** track
+   - If the upload fails, the GitHub Release is still created (non-blocking)
+
+3. **Play Store listing metadata** is managed in `app/src/main/play/listings/` (title, descriptions per language)
+
+### Manual Publishing (Fallback)
+
+If automatic publishing is not configured:
+
+1. Download `nextcloud-tasks-X.X.X.aab` from the GitHub Release
+2. Go to Google Play Console → Release → Production
+3. Upload the AAB file and fill in the release notes manually
 
 ---
 
