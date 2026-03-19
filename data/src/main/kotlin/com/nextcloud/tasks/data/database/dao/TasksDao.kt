@@ -54,4 +54,28 @@ interface TasksDao {
 
     @Query("SELECT COUNT(*) FROM tasks")
     suspend fun countTasks(): Int
+
+    @Query(
+        "DELETE FROM tasks WHERE account_id = :accountId AND list_id NOT IN (:listIds) AND id NOT IN (:protectedIds)",
+    )
+    suspend fun deleteTasksForRemovedLists(
+        accountId: String,
+        listIds: List<String>,
+        protectedIds: List<String>,
+    )
+
+    @Query("DELETE FROM tasks WHERE account_id = :accountId AND list_id NOT IN (:listIds)")
+    suspend fun deleteTasksForRemovedListsAll(
+        accountId: String,
+        listIds: List<String>,
+    )
+
+    @Query("DELETE FROM tasks WHERE account_id = :accountId AND href IS NOT NULL")
+    suspend fun deleteSyncedTasksByAccount(accountId: String)
+
+    @Query("DELETE FROM tasks WHERE account_id = :accountId AND href IS NOT NULL AND id NOT IN (:excludeIds)")
+    suspend fun deleteSyncedTasksByAccountExcluding(
+        accountId: String,
+        excludeIds: List<String>,
+    )
 }

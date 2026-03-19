@@ -46,4 +46,9 @@ interface TasksRepository {
     suspend fun addSampleTasksIfEmpty()
 
     suspend fun clearAccountData(accountId: String)
+
+    suspend fun createTaskList(
+        name: String,
+        color: String? = null,
+    ): TaskList
 }

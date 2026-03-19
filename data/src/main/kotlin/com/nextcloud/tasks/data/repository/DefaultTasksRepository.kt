@@ -471,16 +471,37 @@ class DefaultTasksRepository
                     Timber.d("Protecting ${pendingCreateTaskIds.size} offline-created tasks from deletion")
                 }
 
+                val serverListHrefs = taskLists.mapNotNull { it.href }
+
                 // Update database
                 database.withTransaction {
-                    // Delete local-only (demo) tasks and lists before syncing
-                    // But exclude tasks that have pending CREATE operations (offline-created)
+                    // Remove local-only (never-synced) tasks, protecting pending creates
                     if (pendingCreateTaskIds.isEmpty()) {
                         tasksDao.deleteTasksWithoutHref()
                     } else {
                         tasksDao.deleteTasksWithoutHrefExcluding(pendingCreateTaskIds)
                     }
-                    taskListsDao.deleteListsWithoutHref()
+
+                    // Replace all task lists with exact server state.
+                    // deleteListsByAccount covers both local-only and stale synced lists,
+                    // so there is no need to guard on serverListHrefs.isNotEmpty().
+                    taskListsDao.deleteListsByAccount(accountId)
+
+                    // Remove tasks whose list was deleted on the server, protecting pending creates.
+                    if (serverListHrefs.isEmpty()) {
+                        // Server has no lists — wipe all server-synced tasks for this account
+                        if (pendingCreateTaskIds.isEmpty()) {
+                            tasksDao.deleteSyncedTasksByAccount(accountId)
+                        } else {
+                            tasksDao.deleteSyncedTasksByAccountExcluding(accountId, pendingCreateTaskIds)
+                        }
+                    } else {
+                        if (pendingCreateTaskIds.isEmpty()) {
+                            tasksDao.deleteTasksForRemovedListsAll(accountId, serverListHrefs)
+                        } else {
+                            tasksDao.deleteTasksForRemovedLists(accountId, serverListHrefs, pendingCreateTaskIds)
+                        }
+                    }
 
                     upsertTaskLists(taskLists)
                     upsertTasksFromCalDav(allTasks)
@@ -565,5 +586,56 @@ class DefaultTasksRepository
                     taskListsDao.deleteListsByAccount(accountId)
                     Timber.d("Cleared all data for account: $accountId")
                 }
+            }
+
+        override suspend fun createTaskList(
+            name: String,
+            color: String?,
+        ): TaskList =
+            withContext(ioDispatcher) {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
+
+                val principalResult = calDavService.discoverPrincipal(baseUrl)
+                val principal =
+                    principalResult.getOrElse {
+                        throw IOException("Failed to discover principal", it)
+                    }
+
+                val calendarHomeResult = calDavService.discoverCalendarHome(baseUrl, principal.principalUrl)
+                val calendarHome =
+                    calendarHomeResult.getOrElse {
+                        throw IOException("Failed to discover calendar home", it)
+                    }
+
+                val hrefResult =
+                    calDavService.createCalendarCollection(
+                        baseUrl,
+                        calendarHome.calendarHomeUrl,
+                        name,
+                        color,
+                    )
+                val href =
+                    hrefResult.getOrElse {
+                        throw IOException("Failed to create calendar collection", it)
+                    }
+
+                val now = Instant.now()
+                val entity =
+                    TaskListEntity(
+                        id = href,
+                        accountId = accountId,
+                        name = name,
+                        color = color,
+                        updatedAt = now,
+                        etag = null,
+                        href = href,
+                        order = null,
+                    )
+
+                taskListsDao.upsertTaskList(entity)
+                Timber.d("Task list '$name' created at $href")
+
+                taskListMapper.toDomain(entity)
             }
     }

@@ -9,7 +9,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import timber.log.Timber
 import java.io.IOException
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -321,6 +323,113 @@ class CalDavService
                     )
                 }
             }
+
+        /**
+         * Create a new calendar collection (task list) via MKCOL
+         */
+        suspend fun createCalendarCollection(
+            baseUrl: String,
+            calendarHomeUrl: String,
+            displayName: String,
+            color: String? = null,
+        ): Result<String> =
+            runCatching {
+                val collectionSlug = UUID.randomUUID().toString()
+                val collectionHref = "${calendarHomeUrl.trimEnd('/')}/$collectionSlug/"
+                val collectionUrl = buildFullUrl(baseUrl, collectionHref)
+
+                val escapedName =
+                    displayName
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("\"", "&quot;")
+                        .replace("'", "&apos;")
+
+                val requestBody =
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <d:mkcol xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+                        <d:set>
+                            <d:prop>
+                                <d:displayname>$escapedName</d:displayname>
+                                <d:resourcetype>
+                                    <d:collection/>
+                                    <c:calendar/>
+                                </d:resourcetype>
+                                <c:supported-calendar-component-set>
+                                    <c:comp name="VTODO"/>
+                                </c:supported-calendar-component-set>
+                            </d:prop>
+                        </d:set>
+                    </d:mkcol>
+                    """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(collectionUrl)
+                        .method("MKCOL", requestBody)
+                        .header("Content-Type", "application/xml; charset=utf-8")
+                        .build()
+
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to create calendar collection: ${response.code} - ${response.message}",
+                        )
+                    }
+                }
+
+                // After collection creation, set color via PROPPATCH if provided
+                if (color != null) {
+                    setCalendarColor(baseUrl, collectionHref, color)
+                }
+
+                collectionHref
+            }
+
+        /**
+         * Set the calendar color via PROPPATCH on an existing collection.
+         * Failures are logged but not propagated — the list was created successfully.
+         */
+        fun setCalendarColor(
+            baseUrl: String,
+            collectionHref: String,
+            color: String,
+        ) {
+            try {
+                val collectionUrl = buildFullUrl(baseUrl, collectionHref)
+                val requestBody =
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <d:propertyupdate xmlns:d="DAV:" xmlns:i="http://apple.com/ns/ical/">
+                        <d:set>
+                            <d:prop>
+                                <i:calendar-color>$color</i:calendar-color>
+                            </d:prop>
+                        </d:set>
+                    </d:propertyupdate>
+                    """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
+                val request =
+                    Request
+                        .Builder()
+                        .url(collectionUrl)
+                        .method("PROPPATCH", requestBody)
+                        .header("Content-Type", "application/xml; charset=utf-8")
+                        .build()
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        Timber.w("PROPPATCH calendar-color returned %d for %s", response.code, collectionHref)
+                    }
+                }
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to set calendar color via PROPPATCH")
+            } catch (e: IllegalStateException) {
+                Timber.w(e, "Failed to set calendar color via PROPPATCH")
+            }
+        }
 
         /**
          * Build the DAV root URL

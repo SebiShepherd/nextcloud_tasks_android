@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -50,12 +51,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -90,6 +95,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -174,8 +182,10 @@ fun NextcloudTasksApp(
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
     val refreshError by taskListViewModel.refreshError.collectAsState()
     val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
+    val createListError by taskListViewModel.createListError.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showCreateListDialog by remember { mutableStateOf(false) }
     var forceShowLogin by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
@@ -253,6 +263,15 @@ fun NextcloudTasksApp(
             onOpenSettings = { showSettings = true },
             refreshError = refreshError,
             onClearRefreshError = taskListViewModel::clearRefreshError,
+            showCreateListDialog = showCreateListDialog,
+            onShowCreateListDialog = { showCreateListDialog = true },
+            onDismissCreateListDialog = { showCreateListDialog = false },
+            onCreateList = { name, color ->
+                taskListViewModel.createTaskList(name, color)
+                showCreateListDialog = false
+            },
+            createListError = createListError,
+            onClearCreateListError = taskListViewModel::clearCreateListError,
         )
     }
 }
@@ -291,6 +310,12 @@ fun AuthenticatedHome(
     onOpenSettings: () -> Unit,
     refreshError: RefreshError? = null,
     onClearRefreshError: () -> Unit = {},
+    showCreateListDialog: Boolean = false,
+    onShowCreateListDialog: () -> Unit = {},
+    onDismissCreateListDialog: () -> Unit = {},
+    onCreateList: (String, String?) -> Unit = { _, _ -> },
+    createListError: CreateListError? = null,
+    onClearCreateListError: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -308,6 +333,7 @@ fun AuthenticatedHome(
     }
 
     RefreshErrorEffect(refreshError, snackbarHostState, onClearRefreshError)
+    CreateListErrorEffect(createListError, snackbarHostState, onClearCreateListError)
 
     val mainContent: @Composable () -> Unit = {
         Scaffold(
@@ -321,11 +347,13 @@ fun AuthenticatedHome(
                 }
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = onShowCreateDialog) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(R.string.create_task_description),
-                    )
+                if (taskLists.isNotEmpty()) {
+                    FloatingActionButton(onClick = onShowCreateDialog) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stringResource(R.string.create_task_description),
+                        )
+                    }
                 }
             },
         ) { padding ->
@@ -373,6 +401,7 @@ fun AuthenticatedHome(
                             }
                         },
                         onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
+                        onShowCreateListDialog = onShowCreateListDialog,
                     )
                 }
             }
@@ -387,6 +416,10 @@ fun AuthenticatedHome(
             onCloseDrawer = { if (!isExpandedScreen) scope.launch { drawerState.close() } },
             onOpenSettings = {
                 onOpenSettings()
+                if (!isExpandedScreen) scope.launch { drawerState.close() }
+            },
+            onShowCreateListDialog = {
+                onShowCreateListDialog()
                 if (!isExpandedScreen) scope.launch { drawerState.close() }
             },
         )
@@ -410,20 +443,27 @@ fun AuthenticatedHome(
     }
 
     // Create task dialog
-    if (showCreateDialog) {
-        val defaultListId = selectedListId ?: taskLists.firstOrNull()?.id
-        if (defaultListId != null) {
-            CreateTaskDialog(
-                listId = defaultListId,
-                onDismiss = onDismissCreateDialog,
-                onCreate = { title, description, listId ->
-                    onCreateTask(title, description, listId)
-                    if (!isOnline) {
-                        showOfflineSnackbar = true
-                    }
-                },
-            )
-        }
+    if (showCreateDialog && taskLists.isNotEmpty()) {
+        CreateTaskDialog(
+            taskLists = taskLists,
+            initialListId = selectedListId ?: taskLists.first().id,
+            showListSelector = selectedListId == null,
+            onDismiss = onDismissCreateDialog,
+            onCreate = { title, description, listId ->
+                onCreateTask(title, description, listId)
+                if (!isOnline) {
+                    showOfflineSnackbar = true
+                }
+            },
+        )
+    }
+
+    // Create list dialog
+    if (showCreateListDialog) {
+        CreateTaskListDialog(
+            onDismiss = onDismissCreateListDialog,
+            onCreate = onCreateList,
+        )
     }
 }
 
@@ -452,6 +492,28 @@ private fun RefreshErrorEffect(
         if (message != null) {
             snackbarHostState.showSnackbar(message)
             onClearRefreshError()
+        }
+    }
+}
+
+@Composable
+private fun CreateListErrorEffect(
+    error: CreateListError?,
+    snackbarHostState: SnackbarHostState,
+    onClearError: () -> Unit,
+) {
+    val offlineMsg = stringResource(R.string.error_create_list_offline)
+    val failedMsg = stringResource(R.string.error_create_list_failed)
+
+    LaunchedEffect(error) {
+        if (error != null) {
+            val message =
+                when (error) {
+                    is CreateListError.Offline -> offlineMsg
+                    is CreateListError.Failed -> failedMsg
+                }
+            snackbarHostState.showSnackbar(message)
+            onClearError()
         }
     }
 }
@@ -708,6 +770,7 @@ private fun TasksContent(
     onToggleTaskComplete: (Task) -> Unit,
     onDeleteTask: (String) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
+    onShowCreateListDialog: () -> Unit = {},
 ) {
     var showCompletedTasks by remember { mutableStateOf(false) }
 
@@ -750,6 +813,8 @@ private fun TasksContent(
                 ) {
                     if (searchQuery.isNotBlank()) {
                         NoSearchResultsState()
+                    } else if (taskLists.isEmpty()) {
+                        NoListsEmptyState(onCreateList = onShowCreateListDialog)
                     } else {
                         EmptyState()
                     }
@@ -850,6 +915,7 @@ private fun TaskListsDrawer(
     onSelectList: (String?) -> Unit,
     onCloseDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onShowCreateListDialog: () -> Unit = {},
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text(
@@ -871,37 +937,54 @@ private fun TaskListsDrawer(
         HorizontalDivider()
         Spacer(modifier = Modifier.height(8.dp))
 
-        taskLists.forEach { taskList ->
-            NavigationDrawerItem(
-                label = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        // Color indicator (dot)
-                        taskList.color?.let { colorHex ->
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(12.dp)
-                                        .background(
-                                            color =
-                                                androidx.compose.ui.graphics.Color(
-                                                    android.graphics.Color.parseColor(colorHex),
-                                                ),
-                                            shape = CircleShape,
-                                        ),
-                            )
-                        }
-                        Text(taskList.name)
-                    }
-                },
-                selected = selectedListId == taskList.id,
-                onClick = {
-                    onSelectList(taskList.id)
-                    onCloseDrawer()
-                },
+        if (taskLists.isEmpty()) {
+            Text(
+                text = stringResource(R.string.no_task_lists_sidebar),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             )
+        } else {
+            taskLists.forEach { taskList ->
+                NavigationDrawerItem(
+                    label = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            // Color indicator (dot)
+                            taskList.color?.let { colorHex ->
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(12.dp)
+                                            .background(
+                                                color =
+                                                    androidx.compose.ui.graphics.Color(
+                                                        android.graphics.Color.parseColor(colorHex),
+                                                    ),
+                                                shape = CircleShape,
+                                            ),
+                                )
+                            }
+                            Text(taskList.name)
+                        }
+                    },
+                    selected = selectedListId == taskList.id,
+                    onClick = {
+                        onSelectList(taskList.id)
+                        onCloseDrawer()
+                    },
+                )
+            }
+        }
+
+        TextButton(
+            onClick = onShowCreateListDialog,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.create_new_list))
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -1375,20 +1458,76 @@ private fun TaskCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateTaskDialog(
-    listId: String,
+    taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
+    initialListId: String,
+    showListSelector: Boolean = false,
     onDismiss: () -> Unit,
     onCreate: (String, String?, String) -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var selectedListId by remember { mutableStateOf(initialListId) }
+    var listDropdownExpanded by remember { mutableStateOf(false) }
+    val selectedList = taskLists.firstOrNull { it.id == selectedListId } ?: taskLists.first()
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.create_task_dialog_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (showListSelector) {
+                    ExposedDropdownMenuBox(
+                        expanded = listDropdownExpanded,
+                        onExpandedChange = { listDropdownExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedList.name,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.task_list_label)) },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(
+                                    expanded = listDropdownExpanded,
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = listDropdownExpanded,
+                            onDismissRequest = { listDropdownExpanded = false },
+                        ) {
+                            taskLists.forEach { list ->
+                                DropdownMenuItem(
+                                    text = { Text(list.name) },
+                                    onClick = {
+                                        selectedListId = list.id
+                                        listDropdownExpanded = false
+                                    },
+                                    leadingIcon =
+                                        list.color?.let { colorHex ->
+                                            {
+                                                Box(
+                                                    modifier =
+                                                        Modifier
+                                                            .size(12.dp)
+                                                            .background(
+                                                                color =
+                                                                    androidx.compose.ui.graphics.Color(
+                                                                        android.graphics.Color.parseColor(colorHex),
+                                                                    ),
+                                                                shape = CircleShape,
+                                                            ),
+                                                )
+                                            }
+                                        },
+                                )
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -1409,10 +1548,103 @@ private fun CreateTaskDialog(
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
-                        onCreate(title.trim(), description.ifBlank { null }, listId)
+                        onCreate(title.trim(), description.ifBlank { null }, selectedListId)
                     }
                 },
                 enabled = title.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.create))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+private val TASK_LIST_COLORS =
+    listOf(
+        "#E9322D", // Red
+        "#ECA700", // Orange
+        "#FFD800", // Yellow
+        "#46BA61", // Green
+        "#4DA8DA", // Light blue
+        "#0082C9", // Nextcloud blue
+        "#8C00C9", // Purple
+        "#C9007A", // Pink
+    )
+
+@Composable
+private fun CreateTaskListDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String, String?) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    var selectedColor by remember { mutableStateOf<String?>(TASK_LIST_COLORS.first()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.create_list_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.list_name_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.list_color_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    TASK_LIST_COLORS.forEach { colorHex ->
+                        val color =
+                            androidx.compose.ui.graphics.Color(
+                                android.graphics.Color.parseColor(colorHex),
+                            )
+                        val isSelected = selectedColor == colorHex
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier =
+                                Modifier
+                                    .size(28.dp)
+                                    .background(color, CircleShape)
+                                    .selectable(
+                                        selected = isSelected,
+                                        onClick = { selectedColor = colorHex },
+                                        role = Role.RadioButton,
+                                    ).semantics {
+                                        contentDescription = colorHex
+                                    },
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = androidx.compose.ui.graphics.Color.White,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onCreate(name.trim(), selectedColor)
+                    }
+                },
+                enabled = name.isNotBlank(),
             ) {
                 Text(stringResource(R.string.create))
             }
@@ -1453,6 +1685,38 @@ fun EmptyState(
 }
 
 @Composable
+fun NoListsEmptyState(
+    onCreateList: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = stringResource(id = R.string.no_task_lists_title),
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = stringResource(id = R.string.no_task_lists_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        Button(
+            onClick = onCreateList,
+            modifier = Modifier.padding(top = 16.dp),
+        ) {
+            Text(stringResource(id = R.string.create_first_list))
+        }
+    }
+}
+
+@Composable
 fun NoSearchResultsState(
     modifier: Modifier = Modifier,
     padding: PaddingValues = PaddingValues(),
@@ -1485,6 +1749,12 @@ enum class RefreshError {
     SERVER_ERROR,
     NETWORK_ERROR,
     UNKNOWN,
+}
+
+sealed class CreateListError {
+    data object Offline : CreateListError()
+
+    data object Failed : CreateListError()
 }
 
 @HiltViewModel
@@ -1549,6 +1819,35 @@ class TaskListViewModel
 
         fun clearRefreshError() {
             _refreshError.value = null
+        }
+
+        private val _createListError = MutableStateFlow<CreateListError?>(null)
+        val createListError = _createListError.asStateFlow()
+
+        fun clearCreateListError() {
+            _createListError.value = null
+        }
+
+        fun createTaskList(
+            name: String,
+            color: String? = null,
+        ) {
+            viewModelScope.launch {
+                try {
+                    val newList = tasksRepository.createTaskList(name, color)
+                    _selectedListId.value = newList.id
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    timber.log.Timber.e(e, "Failed to create task list")
+                    _createListError.value =
+                        if (!tasksRepository.isCurrentlyOnline()) {
+                            CreateListError.Offline
+                        } else {
+                            CreateListError.Failed
+                        }
+                }
+            }
         }
 
         // Internal filtered and sorted tasks (before freezing logic)
