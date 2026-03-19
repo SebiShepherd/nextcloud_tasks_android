@@ -131,7 +131,9 @@ jobs:
           echo "- Nextcloud server with Tasks app installed" >> release_notes.md
 
       - name: Generate Play Store release notes
-        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && secrets.PLAY_SERVICE_ACCOUNT_JSON != ''
+        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && env.HAS_PLAY_SECRET == 'true'
+        env:
+          HAS_PLAY_SECRET: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
         run: |
           NOTES_DIR="app/src/main/play/release-notes"
           PREV_TAG=$(git describe --tags --abbrev=0 ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
@@ -148,8 +150,9 @@ jobs:
 
       - name: Publish to Google Play
         continue-on-error: true
-        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && secrets.PLAY_SERVICE_ACCOUNT_JSON != ''
+        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && env.HAS_PLAY_SECRET == 'true'
         env:
+          HAS_PLAY_SECRET: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
