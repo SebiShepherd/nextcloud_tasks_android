@@ -113,6 +113,7 @@ import coil.compose.AsyncImage
 import com.nextcloud.tasks.auth.LoginFlowUiState
 import com.nextcloud.tasks.auth.LoginFlowViewModel
 import com.nextcloud.tasks.auth.ServerInputScreen
+import com.nextcloud.tasks.data.caldav.service.CalDavHttpException
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.model.ShareAccess
 import com.nextcloud.tasks.domain.model.Sharee
@@ -204,6 +205,7 @@ fun NextcloudTasksApp(
     val shareeSearchQuery by taskListViewModel.shareeSearchQuery.collectAsState()
     val isLoadingSharees by taskListViewModel.isLoadingSharees.collectAsState()
     val shareError by taskListViewModel.shareError.collectAsState()
+    val shareSuccess by taskListViewModel.shareSuccess.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showCreateListDialog by remember { mutableStateOf(false) }
@@ -299,13 +301,15 @@ fun NextcloudTasksApp(
             shareeSearchQuery = shareeSearchQuery,
             isLoadingSharees = isLoadingSharees,
             shareError = shareError,
+            shareSuccess = shareSuccess,
             onOpenShareSheet = taskListViewModel::openShareSheet,
             onCloseShareSheet = taskListViewModel::closeShareSheet,
             onSearchSharees = taskListViewModel::searchSharees,
-            onAddSharee = { id, type -> taskListViewModel.addSharee(id, type) },
+            onAddSharee = { id, type, access -> taskListViewModel.addSharee(id, type, access) },
             onRemoveSharee = { id, type -> taskListViewModel.removeSharee(id, type) },
             onUpdateShareeAccess = { id, type, access -> taskListViewModel.updateShareeAccess(id, type, access) },
             onClearShareError = taskListViewModel::clearShareError,
+            onClearShareSuccess = taskListViewModel::clearShareSuccess,
         )
     }
 }
@@ -357,13 +361,15 @@ fun AuthenticatedHome(
     shareeSearchQuery: String = "",
     isLoadingSharees: Boolean = false,
     shareError: String? = null,
+    shareSuccess: Boolean = false,
     onOpenShareSheet: (String) -> Unit = {},
     onCloseShareSheet: () -> Unit = {},
     onSearchSharees: (String) -> Unit = {},
-    onAddSharee: (String, ShareeType) -> Unit = { _, _ -> },
+    onAddSharee: (String, ShareeType, ShareAccess) -> Unit = { _, _, _ -> },
     onRemoveSharee: (String, ShareeType) -> Unit = { _, _ -> },
     onUpdateShareeAccess: (String, ShareeType, ShareAccess) -> Unit = { _, _, _ -> },
     onClearShareError: () -> Unit = {},
+    onClearShareSuccess: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -386,10 +392,21 @@ fun AuthenticatedHome(
 
     // Share error snackbar
     val shareErrorMsg = stringResource(R.string.error_share_failed)
+    val shareForbiddenMsg = stringResource(R.string.error_share_forbidden)
     LaunchedEffect(shareError) {
         if (shareError != null) {
-            snackbarHostState.showSnackbar(shareErrorMsg)
+            val msg = if (shareError == "share_forbidden") shareForbiddenMsg else shareErrorMsg
+            snackbarHostState.showSnackbar(msg)
             onClearShareError()
+        }
+    }
+
+    // Share success snackbar
+    val shareSuccessMsg = stringResource(R.string.share_success)
+    LaunchedEffect(shareSuccess) {
+        if (shareSuccess) {
+            snackbarHostState.showSnackbar(shareSuccessMsg)
+            onClearShareSuccess()
         }
     }
 
@@ -545,12 +562,14 @@ fun AuthenticatedHome(
             searchQuery = shareeSearchQuery,
             isLoading = isLoadingSharees,
             shareError = shareError,
+            shareSuccess = shareSuccess,
             onSearchQueryChange = onSearchSharees,
-            onAddSharee = onAddSharee,
+            onAddSharee = { id, type, access -> onAddSharee(id, type, access) },
             onRemoveSharee = onRemoveSharee,
             onUpdateAccess = onUpdateShareeAccess,
             onDismiss = onCloseShareSheet,
             onClearShareError = onClearShareError,
+            onClearShareSuccess = onClearShareSuccess,
         )
     }
 
@@ -1179,12 +1198,14 @@ private fun ShareListBottomSheet(
     searchQuery: String,
     isLoading: Boolean,
     shareError: String? = null,
+    shareSuccess: Boolean = false,
     onSearchQueryChange: (String) -> Unit,
-    onAddSharee: (String, ShareeType) -> Unit,
+    onAddSharee: (String, ShareeType, ShareAccess) -> Unit,
     onRemoveSharee: (String, ShareeType) -> Unit,
     onUpdateAccess: (String, ShareeType, ShareAccess) -> Unit,
     onDismiss: () -> Unit,
     onClearShareError: () -> Unit = {},
+    onClearShareSuccess: () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -1213,6 +1234,12 @@ private fun ShareListBottomSheet(
 
             // Share error banner
             if (shareError != null) {
+                val errorText =
+                    if (shareError == "share_forbidden") {
+                        stringResource(R.string.error_share_forbidden)
+                    } else {
+                        stringResource(R.string.error_share_failed)
+                    }
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
@@ -1224,7 +1251,7 @@ private fun ShareListBottomSheet(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = stringResource(R.string.error_share_failed),
+                            text = errorText,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.weight(1f),
@@ -1244,6 +1271,39 @@ private fun ShareListBottomSheet(
                 }
             }
 
+            // Share success banner
+            if (shareSuccess) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.share_success),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(
+                            onClick = onClearShareSuccess,
+                            modifier = Modifier.size(24.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
             // Search results
             if (searchResults.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1252,7 +1312,7 @@ private fun ShareListBottomSheet(
                     ShareeSearchResultItem(
                         result = result,
                         serverUrl = serverUrl,
-                        onAdd = { onAddSharee(result.id, result.type) },
+                        onAdd = { access -> onAddSharee(result.id, result.type, access) },
                     )
                 }
             }
@@ -1293,8 +1353,9 @@ private fun ShareListBottomSheet(
 private fun ShareeSearchResultItem(
     result: ShareeSearchResult,
     serverUrl: String,
-    onAdd: () -> Unit,
+    onAdd: (ShareAccess) -> Unit,
 ) {
+    var canEdit by remember { mutableStateOf(true) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1307,7 +1368,17 @@ private fun ShareeSearchResultItem(
                 Text(text = "Group", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        IconButton(onClick = onAdd) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = canEdit,
+                onCheckedChange = { canEdit = it },
+            )
+            Text(
+                text = stringResource(R.string.can_edit),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        IconButton(onClick = { onAdd(if (canEdit) ShareAccess.READ_WRITE else ShareAccess.READ) }) {
             Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.share_list))
         }
     }
@@ -2418,6 +2489,9 @@ class TaskListViewModel
         private val _shareError = MutableStateFlow<String?>(null)
         val shareError = _shareError.asStateFlow()
 
+        private val _shareSuccess = MutableStateFlow(false)
+        val shareSuccess = _shareSuccess.asStateFlow()
+
         private val _isLoadingSharees = MutableStateFlow(false)
         val isLoadingSharees = _isLoadingSharees.asStateFlow()
 
@@ -2483,15 +2557,24 @@ class TaskListViewModel
                 try {
                     shareListUseCase(listId, shareeId, type, access)
                     loadSharees(listId)
-                    _shareeSearchQuery.value = ""
-                    _shareeSearchResults.value = emptyList()
+                    _shareSuccess.value = true
                 } catch (
                     @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
                     timber.log.Timber.e(e, "Failed to share list")
-                    _shareError.value = "share_failed"
+                    val cause = e.cause ?: e
+                    _shareError.value =
+                        if (cause is CalDavHttpException && cause.statusCode == 403) {
+                            "share_forbidden"
+                        } else {
+                            "share_failed"
+                        }
                 }
             }
+        }
+
+        fun clearShareSuccess() {
+            _shareSuccess.value = false
         }
 
         fun removeSharee(
