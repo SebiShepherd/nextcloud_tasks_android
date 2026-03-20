@@ -688,6 +688,7 @@ class DefaultTasksRepository
             taskListsDao.getTaskList(listId)?.let { entity ->
                 taskListsDao.upsertTaskList(entity.copy(isShared = true))
             }
+            Unit
         }
 
         override suspend fun unshareList(
