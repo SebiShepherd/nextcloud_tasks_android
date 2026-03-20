@@ -24,4 +24,7 @@ interface TaskListsDao {
 
     @Query("SELECT updated_at FROM task_lists WHERE id = :listId LIMIT 1")
     suspend fun getUpdatedAt(listId: String): Instant?
+
+    @Query("SELECT * FROM task_lists WHERE id = :listId LIMIT 1")
+    suspend fun getTaskList(listId: String): TaskListEntity?
 }

@@ -7,6 +7,7 @@ import com.nextcloud.tasks.data.caldav.models.CalendarObjectInfo
 import com.nextcloud.tasks.data.caldav.models.DavMultistatus
 import com.nextcloud.tasks.data.caldav.models.DavProperty
 import com.nextcloud.tasks.data.caldav.models.DavResourceResponse
+import com.nextcloud.tasks.data.caldav.models.DavSharee
 import com.nextcloud.tasks.data.caldav.models.PrincipalInfo
 import org.xmlpull.v1.XmlPullParser
 import timber.log.Timber
@@ -16,6 +17,7 @@ import javax.inject.Inject
 /**
  * Parser for CalDAV/WebDAV multistatus XML responses
  */
+@Suppress("TooManyFunctions")
 class DavMultistatusParser
     @Inject
     constructor() {
@@ -50,6 +52,7 @@ class DavMultistatusParser
             var href = ""
             val properties = mutableMapOf<String, String?>()
             var etag: String? = null
+            val invites = mutableListOf<DavSharee>()
 
             while (true) {
                 val eventType = parser.next()
@@ -61,17 +64,22 @@ class DavMultistatusParser
                 when {
                     matchesTag(parser.name, "href") -> href = parser.nextText()
                     matchesTag(parser.name, "propstat") -> {
-                        val propstatProps = parsePropstat(parser)
+                        val parsedInvites = mutableListOf<DavSharee>()
+                        val propstatProps = parsePropstat(parser, parsedInvites)
                         properties.putAll(propstatProps)
+                        invites.addAll(parsedInvites)
                         propstatProps[DavProperty.GET_ETAG]?.let { etag = it }
                     }
                 }
             }
 
-            return DavResourceResponse(href, properties, etag)
+            return DavResourceResponse(href, properties, etag, invites)
         }
 
-        private fun parsePropstat(parser: XmlPullParser): Map<String, String?> {
+        private fun parsePropstat(
+            parser: XmlPullParser,
+            invites: MutableList<DavSharee>,
+        ): Map<String, String?> {
             val properties = mutableMapOf<String, String?>()
             var statusCode: String? = null
 
@@ -87,18 +95,23 @@ class DavMultistatusParser
                         statusCode = parser.nextText()
                     }
                     matchesTag(parser.name, "prop") -> {
-                        parseProp(parser, properties)
+                        parseProp(parser, properties, invites)
                     }
                 }
             }
 
             // Only return properties if status is 200 OK
-            return if (statusCode?.contains("200") == true) properties else emptyMap()
+            if (statusCode?.contains("200") != true) {
+                invites.clear()
+                return emptyMap()
+            }
+            return properties
         }
 
         private fun parseProp(
             parser: XmlPullParser,
             properties: MutableMap<String, String?>,
+            invites: MutableList<DavSharee>,
         ) {
             val depth = parser.depth
             while (true) {
@@ -137,6 +150,117 @@ class DavMultistatusParser
                     matchesTag(parser.name, "calendar-order") -> {
                         properties[DavProperty.CALENDAR_ORDER] = parser.nextText()
                     }
+                    matchesTag(parser.name, "share-access") -> {
+                        properties[DavProperty.SHARE_ACCESS] = parseShareAccess(parser)
+                    }
+                    matchesTag(parser.name, "invite") -> {
+                        invites.addAll(parseInviteElement(parser))
+                    }
+                }
+            }
+        }
+
+        /**
+         * Parse the share-access element to extract the access level.
+         * Expected structure: <d:share-access><d:shared-owner/></d:share-access>
+         */
+        private fun parseShareAccess(parser: XmlPullParser): String? {
+            val depth = parser.depth
+            while (true) {
+                val eventType = parser.next()
+                if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
+                    break
+                }
+                if (eventType == XmlPullParser.START_TAG) {
+                    val tagName = parser.name
+                    val cleanName =
+                        if (tagName.contains(":")) tagName.substringAfter(":") else tagName
+                    // Skip to end of the child element
+                    skipElement(parser)
+                    return cleanName
+                }
+            }
+            return null
+        }
+
+        /**
+         * Parse the invite element containing a list of sharees.
+         * Expected structure:
+         * <d:invite>
+         *   <d:sharee>
+         *     <d:href>principal:principals/users/john</d:href>
+         *     <d:prop><d:displayname>John</d:displayname></d:prop>
+         *     <d:share-access><d:read-write/></d:share-access>
+         *   </d:sharee>
+         * </d:invite>
+         */
+        private fun parseInviteElement(parser: XmlPullParser): List<DavSharee> {
+            val sharees = mutableListOf<DavSharee>()
+            val depth = parser.depth
+
+            while (true) {
+                val eventType = parser.next()
+                if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
+                    break
+                }
+                if (eventType == XmlPullParser.START_TAG && matchesTag(parser.name, "sharee")) {
+                    parseShareeElement(parser)?.let { sharees.add(it) }
+                }
+            }
+
+            return sharees
+        }
+
+        private fun parseShareeElement(parser: XmlPullParser): DavSharee? {
+            var href: String? = null
+            var commonName: String? = null
+            var access: String? = null
+            val depth = parser.depth
+
+            while (true) {
+                val eventType = parser.next()
+                if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
+                    break
+                }
+                if (eventType != XmlPullParser.START_TAG) continue
+
+                when {
+                    matchesTag(parser.name, "href") -> href = parser.nextText()
+                    matchesTag(parser.name, "common-name") -> commonName = parser.nextText()
+                    matchesTag(parser.name, "share-access") -> access = parseShareAccess(parser)
+                    matchesTag(parser.name, "prop") -> {
+                        commonName = parseShareeProp(parser) ?: commonName
+                    }
+                }
+            }
+
+            return href?.let { DavSharee(it, commonName, access) }
+        }
+
+        /**
+         * Parse prop element inside a sharee to extract displayname.
+         */
+        private fun parseShareeProp(parser: XmlPullParser): String? {
+            val depth = parser.depth
+            var displayName: String? = null
+            while (true) {
+                val eventType = parser.next()
+                if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
+                    break
+                }
+                if (eventType == XmlPullParser.START_TAG && matchesTag(parser.name, "displayname")) {
+                    displayName = parser.nextText()
+                }
+            }
+            return displayName
+        }
+
+        private fun skipElement(parser: XmlPullParser) {
+            val depth = parser.depth
+            while (true) {
+                val eventType = parser.next()
+                if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
+                    break
                 }
             }
         }
@@ -237,6 +361,7 @@ class DavMultistatusParser
                 val isDeleted = resourceType.contains("deleted-calendar")
 
                 if (isCalendar && supportsVTodo && !isDeleted) {
+                    val shareAccess = response.properties[DavProperty.SHARE_ACCESS]
                     CalendarCollectionInfo(
                         href = response.href,
                         displayName = response.properties[DavProperty.DISPLAY_NAME] ?: "Unnamed",
@@ -244,6 +369,8 @@ class DavMultistatusParser
                         color = response.properties[DavProperty.CALENDAR_COLOR],
                         order = response.properties[DavProperty.CALENDAR_ORDER]?.toIntOrNull(),
                         etag = response.etag,
+                        shareAccess = shareAccess,
+                        invites = response.invites,
                     )
                 } else {
                     null

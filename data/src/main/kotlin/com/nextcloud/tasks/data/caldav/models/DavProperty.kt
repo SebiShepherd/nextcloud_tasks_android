@@ -31,4 +31,13 @@ object DavProperty {
 
     // Components
     const val VTODO = "VTODO"
+
+    // Sharing properties
+    const val SHARE_ACCESS = "share-access"
+    const val INVITE = "invite"
+    const val SHARED_OWNER = "shared-owner"
+    const val READ_WRITE = "read-write"
+    const val READ = "read"
+    const val NO_ACCESS = "no-access"
+    const val COMMON_NAME = "common-name"
 }

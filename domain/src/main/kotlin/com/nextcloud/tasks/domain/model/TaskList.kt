@@ -10,4 +10,6 @@ data class TaskList(
     val etag: String? = null,
     val href: String? = null,
     val order: Int? = null,
+    val shareAccess: ShareAccess = ShareAccess.OWNER,
+    val isShared: Boolean = false,
 )
