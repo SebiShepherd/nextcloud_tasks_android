@@ -187,7 +187,6 @@ class LoginFlowViewModel
                         // Poll endpoint
                         when (val result = pollLoginFlowV2(pollUrl, token)) {
                             is LoginFlowV2PollResult.Pending -> {
-                                Timber.v("Still waiting for user to complete login")
                                 delay(POLL_INTERVAL_MS)
                             }
 
