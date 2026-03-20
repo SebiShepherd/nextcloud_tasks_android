@@ -41,6 +41,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Menu
@@ -543,11 +544,13 @@ fun AuthenticatedHome(
             searchResults = shareeSearchResults,
             searchQuery = shareeSearchQuery,
             isLoading = isLoadingSharees,
+            shareError = shareError,
             onSearchQueryChange = onSearchSharees,
             onAddSharee = onAddSharee,
             onRemoveSharee = onRemoveSharee,
             onUpdateAccess = onUpdateShareeAccess,
             onDismiss = onCloseShareSheet,
+            onClearShareError = onClearShareError,
         )
     }
 
@@ -1175,11 +1178,13 @@ private fun ShareListBottomSheet(
     searchResults: List<ShareeSearchResult>,
     searchQuery: String,
     isLoading: Boolean,
+    shareError: String? = null,
     onSearchQueryChange: (String) -> Unit,
     onAddSharee: (String, ShareeType) -> Unit,
     onRemoveSharee: (String, ShareeType) -> Unit,
     onUpdateAccess: (String, ShareeType, ShareAccess) -> Unit,
     onDismiss: () -> Unit,
+    onClearShareError: () -> Unit = {},
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -1205,6 +1210,39 @@ private fun ShareListBottomSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            // Share error banner
+            if (shareError != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.error_share_failed),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(
+                            onClick = onClearShareError,
+                            modifier = Modifier.size(24.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+            }
 
             // Search results
             if (searchResults.isNotEmpty()) {

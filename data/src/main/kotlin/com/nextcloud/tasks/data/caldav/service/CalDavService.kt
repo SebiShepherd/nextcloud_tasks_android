@@ -437,7 +437,7 @@ class CalDavService
 
         /**
          * Share or update sharing for a calendar collection.
-         * POST with application/davsharing+xml
+         * POST with ownCloud sharing protocol (oc:share namespace)
          *
          * @param principalHrefs list of sharee principal URIs
          *   (e.g., "principal:principals/users/john" or "principal:principals/groups/team")
@@ -452,33 +452,38 @@ class CalDavService
             runCatching {
                 val fullUrl = buildFullUrl(baseUrl, collectionHref)
 
-                val accessElement =
-                    when (access) {
-                        "no-access" -> "<D:no-access/>"
-                        "read" -> "<D:read/>"
-                        else -> "<D:read-write/>"
+                val shareBody =
+                    if (access == "no-access") {
+                        """
+                        <?xml version="1.0" encoding="utf-8" ?>
+                        <o:share xmlns:d="DAV:" xmlns:o="http://owncloud.org/ns">
+                            <o:remove>
+                                <d:href>$principalHref</d:href>
+                            </o:remove>
+                        </o:share>
+                        """.trimIndent()
+                    } else {
+                        val accessElement =
+                            if (access == "read") "<o:read/>" else "<o:read-write/>"
+                        """
+                        <?xml version="1.0" encoding="utf-8" ?>
+                        <o:share xmlns:d="DAV:" xmlns:o="http://owncloud.org/ns">
+                            <o:set>
+                                <d:href>$principalHref</d:href>
+                                $accessElement
+                            </o:set>
+                        </o:share>
+                        """.trimIndent()
                     }
 
-                val requestBody =
-                    """
-                    <?xml version="1.0" encoding="utf-8" ?>
-                    <D:share-resource xmlns:D="DAV:">
-                        <D:sharee>
-                            <D:href>$principalHref</D:href>
-                            <D:share-access>
-                                $accessElement
-                            </D:share-access>
-                        </D:sharee>
-                    </D:share-resource>
-                    """.trimIndent()
-                        .toRequestBody("application/davsharing+xml; charset=utf-8".toMediaType())
+                val requestBody = shareBody.toRequestBody(XML_MEDIA_TYPE)
 
                 val request =
                     Request
                         .Builder()
                         .url(fullUrl)
                         .post(requestBody)
-                        .header("Content-Type", "application/davsharing+xml; charset=utf-8")
+                        .header("Content-Type", "application/xml; charset=utf-8")
                         .build()
 
                 val response = okHttpClient.newCall(request).execute()
