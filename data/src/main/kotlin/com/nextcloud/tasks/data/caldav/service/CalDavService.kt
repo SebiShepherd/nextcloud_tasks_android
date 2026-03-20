@@ -3,6 +3,8 @@ package com.nextcloud.tasks.data.caldav.service
 import com.nextcloud.tasks.data.caldav.models.CalendarCollectionInfo
 import com.nextcloud.tasks.data.caldav.models.CalendarHomeInfo
 import com.nextcloud.tasks.data.caldav.models.CalendarObjectInfo
+import com.nextcloud.tasks.data.caldav.models.DavSharee
+import com.nextcloud.tasks.data.caldav.models.OcsShareeResult
 import com.nextcloud.tasks.data.caldav.models.PrincipalInfo
 import com.nextcloud.tasks.data.caldav.parser.DavMultistatusParser
 import okhttp3.MediaType.Companion.toMediaType
@@ -137,6 +139,8 @@ class CalDavService
                             <i:calendar-color/>
                             <i:calendar-order/>
                             <d:getetag/>
+                            <d:share-access/>
+                            <d:invite/>
                         </d:prop>
                     </d:propfind>
                     """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
@@ -428,6 +432,184 @@ class CalDavService
                 Timber.w(e, "Failed to set calendar color via PROPPATCH")
             } catch (e: IllegalStateException) {
                 Timber.w(e, "Failed to set calendar color via PROPPATCH")
+            }
+        }
+
+        /**
+         * Share or update sharing for a calendar collection.
+         * POST with application/davsharing+xml
+         *
+         * @param principalHrefs list of sharee principal URIs
+         *   (e.g., "principal:principals/users/john" or "principal:principals/groups/team")
+         * @param access one of "read-write", "read", or "no-access" (to remove)
+         */
+        suspend fun shareResource(
+            baseUrl: String,
+            collectionHref: String,
+            principalHref: String,
+            access: String,
+        ): Result<Unit> =
+            runCatching {
+                val fullUrl = buildFullUrl(baseUrl, collectionHref)
+
+                val accessElement =
+                    when (access) {
+                        "no-access" -> "<D:no-access/>"
+                        "read" -> "<D:read/>"
+                        else -> "<D:read-write/>"
+                    }
+
+                val requestBody =
+                    """
+                    <?xml version="1.0" encoding="utf-8" ?>
+                    <D:share-resource xmlns:D="DAV:">
+                        <D:sharee>
+                            <D:href>$principalHref</D:href>
+                            <D:share-access>
+                                $accessElement
+                            </D:share-access>
+                        </D:sharee>
+                    </D:share-resource>
+                    """.trimIndent()
+                        .toRequestBody("application/davsharing+xml; charset=utf-8".toMediaType())
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(fullUrl)
+                        .post(requestBody)
+                        .header("Content-Type", "application/davsharing+xml; charset=utf-8")
+                        .build()
+
+                val response = okHttpClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    throw CalDavHttpException(
+                        response.code,
+                        "Failed to share resource: ${response.code} - ${response.message}",
+                    )
+                }
+            }
+
+        /**
+         * Get current invites (sharees) for a calendar collection via PROPFIND.
+         */
+        suspend fun getInvites(
+            baseUrl: String,
+            collectionHref: String,
+        ): Result<List<DavSharee>> =
+            runCatching {
+                val fullUrl = buildFullUrl(baseUrl, collectionHref)
+
+                val requestBody =
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <d:propfind xmlns:d="DAV:">
+                        <d:prop>
+                            <d:invite/>
+                        </d:prop>
+                    </d:propfind>
+                    """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(fullUrl)
+                        .method("PROPFIND", requestBody)
+                        .header("Depth", "0")
+                        .header("Content-Type", "application/xml; charset=utf-8")
+                        .header("Accept", "application/xml")
+                        .build()
+
+                val response = okHttpClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    throw CalDavHttpException(
+                        response.code,
+                        "Failed to get invites: ${response.code}",
+                    )
+                }
+
+                val responseBody = response.body?.string() ?: throw IOException("Empty response")
+                val multistatus = parser.parseMultistatus(responseBody)
+                multistatus.responses.firstOrNull()?.invites ?: emptyList()
+            }
+
+        /**
+         * Search for sharees (users and groups) using the OCS API.
+         */
+        suspend fun searchSharees(
+            baseUrl: String,
+            query: String,
+        ): Result<List<OcsShareeResult>> =
+            runCatching {
+                val cleanBaseUrl = baseUrl.trimEnd('/')
+                val url =
+                    "$cleanBaseUrl/ocs/v1.php/apps/files_sharing/api/v1/sharees" +
+                        "?search=${java.net.URLEncoder.encode(query, "UTF-8")}" +
+                        "&itemType=file&perPage=20&format=json"
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(url)
+                        .get()
+                        .header("OCS-APIREQUEST", "true")
+                        .header("Accept", "application/json")
+                        .build()
+
+                val response = okHttpClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    throw CalDavHttpException(
+                        response.code,
+                        "Failed to search sharees: ${response.code}",
+                    )
+                }
+
+                val body = response.body?.string() ?: throw IOException("Empty response")
+                parseOcsShareeResponse(body)
+            }
+
+        /**
+         * Parse the OCS sharee search JSON response.
+         * Response structure: { ocs: { data: { exact: { users: [...], groups: [...] }, users: [...], groups: [...] } } }
+         */
+        private fun parseOcsShareeResponse(json: String): List<OcsShareeResult> {
+            val results = mutableListOf<OcsShareeResult>()
+            try {
+                val root = org.json.JSONObject(json)
+                val data = root.getJSONObject("ocs").getJSONObject("data")
+
+                // Parse users from both exact and non-exact matches
+                parseShareeArray(data, "users", "USER", results)
+                parseShareeArray(data, "groups", "GROUP", results)
+
+                // Also check exact matches
+                if (data.has("exact")) {
+                    val exact = data.getJSONObject("exact")
+                    parseShareeArray(exact, "users", "USER", results)
+                    parseShareeArray(exact, "groups", "GROUP", results)
+                }
+            } catch (e: org.json.JSONException) {
+                Timber.w(e, "Failed to parse OCS sharee response")
+            }
+            return results.distinctBy { it.id + it.type }
+        }
+
+        private fun parseShareeArray(
+            parent: org.json.JSONObject,
+            key: String,
+            type: String,
+            results: MutableList<OcsShareeResult>,
+        ) {
+            if (!parent.has(key)) return
+            val array = parent.getJSONArray(key)
+            for (i in 0 until array.length()) {
+                val item = array.getJSONObject(i)
+                val label = item.optString("label", "")
+                val value = item.optJSONObject("value")
+                val shareWith = value?.optString("shareWith", "") ?: ""
+                if (shareWith.isNotEmpty()) {
+                    results.add(OcsShareeResult(id = shareWith, displayName = label, type = type))
+                }
             }
         }
 

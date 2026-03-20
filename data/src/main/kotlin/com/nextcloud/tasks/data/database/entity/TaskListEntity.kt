@@ -19,4 +19,8 @@ data class TaskListEntity(
     val etag: String?,
     val href: String?,
     val order: Int?,
+    @ColumnInfo(name = "share_access", defaultValue = "OWNER")
+    val shareAccess: String = "OWNER",
+    @ColumnInfo(name = "is_shared", defaultValue = "0")
+    val isShared: Boolean = false,
 )

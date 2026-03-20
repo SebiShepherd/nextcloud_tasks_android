@@ -14,6 +14,10 @@ import com.nextcloud.tasks.data.mapper.TaskMapper
 import com.nextcloud.tasks.data.network.NetworkMonitor
 import com.nextcloud.tasks.data.sync.PendingOperationsManager
 import com.nextcloud.tasks.data.sync.TaskFieldMerger
+import com.nextcloud.tasks.domain.model.ShareAccess
+import com.nextcloud.tasks.domain.model.Sharee
+import com.nextcloud.tasks.domain.model.ShareeSearchResult
+import com.nextcloud.tasks.domain.model.ShareeType
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskDraft
@@ -424,6 +428,9 @@ class DefaultTasksRepository
                 // Convert collections to TaskListEntity
                 val taskLists =
                     collections.map { collection ->
+                        val shareAccess = collection.shareAccess ?: "shared-owner"
+                        val hasSharees = collection.invites.isNotEmpty()
+                        val isNotOwner = shareAccess != "shared-owner"
                         TaskListEntity(
                             id = collection.href,
                             accountId = accountId,
@@ -433,6 +440,8 @@ class DefaultTasksRepository
                             etag = collection.etag,
                             href = collection.href,
                             order = collection.order,
+                            shareAccess = shareAccess,
+                            isShared = hasSharees || isNotOwner,
                         )
                     }
 
@@ -637,5 +646,85 @@ class DefaultTasksRepository
                 Timber.d("Task list '$name' created at $href")
 
                 taskListMapper.toDomain(entity)
+            }
+
+        override suspend fun getSharees(listId: String): List<Sharee> =
+            withContext(ioDispatcher) {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val result = calDavService.getInvites(baseUrl, listId)
+                val invites = result.getOrThrow()
+                invites.mapNotNull { davSharee ->
+                    val id = extractIdFromPrincipal(davSharee.href) ?: return@mapNotNull null
+                    val type = if (davSharee.href.contains("/groups/")) ShareeType.GROUP else ShareeType.USER
+                    val access = mapDavAccessToDomain(davSharee.access)
+                    Sharee(
+                        id = id,
+                        displayName = davSharee.commonName ?: id,
+                        access = access,
+                        type = type,
+                    )
+                }
+            }
+
+        override suspend fun shareList(
+            listId: String,
+            shareeId: String,
+            type: ShareeType,
+            access: ShareAccess,
+        ) = withContext(ioDispatcher) {
+            val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+            val principalType = if (type == ShareeType.GROUP) "groups" else "users"
+            val principalHref = "principal:principals/$principalType/$shareeId"
+            val davAccess =
+                when (access) {
+                    ShareAccess.READ -> "read"
+                    ShareAccess.READ_WRITE -> "read-write"
+                    ShareAccess.OWNER -> "read-write"
+                }
+            calDavService.shareResource(baseUrl, listId, principalHref, davAccess).getOrThrow()
+
+            // Update local DB to reflect sharing state
+            val accountId = authTokenProvider.activeAccountId() ?: return@withContext
+            taskListsDao.getTaskList(listId)?.let { entity ->
+                taskListsDao.upsertTaskList(entity.copy(isShared = true))
+            }
+        }
+
+        override suspend fun unshareList(
+            listId: String,
+            shareeId: String,
+            type: ShareeType,
+        ) = withContext(ioDispatcher) {
+            val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+            val principalType = if (type == ShareeType.GROUP) "groups" else "users"
+            val principalHref = "principal:principals/$principalType/$shareeId"
+            calDavService.shareResource(baseUrl, listId, principalHref, "no-access").getOrThrow()
+        }
+
+        override suspend fun searchSharees(query: String): List<ShareeSearchResult> =
+            withContext(ioDispatcher) {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val results = calDavService.searchSharees(baseUrl, query).getOrThrow()
+                results.map { result ->
+                    ShareeSearchResult(
+                        id = result.id,
+                        displayName = result.displayName,
+                        type = if (result.type == "GROUP") ShareeType.GROUP else ShareeType.USER,
+                    )
+                }
+            }
+
+        private fun extractIdFromPrincipal(href: String): String? {
+            // Format: "principal:principals/users/john" or "/principals/users/john/"
+            val parts = href.trimEnd('/').split("/")
+            return parts.lastOrNull()?.takeIf { it.isNotEmpty() }
+        }
+
+        private fun mapDavAccessToDomain(access: String?): ShareAccess =
+            when (access) {
+                "read" -> ShareAccess.READ
+                "read-write" -> ShareAccess.READ_WRITE
+                "shared-owner" -> ShareAccess.OWNER
+                else -> ShareAccess.READ_WRITE
             }
     }

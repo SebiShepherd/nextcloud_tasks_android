@@ -42,9 +42,13 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -109,8 +113,16 @@ import com.nextcloud.tasks.auth.LoginFlowUiState
 import com.nextcloud.tasks.auth.LoginFlowViewModel
 import com.nextcloud.tasks.auth.ServerInputScreen
 import com.nextcloud.tasks.domain.model.NextcloudAccount
+import com.nextcloud.tasks.domain.model.ShareAccess
+import com.nextcloud.tasks.domain.model.Sharee
+import com.nextcloud.tasks.domain.model.ShareeSearchResult
+import com.nextcloud.tasks.domain.model.ShareeType
 import com.nextcloud.tasks.domain.model.Task
+import com.nextcloud.tasks.domain.usecase.GetShareesUseCase
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
+import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
+import com.nextcloud.tasks.domain.usecase.ShareListUseCase
+import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -183,6 +195,14 @@ fun NextcloudTasksApp(
     val refreshError by taskListViewModel.refreshError.collectAsState()
     val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
     val createListError by taskListViewModel.createListError.collectAsState()
+
+    // Sharing state
+    val sharingListId by taskListViewModel.sharingListId.collectAsState()
+    val sharees by taskListViewModel.sharees.collectAsState()
+    val shareeSearchResults by taskListViewModel.shareeSearchResults.collectAsState()
+    val shareeSearchQuery by taskListViewModel.shareeSearchQuery.collectAsState()
+    val isLoadingSharees by taskListViewModel.isLoadingSharees.collectAsState()
+    val shareError by taskListViewModel.shareError.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showCreateListDialog by remember { mutableStateOf(false) }
@@ -272,6 +292,19 @@ fun NextcloudTasksApp(
             },
             createListError = createListError,
             onClearCreateListError = taskListViewModel::clearCreateListError,
+            sharingListId = sharingListId,
+            sharees = sharees,
+            shareeSearchResults = shareeSearchResults,
+            shareeSearchQuery = shareeSearchQuery,
+            isLoadingSharees = isLoadingSharees,
+            shareError = shareError,
+            onOpenShareSheet = taskListViewModel::openShareSheet,
+            onCloseShareSheet = taskListViewModel::closeShareSheet,
+            onSearchSharees = taskListViewModel::searchSharees,
+            onAddSharee = { id, type -> taskListViewModel.addSharee(id, type) },
+            onRemoveSharee = { id, type -> taskListViewModel.removeSharee(id, type) },
+            onUpdateShareeAccess = { id, type, access -> taskListViewModel.updateShareeAccess(id, type, access) },
+            onClearShareError = taskListViewModel::clearShareError,
         )
     }
 }
@@ -316,11 +349,26 @@ fun AuthenticatedHome(
     onCreateList: (String, String?) -> Unit = { _, _ -> },
     createListError: CreateListError? = null,
     onClearCreateListError: () -> Unit = {},
+    // Sharing
+    sharingListId: String? = null,
+    sharees: List<Sharee> = emptyList(),
+    shareeSearchResults: List<ShareeSearchResult> = emptyList(),
+    shareeSearchQuery: String = "",
+    isLoadingSharees: Boolean = false,
+    shareError: String? = null,
+    onOpenShareSheet: (String) -> Unit = {},
+    onCloseShareSheet: () -> Unit = {},
+    onSearchSharees: (String) -> Unit = {},
+    onAddSharee: (String, ShareeType) -> Unit = { _, _ -> },
+    onRemoveSharee: (String, ShareeType) -> Unit = { _, _ -> },
+    onUpdateShareeAccess: (String, ShareeType, ShareAccess) -> Unit = { _, _, _ -> },
+    onClearShareError: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val offlineMessage = stringResource(R.string.offline_message)
+    val readOnlyHintMsg = stringResource(R.string.list_read_only_hint)
 
     // Show snackbar when offline and user performs an action
     var showOfflineSnackbar by remember { mutableStateOf(false) }
@@ -335,6 +383,19 @@ fun AuthenticatedHome(
     RefreshErrorEffect(refreshError, snackbarHostState, onClearRefreshError)
     CreateListErrorEffect(createListError, snackbarHostState, onClearCreateListError)
 
+    // Share error snackbar
+    val shareErrorMsg = stringResource(R.string.error_share_failed)
+    LaunchedEffect(shareError) {
+        if (shareError != null) {
+            snackbarHostState.showSnackbar(shareErrorMsg)
+            onClearShareError()
+        }
+    }
+
+    // Determine if selected list is read-only
+    val selectedListAccess = taskLists.find { it.id == selectedListId }?.shareAccess
+    val isReadOnly = selectedListAccess == ShareAccess.READ
+
     val mainContent: @Composable () -> Unit = {
         Scaffold(
             snackbarHost = {
@@ -347,7 +408,7 @@ fun AuthenticatedHome(
                 }
             },
             floatingActionButton = {
-                if (taskLists.isNotEmpty()) {
+                if (taskLists.isNotEmpty() && !isReadOnly) {
                     FloatingActionButton(onClick = onShowCreateDialog) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -389,15 +450,19 @@ fun AuthenticatedHome(
                         onSetFilter = onSetFilter,
                         onSetSort = onSetSort,
                         onToggleTaskComplete = { task ->
-                            onToggleTaskComplete(task)
-                            if (!isOnline) {
-                                showOfflineSnackbar = true
+                            if (!isReadOnly) {
+                                onToggleTaskComplete(task)
+                                if (!isOnline) {
+                                    showOfflineSnackbar = true
+                                }
                             }
                         },
                         onDeleteTask = { taskId ->
-                            onDeleteTask(taskId)
-                            if (!isOnline) {
-                                showOfflineSnackbar = true
+                            if (!isReadOnly) {
+                                onDeleteTask(taskId)
+                                if (!isOnline) {
+                                    showOfflineSnackbar = true
+                                }
                             }
                         },
                         onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
@@ -420,6 +485,10 @@ fun AuthenticatedHome(
             },
             onShowCreateListDialog = {
                 onShowCreateListDialog()
+                if (!isExpandedScreen) scope.launch { drawerState.close() }
+            },
+            onOpenShareSheet = { listId ->
+                onOpenShareSheet(listId)
                 if (!isExpandedScreen) scope.launch { drawerState.close() }
             },
         )
@@ -464,6 +533,29 @@ fun AuthenticatedHome(
             onDismiss = onDismissCreateListDialog,
             onCreate = onCreateList,
         )
+    }
+
+    // Share list bottom sheet
+    if (sharingListId != null) {
+        ShareListBottomSheet(
+            serverUrl = state.activeAccount?.serverUrl ?: "",
+            sharees = sharees,
+            searchResults = shareeSearchResults,
+            searchQuery = shareeSearchQuery,
+            isLoading = isLoadingSharees,
+            onSearchQueryChange = onSearchSharees,
+            onAddSharee = onAddSharee,
+            onRemoveSharee = onRemoveSharee,
+            onUpdateAccess = onUpdateShareeAccess,
+            onDismiss = onCloseShareSheet,
+        )
+    }
+
+    // Read-only hint for shared lists
+    if (isReadOnly) {
+        LaunchedEffect(selectedListId) {
+            snackbarHostState.showSnackbar(readOnlyHintMsg)
+        }
     }
 }
 
@@ -916,6 +1008,7 @@ private fun TaskListsDrawer(
     onCloseDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
     onShowCreateListDialog: () -> Unit = {},
+    onOpenShareSheet: (String) -> Unit = {},
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text(
@@ -947,35 +1040,14 @@ private fun TaskListsDrawer(
             )
         } else {
             taskLists.forEach { taskList ->
-                NavigationDrawerItem(
-                    label = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            // Color indicator (dot)
-                            taskList.color?.let { colorHex ->
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .size(12.dp)
-                                            .background(
-                                                color =
-                                                    androidx.compose.ui.graphics.Color(
-                                                        android.graphics.Color.parseColor(colorHex),
-                                                    ),
-                                                shape = CircleShape,
-                                            ),
-                                )
-                            }
-                            Text(taskList.name)
-                        }
-                    },
-                    selected = selectedListId == taskList.id,
-                    onClick = {
+                TaskListDrawerItem(
+                    taskList = taskList,
+                    isSelected = selectedListId == taskList.id,
+                    onSelect = {
                         onSelectList(taskList.id)
                         onCloseDrawer()
                     },
+                    onOpenShareSheet = { onOpenShareSheet(taskList.id) },
                 )
             }
         }
@@ -1007,6 +1079,262 @@ private fun TaskListsDrawer(
             },
             selected = false,
             onClick = onOpenSettings,
+        )
+    }
+}
+
+@Composable
+private fun TaskListDrawerItem(
+    taskList: com.nextcloud.tasks.domain.model.TaskList,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onOpenShareSheet: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    NavigationDrawerItem(
+        label = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // Color indicator (dot)
+                taskList.color?.let { colorHex ->
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(12.dp)
+                                .background(
+                                    color =
+                                        androidx.compose.ui.graphics.Color(
+                                            android.graphics.Color.parseColor(colorHex),
+                                        ),
+                                    shape = CircleShape,
+                                ),
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+                Text(
+                    text = taskList.name,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // Share icon for shared lists
+                if (taskList.isShared) {
+                    Icon(
+                        imageVector = Icons.Default.People,
+                        contentDescription = stringResource(R.string.shared_with_you),
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
+                // 3-dot menu (only for owner lists)
+                if (taskList.shareAccess == ShareAccess.OWNER) {
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.size(32.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = stringResource(R.string.list_options),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.share_list)) },
+                                onClick = {
+                                    showMenu = false
+                                    onOpenShareSheet()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Share, contentDescription = null)
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        selected = isSelected,
+        onClick = onSelect,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ShareListBottomSheet(
+    serverUrl: String,
+    sharees: List<Sharee>,
+    searchResults: List<ShareeSearchResult>,
+    searchQuery: String,
+    isLoading: Boolean,
+    onSearchQueryChange: (String) -> Unit,
+    onAddSharee: (String, ShareeType) -> Unit,
+    onRemoveSharee: (String, ShareeType) -> Unit,
+    onUpdateAccess: (String, ShareeType, ShareAccess) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.share_list_title),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+
+            // Search field
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                label = { Text(stringResource(R.string.share_with_user_or_group)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Search results
+            if (searchResults.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val existingIds = sharees.map { it.id }.toSet()
+                searchResults.filter { it.id !in existingIds }.forEach { result ->
+                    ShareeSearchResultItem(
+                        result = result,
+                        serverUrl = serverUrl,
+                        onAdd = { onAddSharee(result.id, result.type) },
+                    )
+                }
+            }
+
+            if (searchQuery.length >= 2 && searchResults.isEmpty() && !isLoading) {
+                Text(
+                    text = stringResource(R.string.no_sharees_found),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            }
+
+            // Current sharees
+            if (sharees.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+                sharees.forEach { sharee ->
+                    CurrentShareeItem(
+                        sharee = sharee,
+                        serverUrl = serverUrl,
+                        onRemove = { onRemoveSharee(sharee.id, sharee.type) },
+                        onToggleAccess = {
+                            val newAccess = if (sharee.access == ShareAccess.READ_WRITE) ShareAccess.READ else ShareAccess.READ_WRITE
+                            onUpdateAccess(sharee.id, sharee.type, newAccess)
+                        },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun ShareeSearchResultItem(
+    result: ShareeSearchResult,
+    serverUrl: String,
+    onAdd: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ShareeAvatar(userId = result.id, serverUrl = serverUrl, isGroup = result.type == ShareeType.GROUP)
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = result.displayName, style = MaterialTheme.typography.bodyLarge)
+            if (result.type == ShareeType.GROUP) {
+                Text(text = "Group", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        IconButton(onClick = onAdd) {
+            Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.share_list))
+        }
+    }
+}
+
+@Composable
+private fun CurrentShareeItem(
+    sharee: Sharee,
+    serverUrl: String,
+    onRemove: () -> Unit,
+    onToggleAccess: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ShareeAvatar(userId = sharee.id, serverUrl = serverUrl, isGroup = sharee.type == ShareeType.GROUP)
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = sharee.displayName, style = MaterialTheme.typography.bodyLarge)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = sharee.access == ShareAccess.READ_WRITE,
+                onCheckedChange = { onToggleAccess() },
+            )
+            Text(
+                text = stringResource(R.string.can_edit),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        IconButton(onClick = onRemove) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = stringResource(R.string.remove_share),
+                tint = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShareeAvatar(
+    userId: String,
+    serverUrl: String,
+    isGroup: Boolean,
+) {
+    if (isGroup) {
+        Box(
+            modifier = Modifier.size(36.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Default.Group,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+    } else {
+        AsyncImage(
+            model = "$serverUrl/index.php/avatar/$userId/64",
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
         )
     }
 }
@@ -1764,6 +2092,10 @@ class TaskListViewModel
         private val loadTasksUseCase: LoadTasksUseCase,
         private val tasksRepository: com.nextcloud.tasks.domain.repository.TasksRepository,
         private val observeActiveAccountUseCase: com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase,
+        private val getShareesUseCase: GetShareesUseCase,
+        private val shareListUseCase: ShareListUseCase,
+        private val unshareListUseCase: UnshareListUseCase,
+        private val searchShareesUseCase: SearchShareesUseCase,
     ) : ViewModel() {
         // Raw tasks from repository
         private val allTasks =
@@ -2030,5 +2362,137 @@ class TaskListViewModel
                     timber.log.Timber.e(ignored, "Failed to delete task")
                 }
             }
+        }
+
+        // --- Sharing state ---
+        private val _sharingListId = MutableStateFlow<String?>(null)
+        val sharingListId = _sharingListId.asStateFlow()
+
+        private val _sharees = MutableStateFlow<List<Sharee>>(emptyList())
+        val sharees = _sharees.asStateFlow()
+
+        private val _shareeSearchResults = MutableStateFlow<List<ShareeSearchResult>>(emptyList())
+        val shareeSearchResults = _shareeSearchResults.asStateFlow()
+
+        private val _shareeSearchQuery = MutableStateFlow("")
+        val shareeSearchQuery = _shareeSearchQuery.asStateFlow()
+
+        private val _shareError = MutableStateFlow<String?>(null)
+        val shareError = _shareError.asStateFlow()
+
+        private val _isLoadingSharees = MutableStateFlow(false)
+        val isLoadingSharees = _isLoadingSharees.asStateFlow()
+
+        fun openShareSheet(listId: String) {
+            _sharingListId.value = listId
+            _shareeSearchQuery.value = ""
+            _shareeSearchResults.value = emptyList()
+            _shareError.value = null
+            loadSharees(listId)
+        }
+
+        fun closeShareSheet() {
+            _sharingListId.value = null
+            _sharees.value = emptyList()
+            _shareeSearchResults.value = emptyList()
+            _shareeSearchQuery.value = ""
+        }
+
+        private fun loadSharees(listId: String) {
+            viewModelScope.launch {
+                _isLoadingSharees.value = true
+                try {
+                    _sharees.value = getShareesUseCase(listId)
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    timber.log.Timber.e(e, "Failed to load sharees")
+                } finally {
+                    _isLoadingSharees.value = false
+                }
+            }
+        }
+
+        private var searchJob: kotlinx.coroutines.Job? = null
+
+        fun searchSharees(query: String) {
+            _shareeSearchQuery.value = query
+            searchJob?.cancel()
+            if (query.length < 2) {
+                _shareeSearchResults.value = emptyList()
+                return
+            }
+            searchJob =
+                viewModelScope.launch {
+                    delay(300)
+                    try {
+                        _shareeSearchResults.value = searchShareesUseCase(query)
+                    } catch (
+                        @Suppress("TooGenericExceptionCaught") e: Exception,
+                    ) {
+                        timber.log.Timber.e(e, "Failed to search sharees")
+                    }
+                }
+        }
+
+        fun addSharee(
+            shareeId: String,
+            type: ShareeType,
+            access: ShareAccess = ShareAccess.READ_WRITE,
+        ) {
+            val listId = _sharingListId.value ?: return
+            viewModelScope.launch {
+                try {
+                    shareListUseCase(listId, shareeId, type, access)
+                    loadSharees(listId)
+                    _shareeSearchQuery.value = ""
+                    _shareeSearchResults.value = emptyList()
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    timber.log.Timber.e(e, "Failed to share list")
+                    _shareError.value = "share_failed"
+                }
+            }
+        }
+
+        fun removeSharee(
+            shareeId: String,
+            type: ShareeType,
+        ) {
+            val listId = _sharingListId.value ?: return
+            viewModelScope.launch {
+                try {
+                    unshareListUseCase(listId, shareeId, type)
+                    loadSharees(listId)
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    timber.log.Timber.e(e, "Failed to remove sharee")
+                    _shareError.value = "share_failed"
+                }
+            }
+        }
+
+        fun updateShareeAccess(
+            shareeId: String,
+            type: ShareeType,
+            access: ShareAccess,
+        ) {
+            val listId = _sharingListId.value ?: return
+            viewModelScope.launch {
+                try {
+                    shareListUseCase(listId, shareeId, type, access)
+                    loadSharees(listId)
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    timber.log.Timber.e(e, "Failed to update sharee access")
+                }
+            }
+        }
+
+        fun clearShareError() {
+            _shareError.value = null
         }
     }

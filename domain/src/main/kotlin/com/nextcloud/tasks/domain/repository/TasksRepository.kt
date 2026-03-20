@@ -1,5 +1,9 @@
 package com.nextcloud.tasks.domain.repository
 
+import com.nextcloud.tasks.domain.model.ShareAccess
+import com.nextcloud.tasks.domain.model.Sharee
+import com.nextcloud.tasks.domain.model.ShareeSearchResult
+import com.nextcloud.tasks.domain.model.ShareeType
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskDraft
@@ -51,4 +55,21 @@ interface TasksRepository {
         name: String,
         color: String? = null,
     ): TaskList
+
+    suspend fun getSharees(listId: String): List<Sharee>
+
+    suspend fun shareList(
+        listId: String,
+        shareeId: String,
+        type: ShareeType,
+        access: ShareAccess,
+    )
+
+    suspend fun unshareList(
+        listId: String,
+        shareeId: String,
+        type: ShareeType,
+    )
+
+    suspend fun searchSharees(query: String): List<ShareeSearchResult>
 }

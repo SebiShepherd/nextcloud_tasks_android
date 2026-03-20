@@ -112,6 +112,14 @@ object DatabaseMigrations {
             }
         }
 
+    val MIGRATION_6_7 =
+        object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE task_lists ADD COLUMN share_access TEXT NOT NULL DEFAULT 'OWNER'")
+                db.execSQL("ALTER TABLE task_lists ADD COLUMN is_shared INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
     val all: Array<Migration> =
-        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 }

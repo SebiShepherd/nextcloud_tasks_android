@@ -2,6 +2,7 @@ package com.nextcloud.tasks.data.mapper
 
 import com.nextcloud.tasks.data.api.dto.TaskListDto
 import com.nextcloud.tasks.data.database.entity.TaskListEntity
+import com.nextcloud.tasks.domain.model.ShareAccess
 import com.nextcloud.tasks.domain.model.TaskList
 import java.time.Instant
 import javax.inject.Inject
@@ -33,5 +34,14 @@ class TaskListMapper
                 etag = entity.etag,
                 href = entity.href,
                 order = entity.order,
+                shareAccess = mapShareAccess(entity.shareAccess),
+                isShared = entity.isShared,
             )
+
+        private fun mapShareAccess(value: String): ShareAccess =
+            when (value) {
+                "READ_WRITE", "read-write" -> ShareAccess.READ_WRITE
+                "READ", "read" -> ShareAccess.READ
+                else -> ShareAccess.OWNER
+            }
     }
