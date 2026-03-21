@@ -429,12 +429,20 @@ class DefaultTasksRepository
                 val currentPrincipal = principal.principalUrl
                 val taskLists =
                     collections.map { collection ->
-                        // Determine ownership: use oc:invite organizer, oc:owner-principal,
-                        // or default to owner if no sharing info available
+                        // Determine ownership using multiple signals:
+                        // 1. Nextcloud shared calendar hrefs contain "_shared_by_"
+                        // 2. d:owner href differs from current user's principal
+                        // 3. oc:organizer in oc:invite (may be empty for shared-with-me)
+                        val isSharedWithMe = collection.href.contains("_shared_by_")
                         val isOwner =
                             when {
+                                isSharedWithMe -> false
+                                collection.ownerHref != null -> {
+                                    val ownerId = extractIdFromPrincipal(collection.ownerHref)
+                                    val currentId = extractIdFromPrincipal(currentPrincipal)
+                                    ownerId == currentId
+                                }
                                 collection.organizerHref != null -> {
-                                    // Organizer in invite = shared calendar; check if we're the organizer
                                     val orgId = extractIdFromPrincipal(collection.organizerHref)
                                     val currentId = extractIdFromPrincipal(currentPrincipal)
                                     orgId == currentId
@@ -444,11 +452,16 @@ class DefaultTasksRepository
                                 }
                                 else -> true
                             }
+                        // For shared-with-me, determine access from privilege set
                         val shareAccess =
                             if (isOwner) {
                                 collection.shareAccess ?: "shared-owner"
+                            } else if (collection.hasWriteAccess == true) {
+                                "read-write"
+                            } else if (collection.hasWriteAccess == false) {
+                                "read"
                             } else {
-                                // Shared-with-me: check invites for our access level
+                                // Fallback: check invites for our access level
                                 val currentId = extractIdFromPrincipal(currentPrincipal)
                                 val myInvite =
                                     collection.invites.firstOrNull {
@@ -456,6 +469,16 @@ class DefaultTasksRepository
                                     }
                                 myInvite?.access ?: collection.shareAccess ?: "read-write"
                             }
+                        Timber.d(
+                            "Collection %s: isSharedWithMe=%s, isOwner=%s, shareAccess=%s, " +
+                                "hasWriteAccess=%s, ownerHref=%s",
+                            collection.href,
+                            isSharedWithMe,
+                            isOwner,
+                            shareAccess,
+                            collection.hasWriteAccess,
+                            collection.ownerHref,
+                        )
                         val hasSharees = collection.invites.isNotEmpty()
                         TaskListEntity(
                             id = collection.href,

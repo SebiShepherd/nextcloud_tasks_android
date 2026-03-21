@@ -14,6 +14,8 @@ object DavProperty {
     const val DISPLAY_NAME = "displayname"
     const val RESOURCE_TYPE = "resourcetype"
     const val GET_ETAG = "getetag"
+    const val OWNER = "owner"
+    const val CURRENT_USER_PRIVILEGE_SET = "current-user-privilege-set"
 
     // CalDAV properties
     const val CALENDAR_HOME_SET = "calendar-home-set"

@@ -74,7 +74,17 @@ class DavMultistatusParser
                 }
             }
 
-            return DavResourceResponse(href, properties, etag, invites, organizerRef.firstOrNull())
+            return DavResourceResponse(
+                href,
+                properties,
+                etag,
+                invites,
+                organizerRef.firstOrNull(),
+                ownerHref = properties[DavProperty.OWNER],
+                hasWriteAccess =
+                    properties[DavProperty.CURRENT_USER_PRIVILEGE_SET]
+                        ?.contains("write") == true,
+            )
         }
 
         private fun parsePropstat(
@@ -164,6 +174,13 @@ class DavMultistatusParser
                     }
                     matchesTag(parser.name, "owner-principal") -> {
                         properties[DavProperty.OWNER_PRINCIPAL] = parseHrefValue(parser)
+                    }
+                    matchesTag(parser.name, "owner") -> {
+                        properties[DavProperty.OWNER] = parseHrefValue(parser)
+                    }
+                    matchesTag(parser.name, "current-user-privilege-set") -> {
+                        properties[DavProperty.CURRENT_USER_PRIVILEGE_SET] =
+                            parsePrivilegeSet(parser)
                     }
                     matchesTag(parser.name, "invite") -> {
                         val result = parseInviteElement(parser)
@@ -312,6 +329,23 @@ class DavMultistatusParser
             }
         }
 
+        private fun parsePrivilegeSet(parser: XmlPullParser): String {
+            val privileges = mutableListOf<String>()
+            val depth = parser.depth
+            while (true) {
+                val eventType = parser.next()
+                if (eventType == XmlPullParser.END_TAG && parser.depth == depth) break
+                if (eventType == XmlPullParser.START_TAG) {
+                    val tagName = parser.name
+                    val cleanName =
+                        if (tagName.contains(":")) tagName.substringAfter(":") else tagName
+                    if (cleanName == "privilege") continue
+                    privileges.add(cleanName)
+                }
+            }
+            return privileges.joinToString(",")
+        }
+
         private fun parseHrefValue(parser: XmlPullParser): String? {
             val depth = parser.depth
             while (true) {
@@ -420,6 +454,8 @@ class DavMultistatusParser
                         shareAccess = shareAccess,
                         ownerPrincipalHref = ownerPrincipal,
                         organizerHref = response.organizerHref,
+                        ownerHref = response.ownerHref,
+                        hasWriteAccess = response.hasWriteAccess,
                         invites = response.invites,
                     )
                 } else {
