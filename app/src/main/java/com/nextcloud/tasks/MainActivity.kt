@@ -40,16 +40,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -1142,15 +1146,38 @@ private fun TaskListDrawerItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                // Share icon for shared lists
-                if (taskList.isShared) {
-                    Icon(
-                        imageVector = Icons.Default.People,
-                        contentDescription = stringResource(R.string.shared_with_you),
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                // Share/access icon
+                when {
+                    // Owner who shared the list → People icon
+                    taskList.shareAccess == ShareAccess.OWNER && taskList.isShared -> {
+                        Icon(
+                            imageVector = Icons.Default.People,
+                            contentDescription = stringResource(R.string.shared_with_you),
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    // Sharee with edit access → Edit icon
+                    taskList.shareAccess == ShareAccess.READ_WRITE -> {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = stringResource(R.string.share_access_edit),
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    // Sharee with read-only access → Eye icon
+                    taskList.shareAccess == ShareAccess.READ -> {
+                        Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = stringResource(R.string.share_access_read_only),
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                 }
                 // 3-dot menu (only for owner lists)
                 if (taskList.shareAccess == ShareAccess.OWNER) {
@@ -1312,7 +1339,7 @@ private fun ShareListBottomSheet(
                     ShareeSearchResultItem(
                         result = result,
                         serverUrl = serverUrl,
-                        onAdd = { access -> onAddSharee(result.id, result.type, access) },
+                        onAdd = { onAddSharee(result.id, result.type, ShareAccess.READ) },
                     )
                 }
             }
@@ -1336,8 +1363,7 @@ private fun ShareListBottomSheet(
                         sharee = sharee,
                         serverUrl = serverUrl,
                         onRemove = { onRemoveSharee(sharee.id, sharee.type) },
-                        onToggleAccess = {
-                            val newAccess = if (sharee.access == ShareAccess.READ_WRITE) ShareAccess.READ else ShareAccess.READ_WRITE
+                        onUpdateAccess = { newAccess ->
                             onUpdateAccess(sharee.id, sharee.type, newAccess)
                         },
                     )
@@ -1353,9 +1379,8 @@ private fun ShareListBottomSheet(
 private fun ShareeSearchResultItem(
     result: ShareeSearchResult,
     serverUrl: String,
-    onAdd: (ShareAccess) -> Unit,
+    onAdd: () -> Unit,
 ) {
-    var canEdit by remember { mutableStateOf(true) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1368,51 +1393,110 @@ private fun ShareeSearchResultItem(
                 Text(text = "Group", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = canEdit,
-                onCheckedChange = { canEdit = it },
-            )
-            Text(
-                text = stringResource(R.string.can_edit),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        IconButton(onClick = { onAdd(if (canEdit) ShareAccess.READ_WRITE else ShareAccess.READ) }) {
+        IconButton(onClick = onAdd) {
             Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.share_list))
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CurrentShareeItem(
     sharee: Sharee,
     serverUrl: String,
     onRemove: () -> Unit,
-    onToggleAccess: () -> Unit,
+    onUpdateAccess: (ShareAccess) -> Unit,
 ) {
+    var expanded by remember { mutableStateOf(false) }
+    val readOnlyLabel = stringResource(R.string.share_access_read_only)
+    val editLabel = stringResource(R.string.share_access_edit)
+    val currentLabel = if (sharee.access == ShareAccess.READ_WRITE) editLabel else readOnlyLabel
+
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ShareeAvatar(userId = sharee.id, serverUrl = serverUrl, isGroup = sharee.type == ShareeType.GROUP)
         Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = sharee.displayName, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = sharee.displayName,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        // Permission dropdown
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.menuAnchor(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val accessIcon =
+                        if (sharee.access == ShareAccess.READ_WRITE) {
+                            Icons.Default.Edit
+                        } else {
+                            Icons.Default.Visibility
+                        }
+                    Icon(
+                        imageVector = accessIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = currentLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+            ) {
+                DropdownMenuItem(
+                    text = { Text(readOnlyLabel) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
+                    },
+                    onClick = {
+                        expanded = false
+                        if (sharee.access != ShareAccess.READ) {
+                            onUpdateAccess(ShareAccess.READ)
+                        }
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(editLabel) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                    },
+                    onClick = {
+                        expanded = false
+                        if (sharee.access != ShareAccess.READ_WRITE) {
+                            onUpdateAccess(ShareAccess.READ_WRITE)
+                        }
+                    },
+                )
+            }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = sharee.access == ShareAccess.READ_WRITE,
-                onCheckedChange = { onToggleAccess() },
-            )
-            Text(
-                text = stringResource(R.string.can_edit),
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
+        // Remove button
         IconButton(onClick = onRemove) {
             Icon(
-                Icons.Default.Delete,
+                Icons.Default.RemoveCircle,
                 contentDescription = stringResource(R.string.remove_share),
                 tint = MaterialTheme.colorScheme.error,
             )
@@ -2550,7 +2634,7 @@ class TaskListViewModel
         fun addSharee(
             shareeId: String,
             type: ShareeType,
-            access: ShareAccess = ShareAccess.READ_WRITE,
+            access: ShareAccess = ShareAccess.READ,
         ) {
             val listId = _sharingListId.value ?: return
             viewModelScope.launch {

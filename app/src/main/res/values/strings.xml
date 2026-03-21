@@ -120,6 +120,8 @@
     <string name="share_with_user_or_group">Share with user or group\u2026</string>
     <string name="can_edit">Can edit</string>
     <string name="read_only">Read only</string>
+    <string name="share_access_read_only">Read only</string>
+    <string name="share_access_edit">Can edit</string>
     <string name="remove_share">Remove</string>
     <string name="no_sharees_found">No users or groups found</string>
     <string name="list_read_only_hint">This list is shared with you as read-only</string>

@@ -10,7 +10,7 @@ import java.time.Instant
 
 @Dao
 interface TaskListsDao {
-    @Query("SELECT * FROM task_lists WHERE account_id = :accountId")
+    @Query("SELECT * FROM task_lists WHERE account_id = :accountId ORDER BY `order` ASC, name ASC")
     fun observeTaskLists(accountId: String): Flow<List<TaskListEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
