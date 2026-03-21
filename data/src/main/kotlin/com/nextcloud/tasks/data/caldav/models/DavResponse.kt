@@ -15,6 +15,7 @@ data class DavResourceResponse(
     val properties: Map<String, String?>,
     val etag: String? = null,
     val invites: List<DavSharee> = emptyList(),
+    val organizerHref: String? = null,
 )
 
 /**
@@ -43,6 +44,7 @@ data class CalendarCollectionInfo(
     val etag: String? = null,
     val shareAccess: String? = null,
     val ownerPrincipalHref: String? = null,
+    val organizerHref: String? = null,
     val invites: List<DavSharee> = emptyList(),
 )
 

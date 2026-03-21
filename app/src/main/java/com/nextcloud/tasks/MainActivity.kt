@@ -59,6 +59,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -210,6 +211,7 @@ fun NextcloudTasksApp(
     val isLoadingSharees by taskListViewModel.isLoadingSharees.collectAsState()
     val shareError by taskListViewModel.shareError.collectAsState()
     val shareSuccess by taskListViewModel.shareSuccess.collectAsState()
+    val shareActionInProgress by taskListViewModel.shareActionInProgress.collectAsState()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showCreateListDialog by remember { mutableStateOf(false) }
@@ -394,25 +396,7 @@ fun AuthenticatedHome(
     RefreshErrorEffect(refreshError, snackbarHostState, onClearRefreshError)
     CreateListErrorEffect(createListError, snackbarHostState, onClearCreateListError)
 
-    // Share error snackbar
-    val shareErrorMsg = stringResource(R.string.error_share_failed)
-    val shareForbiddenMsg = stringResource(R.string.error_share_forbidden)
-    LaunchedEffect(shareError) {
-        if (shareError != null) {
-            val msg = if (shareError == "share_forbidden") shareForbiddenMsg else shareErrorMsg
-            snackbarHostState.showSnackbar(msg)
-            onClearShareError()
-        }
-    }
-
-    // Share success snackbar
-    val shareSuccessMsg = stringResource(R.string.share_success)
-    LaunchedEffect(shareSuccess) {
-        if (shareSuccess) {
-            snackbarHostState.showSnackbar(shareSuccessMsg)
-            onClearShareSuccess()
-        }
-    }
+    // Share errors and success are shown in the bottom sheet only (no duplicate snackbar)
 
     // Determine if selected list is read-only
     val selectedListAccess = taskLists.find { it.id == selectedListId }?.shareAccess
@@ -567,6 +551,7 @@ fun AuthenticatedHome(
             isLoading = isLoadingSharees,
             shareError = shareError,
             shareSuccess = shareSuccess,
+            actionInProgress = shareActionInProgress,
             onSearchQueryChange = onSearchSharees,
             onAddSharee = { id, type, access -> onAddSharee(id, type, access) },
             onRemoveSharee = onRemoveSharee,
@@ -895,9 +880,11 @@ private fun TasksContent(
     // Create a map for quick lookup of task list info
     val taskListMap = remember(taskLists) { taskLists.associateBy { it.id } }
 
-    // Group tasks by completion status
-    val openTasks = tasks.filter { !it.completed }
-    val completedTasks = tasks.filter { it.completed }
+    // Group tasks by completion status, filtering out tasks with unknown lists
+    // (can happen briefly during account switch before refresh completes)
+    val knownTasks = remember(tasks, taskListMap) { tasks.filter { it.listId in taskListMap } }
+    val openTasks = knownTasks.filter { !it.completed }
+    val completedTasks = knownTasks.filter { it.completed }
 
     // Group open tasks by list
     val openTasksByList = openTasks.groupBy { it.listId }
@@ -1226,6 +1213,7 @@ private fun ShareListBottomSheet(
     isLoading: Boolean,
     shareError: String? = null,
     shareSuccess: Boolean = false,
+    actionInProgress: String? = null,
     onSearchQueryChange: (String) -> Unit,
     onAddSharee: (String, ShareeType, ShareAccess) -> Unit,
     onRemoveSharee: (String, ShareeType) -> Unit,
@@ -1262,10 +1250,10 @@ private fun ShareListBottomSheet(
             // Share error banner
             if (shareError != null) {
                 val errorText =
-                    if (shareError == "share_forbidden") {
-                        stringResource(R.string.error_share_forbidden)
-                    } else {
-                        stringResource(R.string.error_share_failed)
+                    when (shareError) {
+                        "share_forbidden" -> stringResource(R.string.error_share_forbidden)
+                        "load_sharees_failed" -> stringResource(R.string.error_load_sharees_failed)
+                        else -> stringResource(R.string.error_share_failed)
                     }
                 Spacer(modifier = Modifier.height(8.dp))
                 Surface(
@@ -1339,6 +1327,7 @@ private fun ShareListBottomSheet(
                     ShareeSearchResultItem(
                         result = result,
                         serverUrl = serverUrl,
+                        isLoading = actionInProgress == "add:${result.id}",
                         onAdd = { onAddSharee(result.id, result.type, ShareAccess.READ) },
                     )
                 }
@@ -1353,6 +1342,19 @@ private fun ShareListBottomSheet(
                 )
             }
 
+            // Loading indicator for sharees
+            if (isLoading && sharees.isEmpty() && searchQuery.length < 2) {
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            }
+
             // Current sharees
             if (sharees.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
@@ -1362,6 +1364,10 @@ private fun ShareListBottomSheet(
                     CurrentShareeItem(
                         sharee = sharee,
                         serverUrl = serverUrl,
+                        isActionLoading =
+                            actionInProgress == "remove:${sharee.id}" ||
+                                actionInProgress == "access:${sharee.id}",
+                        isAccessLoading = actionInProgress == "access:${sharee.id}",
                         onRemove = { onRemoveSharee(sharee.id, sharee.type) },
                         onUpdateAccess = { newAccess ->
                             onUpdateAccess(sharee.id, sharee.type, newAccess)
@@ -1379,6 +1385,7 @@ private fun ShareListBottomSheet(
 private fun ShareeSearchResultItem(
     result: ShareeSearchResult,
     serverUrl: String,
+    isLoading: Boolean = false,
     onAdd: () -> Unit,
 ) {
     Row(
@@ -1393,8 +1400,14 @@ private fun ShareeSearchResultItem(
                 Text(text = "Group", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        IconButton(onClick = onAdd) {
-            Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.share_list))
+        if (isLoading) {
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            }
+        } else {
+            IconButton(onClick = onAdd) {
+                Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.share_list))
+            }
         }
     }
 }
@@ -1404,6 +1417,8 @@ private fun ShareeSearchResultItem(
 private fun CurrentShareeItem(
     sharee: Sharee,
     serverUrl: String,
+    isActionLoading: Boolean = false,
+    isAccessLoading: Boolean = false,
     onRemove: () -> Unit,
     onUpdateAccess: (ShareAccess) -> Unit,
 ) {
@@ -1426,80 +1441,93 @@ private fun CurrentShareeItem(
             overflow = TextOverflow.Ellipsis,
         )
         Spacer(modifier = Modifier.width(8.dp))
-        // Permission dropdown
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-        ) {
-            Surface(
-                shape = MaterialTheme.shapes.small,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.menuAnchor(),
+        // Permission dropdown or loading spinner
+        if (isAccessLoading) {
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            }
+        } else {
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it },
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.menuAnchor(),
                 ) {
-                    val accessIcon =
-                        if (sharee.access == ShareAccess.READ_WRITE) {
-                            Icons.Default.Edit
-                        } else {
-                            Icons.Default.Visibility
-                        }
-                    Icon(
-                        imageVector = accessIcon,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        val accessIcon =
+                            if (sharee.access == ShareAccess.READ_WRITE) {
+                                Icons.Default.Edit
+                            } else {
+                                Icons.Default.Visibility
+                            }
+                        Icon(
+                            imageVector = accessIcon,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = currentLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.widthIn(min = 160.dp),
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(readOnlyLabel) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        onClick = {
+                            expanded = false
+                            if (sharee.access != ShareAccess.READ) {
+                                onUpdateAccess(ShareAccess.READ)
+                            }
+                        },
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = currentLabel,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
+                    DropdownMenuItem(
+                        text = { Text(editLabel) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        onClick = {
+                            expanded = false
+                            if (sharee.access != ShareAccess.READ_WRITE) {
+                                onUpdateAccess(ShareAccess.READ_WRITE)
+                            }
+                        },
                     )
                 }
             }
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text(readOnlyLabel) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
-                    },
-                    onClick = {
-                        expanded = false
-                        if (sharee.access != ShareAccess.READ) {
-                            onUpdateAccess(ShareAccess.READ)
-                        }
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text(editLabel) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                    },
-                    onClick = {
-                        expanded = false
-                        if (sharee.access != ShareAccess.READ_WRITE) {
-                            onUpdateAccess(ShareAccess.READ_WRITE)
-                        }
-                    },
+        }
+        // Remove button or loading spinner
+        if (isActionLoading && !isAccessLoading) {
+            Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            }
+        } else {
+            IconButton(onClick = onRemove, enabled = !isActionLoading) {
+                Icon(
+                    Icons.Default.RemoveCircle,
+                    contentDescription = stringResource(R.string.remove_share),
+                    tint = MaterialTheme.colorScheme.error,
                 )
             }
-        }
-        // Remove button
-        IconButton(onClick = onRemove) {
-            Icon(
-                Icons.Default.RemoveCircle,
-                contentDescription = stringResource(R.string.remove_share),
-                tint = MaterialTheme.colorScheme.error,
-            )
         }
     }
 }
@@ -2579,6 +2607,9 @@ class TaskListViewModel
         private val _isLoadingSharees = MutableStateFlow(false)
         val isLoadingSharees = _isLoadingSharees.asStateFlow()
 
+        private val _shareActionInProgress = MutableStateFlow<String?>(null)
+        val shareActionInProgress = _shareActionInProgress.asStateFlow()
+
         fun openShareSheet(listId: String) {
             _sharingListId.value = listId
             _shareeSearchQuery.value = ""
@@ -2603,6 +2634,7 @@ class TaskListViewModel
                     @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
                     timber.log.Timber.e(e, "Failed to load sharees")
+                    _shareError.value = "load_sharees_failed"
                 } finally {
                     _isLoadingSharees.value = false
                 }
@@ -2637,6 +2669,7 @@ class TaskListViewModel
             access: ShareAccess = ShareAccess.READ,
         ) {
             val listId = _sharingListId.value ?: return
+            _shareActionInProgress.value = "add:$shareeId"
             viewModelScope.launch {
                 try {
                     shareListUseCase(listId, shareeId, type, access)
@@ -2653,6 +2686,8 @@ class TaskListViewModel
                         } else {
                             "share_failed"
                         }
+                } finally {
+                    _shareActionInProgress.value = null
                 }
             }
         }
@@ -2666,6 +2701,7 @@ class TaskListViewModel
             type: ShareeType,
         ) {
             val listId = _sharingListId.value ?: return
+            _shareActionInProgress.value = "remove:$shareeId"
             viewModelScope.launch {
                 try {
                     unshareListUseCase(listId, shareeId, type)
@@ -2675,6 +2711,8 @@ class TaskListViewModel
                 ) {
                     timber.log.Timber.e(e, "Failed to remove sharee")
                     _shareError.value = "share_failed"
+                } finally {
+                    _shareActionInProgress.value = null
                 }
             }
         }
@@ -2685,6 +2723,7 @@ class TaskListViewModel
             access: ShareAccess,
         ) {
             val listId = _sharingListId.value ?: return
+            _shareActionInProgress.value = "access:$shareeId"
             viewModelScope.launch {
                 try {
                     shareListUseCase(listId, shareeId, type, access)
@@ -2693,6 +2732,9 @@ class TaskListViewModel
                     @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
                     timber.log.Timber.e(e, "Failed to update sharee access")
+                    _shareError.value = "share_failed"
+                } finally {
+                    _shareActionInProgress.value = null
                 }
             }
         }

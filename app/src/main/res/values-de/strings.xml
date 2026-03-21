@@ -130,6 +130,7 @@
     <string name="error_share_forbidden">Du hast keine Berechtigung, diese Liste zu teilen.</string>
     <string name="share_success">Benutzer erfolgreich hinzugefügt</string>
     <string name="error_share_offline">Teilen im Offline-Modus nicht möglich.</string>
+    <string name="error_load_sharees_failed">Geteilte Benutzer konnten nicht geladen werden. Bitte versuche es erneut.</string>
     <string name="list_options">Listenoptionen</string>
 
     <!-- Offline Mode -->

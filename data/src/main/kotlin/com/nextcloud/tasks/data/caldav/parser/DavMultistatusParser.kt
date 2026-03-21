@@ -53,6 +53,7 @@ class DavMultistatusParser
             val properties = mutableMapOf<String, String?>()
             var etag: String? = null
             val invites = mutableListOf<DavSharee>()
+            val organizerRef = mutableListOf<String>()
 
             while (true) {
                 val eventType = parser.next()
@@ -65,7 +66,7 @@ class DavMultistatusParser
                     matchesTag(parser.name, "href") -> href = parser.nextText()
                     matchesTag(parser.name, "propstat") -> {
                         val parsedInvites = mutableListOf<DavSharee>()
-                        val propstatProps = parsePropstat(parser, parsedInvites)
+                        val propstatProps = parsePropstat(parser, parsedInvites, organizerRef)
                         properties.putAll(propstatProps)
                         invites.addAll(parsedInvites)
                         propstatProps[DavProperty.GET_ETAG]?.let { etag = it }
@@ -73,12 +74,13 @@ class DavMultistatusParser
                 }
             }
 
-            return DavResourceResponse(href, properties, etag, invites)
+            return DavResourceResponse(href, properties, etag, invites, organizerRef.firstOrNull())
         }
 
         private fun parsePropstat(
             parser: XmlPullParser,
             invites: MutableList<DavSharee>,
+            organizerRef: MutableList<String>,
         ): Map<String, String?> {
             val properties = mutableMapOf<String, String?>()
             var statusCode: String? = null
@@ -95,7 +97,7 @@ class DavMultistatusParser
                         statusCode = parser.nextText()
                     }
                     matchesTag(parser.name, "prop") -> {
-                        parseProp(parser, properties, invites)
+                        parseProp(parser, properties, invites, organizerRef)
                     }
                 }
             }
@@ -103,15 +105,22 @@ class DavMultistatusParser
             // Only return properties if status is 200 OK
             if (statusCode?.contains("200") != true) {
                 invites.clear()
+                organizerRef.clear()
                 return emptyMap()
             }
             return properties
         }
 
+        private data class InviteParseResult(
+            val sharees: List<DavSharee>,
+            val organizerHref: String? = null,
+        )
+
         private fun parseProp(
             parser: XmlPullParser,
             properties: MutableMap<String, String?>,
             invites: MutableList<DavSharee>,
+            organizerRef: MutableList<String>,
         ) {
             val depth = parser.depth
             while (true) {
@@ -157,7 +166,9 @@ class DavMultistatusParser
                         properties[DavProperty.OWNER_PRINCIPAL] = parseHrefValue(parser)
                     }
                     matchesTag(parser.name, "invite") -> {
-                        invites.addAll(parseInviteElement(parser))
+                        val result = parseInviteElement(parser)
+                        invites.addAll(result.sharees)
+                        result.organizerHref?.let { organizerRef.add(it) }
                     }
                 }
             }
@@ -197,8 +208,9 @@ class DavMultistatusParser
          *   </d:sharee>
          * </d:invite>
          */
-        private fun parseInviteElement(parser: XmlPullParser): List<DavSharee> {
+        private fun parseInviteElement(parser: XmlPullParser): InviteParseResult {
             val sharees = mutableListOf<DavSharee>()
+            var organizerHref: String? = null
             val depth = parser.depth
 
             while (true) {
@@ -213,12 +225,29 @@ class DavMultistatusParser
                     matchesTag(parser.name, "sharee") || matchesTag(parser.name, "user") -> {
                         parseShareeElement(parser)?.let { sharees.add(it) }
                     }
-                    // Skip organizer element (owner, not a sharee)
-                    matchesTag(parser.name, "organizer") -> skipElement(parser)
+                    // Parse organizer to extract owner principal href
+                    matchesTag(parser.name, "organizer") -> {
+                        organizerHref = parseOrganizerHref(parser)
+                    }
                 }
             }
 
-            return sharees
+            return InviteParseResult(sharees, organizerHref)
+        }
+
+        private fun parseOrganizerHref(parser: XmlPullParser): String? {
+            val depth = parser.depth
+            var href: String? = null
+            while (true) {
+                val eventType = parser.next()
+                if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
+                    break
+                }
+                if (eventType == XmlPullParser.START_TAG && matchesTag(parser.name, "href")) {
+                    href = parser.nextText()
+                }
+            }
+            return href
         }
 
         private fun parseShareeElement(parser: XmlPullParser): DavSharee? {
@@ -390,6 +419,7 @@ class DavMultistatusParser
                         etag = response.etag,
                         shareAccess = shareAccess,
                         ownerPrincipalHref = ownerPrincipal,
+                        organizerHref = response.organizerHref,
                         invites = response.invites,
                     )
                 } else {
