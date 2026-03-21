@@ -1022,6 +1022,7 @@ private fun TasksContent(
     }
 }
 
+@Suppress("UnusedParameter", "ForbiddenComment")
 @Composable
 private fun TaskListsDrawer(
     taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
@@ -1043,13 +1044,18 @@ private fun TaskListsDrawer(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f),
             )
-            if (hasPendingChanges) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
+            // TODO: Temporarily disabled - the `hasPendingChanges` indicator was added recently
+            // but appears to be unreliable / incorrectly reported in the UI. Hide it for now
+            // to avoid confusing users. Re-enable once the root cause is investigated and
+            // fixed (restore the CircularProgressIndicator block below).
+            //
+            // if (hasPendingChanges) {
+            //     CircularProgressIndicator(
+            //         modifier = Modifier.size(16.dp),
+            //         strokeWidth = 2.dp,
+            //         color = MaterialTheme.colorScheme.primary,
+            //     )
+            // }
         }
 
         NavigationDrawerItem(

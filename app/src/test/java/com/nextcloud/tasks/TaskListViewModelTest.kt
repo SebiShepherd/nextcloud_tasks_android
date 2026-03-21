@@ -7,8 +7,12 @@ import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskFilter
 import com.nextcloud.tasks.domain.model.TaskSort
 import com.nextcloud.tasks.domain.repository.TasksRepository
+import com.nextcloud.tasks.domain.usecase.GetShareesUseCase
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase
+import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
+import com.nextcloud.tasks.domain.usecase.ShareListUseCase
+import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -74,6 +78,10 @@ class TaskListViewModelTest {
         val tasksRepository = mockk<TasksRepository>(relaxed = true)
         val loadTasksUseCase = mockk<LoadTasksUseCase>()
         val observeActiveAccountUseCase = mockk<ObserveActiveAccountUseCase>()
+        val getShareesUseCase = mockk<GetShareesUseCase>(relaxed = true)
+        val shareListUseCase = mockk<ShareListUseCase>(relaxed = true)
+        val unshareListUseCase = mockk<UnshareListUseCase>(relaxed = true)
+        val searchShareesUseCase = mockk<SearchShareesUseCase>(relaxed = true)
 
         every { loadTasksUseCase() } returns flowOf(tasks)
         every { tasksRepository.observeLists() } returns flowOf(emptyList())
@@ -86,6 +94,10 @@ class TaskListViewModelTest {
                 loadTasksUseCase = loadTasksUseCase,
                 tasksRepository = tasksRepository,
                 observeActiveAccountUseCase = observeActiveAccountUseCase,
+                getShareesUseCase = getShareesUseCase,
+                shareListUseCase = shareListUseCase,
+                unshareListUseCase = unshareListUseCase,
+                searchShareesUseCase = searchShareesUseCase,
             )
         block(vm)
     }
@@ -98,6 +110,10 @@ class TaskListViewModelTest {
         val tasksRepository = mockk<TasksRepository>(relaxed = true)
         val loadTasksUseCase = mockk<LoadTasksUseCase>()
         val observeActiveAccountUseCase = mockk<ObserveActiveAccountUseCase>()
+        val getShareesUseCase = mockk<GetShareesUseCase>(relaxed = true)
+        val shareListUseCase = mockk<ShareListUseCase>(relaxed = true)
+        val unshareListUseCase = mockk<UnshareListUseCase>(relaxed = true)
+        val searchShareesUseCase = mockk<SearchShareesUseCase>(relaxed = true)
 
         every { loadTasksUseCase() } returns flowOf(tasks)
         every { tasksRepository.observeLists() } returns flowOf(emptyList())
@@ -110,6 +126,10 @@ class TaskListViewModelTest {
                 loadTasksUseCase = loadTasksUseCase,
                 tasksRepository = tasksRepository,
                 observeActiveAccountUseCase = observeActiveAccountUseCase,
+                getShareesUseCase = getShareesUseCase,
+                shareListUseCase = shareListUseCase,
+                unshareListUseCase = unshareListUseCase,
+                searchShareesUseCase = searchShareesUseCase,
             )
         block(vm, tasksRepository)
     }
