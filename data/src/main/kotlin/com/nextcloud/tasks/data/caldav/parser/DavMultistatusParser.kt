@@ -153,6 +153,9 @@ class DavMultistatusParser
                     matchesTag(parser.name, "share-access") -> {
                         properties[DavProperty.SHARE_ACCESS] = parseShareAccess(parser)
                     }
+                    matchesTag(parser.name, "owner-principal") -> {
+                        properties[DavProperty.OWNER_PRINCIPAL] = parseHrefValue(parser)
+                    }
                     matchesTag(parser.name, "invite") -> {
                         invites.addAll(parseInviteElement(parser))
                     }
@@ -203,8 +206,15 @@ class DavMultistatusParser
                 if (eventType == XmlPullParser.END_TAG && parser.depth == depth) {
                     break
                 }
-                if (eventType == XmlPullParser.START_TAG && matchesTag(parser.name, "sharee")) {
-                    parseShareeElement(parser)?.let { sharees.add(it) }
+                if (eventType != XmlPullParser.START_TAG) continue
+
+                when {
+                    // DAV format: <d:sharee>, Nextcloud format: <oc:user>
+                    matchesTag(parser.name, "sharee") || matchesTag(parser.name, "user") -> {
+                        parseShareeElement(parser)?.let { sharees.add(it) }
+                    }
+                    // Skip organizer element (owner, not a sharee)
+                    matchesTag(parser.name, "organizer") -> skipElement(parser)
                 }
             }
 
@@ -227,9 +237,17 @@ class DavMultistatusParser
                 when {
                     matchesTag(parser.name, "href") -> href = parser.nextText()
                     matchesTag(parser.name, "common-name") -> commonName = parser.nextText()
-                    matchesTag(parser.name, "share-access") -> access = parseShareAccess(parser)
+                    // DAV format: <d:share-access>, Nextcloud format: <oc:access>
+                    matchesTag(parser.name, "share-access") || matchesTag(parser.name, "access") -> {
+                        access = parseShareAccess(parser)
+                    }
                     matchesTag(parser.name, "prop") -> {
                         commonName = parseShareeProp(parser) ?: commonName
+                    }
+                    // Skip invite-accepted/invite-noresponse status elements
+                    matchesTag(parser.name, "invite-accepted") ||
+                        matchesTag(parser.name, "invite-noresponse") -> {
+                        skipElement(parser)
                     }
                 }
             }
@@ -362,6 +380,7 @@ class DavMultistatusParser
 
                 if (isCalendar && supportsVTodo && !isDeleted) {
                     val shareAccess = response.properties[DavProperty.SHARE_ACCESS]
+                    val ownerPrincipal = response.properties[DavProperty.OWNER_PRINCIPAL]
                     CalendarCollectionInfo(
                         href = response.href,
                         displayName = response.properties[DavProperty.DISPLAY_NAME] ?: "Unnamed",
@@ -370,6 +389,7 @@ class DavMultistatusParser
                         order = response.properties[DavProperty.CALENDAR_ORDER]?.toIntOrNull(),
                         etag = response.etag,
                         shareAccess = shareAccess,
+                        ownerPrincipalHref = ownerPrincipal,
                         invites = response.invites,
                     )
                 } else {

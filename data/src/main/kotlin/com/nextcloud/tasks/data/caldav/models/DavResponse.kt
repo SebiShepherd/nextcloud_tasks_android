@@ -42,6 +42,7 @@ data class CalendarCollectionInfo(
     val order: Int? = null,
     val etag: String? = null,
     val shareAccess: String? = null,
+    val ownerPrincipalHref: String? = null,
     val invites: List<DavSharee> = emptyList(),
 )
 
