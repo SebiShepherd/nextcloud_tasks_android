@@ -406,6 +406,95 @@ class CalDavService
             }
 
         /**
+         * Update display name and/or color of an existing calendar collection via PROPPATCH.
+         */
+        suspend fun updateCalendarProperties(
+            baseUrl: String,
+            collectionHref: String,
+            displayName: String,
+            color: String?,
+        ): Result<Unit> =
+            runCatching {
+                val collectionUrl = buildFullUrl(baseUrl, collectionHref)
+
+                val escapedName =
+                    displayName
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("\"", "&quot;")
+                        .replace("'", "&apos;")
+
+                val colorProp =
+                    if (color != null) {
+                        "<i:calendar-color>$color</i:calendar-color>"
+                    } else {
+                        ""
+                    }
+
+                val requestBody =
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <d:propertyupdate xmlns:d="DAV:" xmlns:i="http://apple.com/ns/ical/">
+                        <d:set>
+                            <d:prop>
+                                <d:displayname>$escapedName</d:displayname>
+                                $colorProp
+                            </d:prop>
+                        </d:set>
+                    </d:propertyupdate>
+                    """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(collectionUrl)
+                        .method("PROPPATCH", requestBody)
+                        .header("Content-Type", "application/xml; charset=utf-8")
+                        .build()
+
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to update calendar properties: ${response.code} - ${response.message}",
+                        )
+                    }
+                }
+            }
+
+        /**
+         * Delete a calendar collection (task list) and all its contents via HTTP DELETE.
+         */
+        suspend fun deleteCalendarCollection(
+            baseUrl: String,
+            collectionHref: String,
+        ): Result<Unit> =
+            runCatching {
+                val collectionUrl = buildFullUrl(baseUrl, collectionHref)
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(collectionUrl)
+                        .delete()
+                        .build()
+
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        if (response.code == 404) {
+                            // Already deleted, consider success
+                            return@runCatching
+                        }
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to delete calendar collection: ${response.code} - ${response.message}",
+                        )
+                    }
+                }
+            }
+
+        /**
          * Set the calendar color via PROPPATCH on an existing collection.
          * Failures are logged but not propagated — the list was created successfully.
          */

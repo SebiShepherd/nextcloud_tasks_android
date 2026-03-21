@@ -78,4 +78,7 @@ interface TasksDao {
         accountId: String,
         excludeIds: List<String>,
     )
+
+    @Query("DELETE FROM tasks WHERE list_id = :listId")
+    suspend fun deleteTasksByListId(listId: String)
 }

@@ -114,6 +114,18 @@
     <string name="error_create_list_offline">Cannot create a list while offline.</string>
     <string name="error_create_list_failed">Failed to create list. Please try again.</string>
 
+    <!-- Edit List Dialog -->
+    <string name="edit_list_dialog_title">Edit List</string>
+    <string name="error_edit_list_offline">Cannot edit a list while offline.</string>
+    <string name="error_edit_list_failed">Failed to edit list. Please try again.</string>
+
+    <!-- Delete List Dialog -->
+    <string name="delete_list_dialog_title">Delete list?</string>
+    <string name="delete_list_dialog_message">"%s" and all its tasks will be permanently deleted.</string>
+    <string name="delete_list_confirm">Delete</string>
+    <string name="error_delete_list_offline">Cannot delete a list while offline.</string>
+    <string name="error_delete_list_failed">Failed to delete list. Please try again.</string>
+
     <!-- Sharing -->
     <string name="share_list">Share</string>
     <string name="share_list_title">Share list</string>
@@ -134,6 +146,9 @@
     <string name="error_share_offline">Cannot share while offline.</string>
     <string name="error_load_sharees_failed">Failed to load shared users. Please try again.</string>
     <string name="list_options">List options</string>
+    <string name="edit_list">Edit</string>
+    <string name="delete_list">Delete</string>
+    <string name="save">Save</string>
 
     <!-- Offline Mode -->
     <string name="offline_message">You are currently offline. Your changes will be synced when you are back online.</string>

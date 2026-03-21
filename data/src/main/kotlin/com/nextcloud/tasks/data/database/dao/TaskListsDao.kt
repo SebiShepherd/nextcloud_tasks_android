@@ -27,4 +27,7 @@ interface TaskListsDao {
 
     @Query("SELECT * FROM task_lists WHERE id = :listId LIMIT 1")
     suspend fun getTaskList(listId: String): TaskListEntity?
+
+    @Query("DELETE FROM task_lists WHERE id = :id")
+    suspend fun deleteTaskList(id: String)
 }
