@@ -534,8 +534,11 @@ class CalDavService
                 }
 
                 val responseBody = response.body?.string() ?: throw IOException("Empty response")
+                Timber.d("getInvites response for %s: %s", collectionHref, responseBody)
                 val multistatus = parser.parseMultistatus(responseBody)
-                multistatus.responses.firstOrNull()?.invites ?: emptyList()
+                val invites = multistatus.responses.firstOrNull()?.invites ?: emptyList()
+                Timber.d("Parsed %d invites for %s", invites.size, collectionHref)
+                invites
             }
 
         /**

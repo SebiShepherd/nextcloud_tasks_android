@@ -653,6 +653,7 @@ class DefaultTasksRepository
                 val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
                 val result = calDavService.getInvites(baseUrl, listId)
                 val invites = result.getOrThrow()
+                Timber.d("getSharees: found %d invites for list %s", invites.size, listId)
                 invites.mapNotNull { davSharee ->
                     val id = extractIdFromPrincipal(davSharee.href) ?: return@mapNotNull null
                     val type = if (davSharee.href.contains("/groups/")) ShareeType.GROUP else ShareeType.USER
@@ -700,6 +701,14 @@ class DefaultTasksRepository
             val principalType = if (type == ShareeType.GROUP) "groups" else "users"
             val principalHref = "principal:principals/$principalType/$shareeId"
             calDavService.shareResource(baseUrl, listId, principalHref, "no-access").getOrThrow()
+
+            // Update local isShared flag based on remaining invites
+            val remainingInvites = calDavService.getInvites(baseUrl, listId).getOrDefault(emptyList())
+            Timber.d("unshareList: %d remaining invites for %s", remainingInvites.size, listId)
+            taskListsDao.getTaskList(listId)?.let { entity ->
+                taskListsDao.upsertTaskList(entity.copy(isShared = remainingInvites.isNotEmpty()))
+            }
+            Unit
         }
 
         override suspend fun searchSharees(query: String): List<ShareeSearchResult> =
