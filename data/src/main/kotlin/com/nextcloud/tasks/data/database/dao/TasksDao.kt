@@ -81,4 +81,7 @@ interface TasksDao {
 
     @Query("DELETE FROM tasks WHERE list_id = :listId")
     suspend fun deleteTasksByListId(listId: String)
+
+    @Query("DELETE FROM task_tag_cross_ref WHERE task_id IN (SELECT id FROM tasks WHERE list_id = :listId)")
+    suspend fun deleteTagsByListId(listId: String)
 }

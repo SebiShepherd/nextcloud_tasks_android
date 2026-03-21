@@ -2429,9 +2429,7 @@ private fun EditTaskListDialog(
         }
 
     var name by remember { mutableStateOf(taskList.name) }
-    var selectedColor by remember {
-        mutableStateOf<String?>(currentColor ?: TASK_LIST_COLORS.first())
-    }
+    var selectedColor by remember { mutableStateOf<String?>(currentColor) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

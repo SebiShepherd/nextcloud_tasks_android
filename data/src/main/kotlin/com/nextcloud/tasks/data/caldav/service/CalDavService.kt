@@ -7,6 +7,7 @@ import com.nextcloud.tasks.data.caldav.models.DavSharee
 import com.nextcloud.tasks.data.caldav.models.OcsShareeResult
 import com.nextcloud.tasks.data.caldav.models.PrincipalInfo
 import com.nextcloud.tasks.data.caldav.parser.DavMultistatusParser
+import kotlinx.coroutines.CancellationException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -427,6 +428,10 @@ class CalDavService
 
                 val colorProp =
                     if (color != null) {
+                        // Validate hex color to prevent XML injection from server-provided values
+                        require(color.matches(Regex("^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"))) {
+                            "Invalid color format: $color"
+                        }
                         "<i:calendar-color>$color</i:calendar-color>"
                     } else {
                         ""
@@ -461,7 +466,7 @@ class CalDavService
                         )
                     }
                 }
-            }
+            }.also { it.exceptionOrNull()?.let { e -> if (e is CancellationException) throw e } }
 
         /**
          * Delete a calendar collection (task list) and all its contents via HTTP DELETE.
@@ -492,7 +497,7 @@ class CalDavService
                         )
                     }
                 }
-            }
+            }.also { it.exceptionOrNull()?.let { e -> if (e is CancellationException) throw e } }
 
         /**
          * Set the calendar color via PROPPATCH on an existing collection.

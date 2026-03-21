@@ -60,6 +60,7 @@ class DefaultTasksRepository
         private val tasksDao get() = database.tasksDao()
         private val taskListsDao get() = database.taskListsDao()
         private val tagsDao get() = database.tagsDao()
+        private val pendingOperationsDao get() = database.pendingOperationsDao()
 
         @OptIn(ExperimentalCoroutinesApi::class)
         override fun observeTasks(): Flow<List<Task>> =
@@ -730,6 +731,8 @@ class DefaultTasksRepository
                 }
 
                 database.withTransaction {
+                    pendingOperationsDao.deleteByListId(listId)
+                    tasksDao.deleteTagsByListId(listId)
                     tasksDao.deleteTasksByListId(listId)
                     taskListsDao.deleteTaskList(listId)
                 }
