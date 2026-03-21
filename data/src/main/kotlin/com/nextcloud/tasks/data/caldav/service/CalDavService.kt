@@ -28,6 +28,7 @@ class CalDavHttpException(
 /**
  * Service for CalDAV operations
  */
+@Suppress("TooManyFunctions")
 class CalDavService
     @Inject
     constructor(
@@ -66,12 +67,13 @@ class CalDavService
                         .header("Accept", "application/xml")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(response.code, "Failed to discover principal: ${response.code}")
-                }
-
-                val responseBody = response.body?.string() ?: throw IOException("Empty response")
+                val responseBody =
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw CalDavHttpException(response.code, "Failed to discover principal: ${response.code}")
+                        }
+                        response.body?.string() ?: throw IOException("Empty response")
+                    }
                 timber.log.Timber.v("Principal discovery response: %s", responseBody)
                 val multistatus = parser.parseMultistatus(responseBody)
                 parser.parsePrincipalUrl(multistatus) ?: throw IOException("Principal URL not found")
@@ -107,12 +109,16 @@ class CalDavService
                         .header("Accept", "application/xml")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(response.code, "Failed to discover calendar home: ${response.code}")
-                }
-
-                val responseBody = response.body?.string() ?: throw IOException("Empty response")
+                val responseBody =
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw CalDavHttpException(
+                                response.code,
+                                "Failed to discover calendar home: ${response.code}",
+                            )
+                        }
+                        response.body?.string() ?: throw IOException("Empty response")
+                    }
                 val multistatus = parser.parseMultistatus(responseBody)
                 parser.parseCalendarHomeUrl(multistatus)
                     ?: throw IOException("Calendar home URL not found")
@@ -156,12 +162,16 @@ class CalDavService
                         .header("Accept", "application/xml")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(response.code, "Failed to enumerate collections: ${response.code}")
-                }
-
-                val responseBody = response.body?.string() ?: throw IOException("Empty response")
+                val responseBody =
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw CalDavHttpException(
+                                response.code,
+                                "Failed to enumerate collections: ${response.code}",
+                            )
+                        }
+                        response.body?.string() ?: throw IOException("Empty response")
+                    }
                 val multistatus = parser.parseMultistatus(responseBody)
                 parser.parseCalendarCollections(multistatus)
             }
@@ -202,12 +212,13 @@ class CalDavService
                         .header("Accept", "application/xml")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(response.code, "Failed to fetch todos: ${response.code}")
-                }
-
-                val responseBody = response.body?.string() ?: throw IOException("Empty response")
+                val responseBody =
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw CalDavHttpException(response.code, "Failed to fetch todos: ${response.code}")
+                        }
+                        response.body?.string() ?: throw IOException("Empty response")
+                    }
                 val multistatus = parser.parseMultistatus(responseBody)
                 parser.parseCalendarObjects(multistatus)
             }
@@ -234,16 +245,16 @@ class CalDavService
                         .header("Content-Type", "text/calendar; charset=utf-8")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(
-                        response.code,
-                        "Failed to create todo: ${response.code} - ${response.message}",
-                    )
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to create todo: ${response.code} - ${response.message}",
+                        )
+                    }
+                    // Extract ETag from response
+                    response.header("ETag")?.trim('"') ?: ""
                 }
-
-                // Extract ETag from response
-                response.header("ETag")?.trim('"') ?: ""
             }
 
         /**
@@ -273,20 +284,19 @@ class CalDavService
                 }
 
                 val request = requestBuilder.build()
-                val response = okHttpClient.newCall(request).execute()
-
-                if (!response.isSuccessful) {
-                    if (response.code == 412) {
-                        throw IOException("Conflict: Task was modified on server (ETag mismatch)")
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        if (response.code == 412) {
+                            throw IOException("Conflict: Task was modified on server (ETag mismatch)")
+                        }
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to update todo: ${response.code} - ${response.message}",
+                        )
                     }
-                    throw CalDavHttpException(
-                        response.code,
-                        "Failed to update todo: ${response.code} - ${response.message}",
-                    )
+                    // Return new ETag
+                    response.header("ETag")?.trim('"') ?: etag ?: ""
                 }
-
-                // Return new ETag
-                response.header("ETag")?.trim('"') ?: etag ?: ""
             }
 
         /**
@@ -312,20 +322,20 @@ class CalDavService
                 }
 
                 val request = requestBuilder.build()
-                val response = okHttpClient.newCall(request).execute()
-
-                if (!response.isSuccessful) {
-                    if (response.code == 412) {
-                        throw IOException("Conflict: Task was modified on server (ETag mismatch)")
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        if (response.code == 412) {
+                            throw IOException("Conflict: Task was modified on server (ETag mismatch)")
+                        }
+                        if (response.code == 404) {
+                            // Already deleted, consider success
+                            return@runCatching
+                        }
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to delete todo: ${response.code} - ${response.message}",
+                        )
                     }
-                    if (response.code == 404) {
-                        // Already deleted, consider success
-                        return@runCatching
-                    }
-                    throw CalDavHttpException(
-                        response.code,
-                        "Failed to delete todo: ${response.code} - ${response.message}",
-                    )
                 }
             }
 
@@ -487,12 +497,13 @@ class CalDavService
                         .header("Content-Type", "application/xml; charset=utf-8")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(
-                        response.code,
-                        "Failed to share resource: ${response.code} - ${response.message}",
-                    )
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to share resource: ${response.code} - ${response.message}",
+                        )
+                    }
                 }
             }
 
@@ -526,15 +537,16 @@ class CalDavService
                         .header("Accept", "application/xml")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(
-                        response.code,
-                        "Failed to get invites: ${response.code}",
-                    )
-                }
-
-                val responseBody = response.body?.string() ?: throw IOException("Empty response")
+                val responseBody =
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw CalDavHttpException(
+                                response.code,
+                                "Failed to get invites: ${response.code}",
+                            )
+                        }
+                        response.body?.string() ?: throw IOException("Empty response")
+                    }
                 Timber.d("getInvites response for %s: %s", collectionHref, responseBody)
                 val multistatus = parser.parseMultistatus(responseBody)
                 val invites = multistatus.responses.firstOrNull()?.invites ?: emptyList()
@@ -565,21 +577,23 @@ class CalDavService
                         .header("Accept", "application/json")
                         .build()
 
-                val response = okHttpClient.newCall(request).execute()
-                if (!response.isSuccessful) {
-                    throw CalDavHttpException(
-                        response.code,
-                        "Failed to search sharees: ${response.code}",
-                    )
-                }
-
-                val body = response.body?.string() ?: throw IOException("Empty response")
+                val body =
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            throw CalDavHttpException(
+                                response.code,
+                                "Failed to search sharees: ${response.code}",
+                            )
+                        }
+                        response.body?.string() ?: throw IOException("Empty response")
+                    }
                 parseOcsShareeResponse(body)
             }
 
         /**
          * Parse the OCS sharee search JSON response.
-         * Response structure: { ocs: { data: { exact: { users: [...], groups: [...] }, users: [...], groups: [...] } } }
+         * Response structure: { ocs: { data: { exact: { users: [...], groups: [...] },
+         * users: [...], groups: [...] } } }
          */
         private fun parseOcsShareeResponse(json: String): List<OcsShareeResult> {
             val results = mutableListOf<OcsShareeResult>()

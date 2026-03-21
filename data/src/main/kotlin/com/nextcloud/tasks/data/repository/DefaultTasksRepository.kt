@@ -374,7 +374,7 @@ class DefaultTasksRepository
             }
         }
 
-        @Suppress("LongMethod")
+        @Suppress("LongMethod", "CyclomaticComplexMethod")
         override suspend fun refresh() =
             withContext(ioDispatcher) {
                 val baseUrl =

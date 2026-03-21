@@ -321,6 +321,7 @@ fun NextcloudTasksApp(
     }
 }
 
+@Suppress("CyclomaticComplexMethod")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthenticatedHome(
@@ -333,7 +334,6 @@ fun AuthenticatedHome(
     isRefreshing: Boolean,
     searchQuery: String,
     isOnline: Boolean,
-    @Suppress("UnusedParameter")
     hasPendingChanges: Boolean,
     animatingEntryTaskIds: Set<String>,
     showCreateDialog: Boolean,
@@ -491,6 +491,7 @@ fun AuthenticatedHome(
                 onOpenSettings()
                 if (!isExpandedScreen) scope.launch { drawerState.close() }
             },
+            hasPendingChanges = hasPendingChanges,
             onShowCreateListDialog = {
                 onShowCreateListDialog()
                 if (!isExpandedScreen) scope.launch { drawerState.close() }
@@ -969,8 +970,11 @@ private fun TasksContent(
                     }
 
                     items(listTasks, key = { it.id }) { task ->
+                        val taskIsReadOnly =
+                            taskListMap[task.listId]?.shareAccess == ShareAccess.READ
                         SimpleAnimatedTaskCard(
                             task = task,
+                            isReadOnly = taskIsReadOnly,
                             animateEntry = task.id in animatingEntryTaskIds,
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
@@ -1001,8 +1005,11 @@ private fun TasksContent(
                 // Erledigte Tasks (wenn aufgeklappt)
                 if (showCompletedTasks) {
                     items(completedTasks, key = { it.id }) { task ->
+                        val taskIsReadOnly =
+                            taskListMap[task.listId]?.shareAccess == ShareAccess.READ
                         SimpleAnimatedTaskCard(
                             task = task,
+                            isReadOnly = taskIsReadOnly,
                             animateEntry = task.id in animatingEntryTaskIds,
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
@@ -1022,15 +1029,28 @@ private fun TaskListsDrawer(
     onSelectList: (String?) -> Unit,
     onCloseDrawer: () -> Unit,
     onOpenSettings: () -> Unit,
+    hasPendingChanges: Boolean = false,
     onShowCreateListDialog: () -> Unit = {},
     onOpenShareSheet: (String) -> Unit = {},
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            text = stringResource(R.string.task_lists_title),
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp),
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.task_lists_title),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f),
+            )
+            if (hasPendingChanges) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
 
         NavigationDrawerItem(
             label = { Text(stringResource(R.string.all_tasks)) },
@@ -1135,6 +1155,7 @@ private fun TaskListDrawerItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Spacer(modifier = Modifier.width(8.dp))
                 // Share/access icon
                 when {
                     // Owner who shared the list → People icon
@@ -1399,7 +1420,11 @@ private fun ShareeSearchResultItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = result.displayName, style = MaterialTheme.typography.bodyLarge)
             if (result.type == ShareeType.GROUP) {
-                Text(text = "Group", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = "Group",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         if (isLoading) {
@@ -1557,7 +1582,12 @@ private fun ShareeAvatar(
             model = "$serverUrl/index.php/avatar/$userId/64",
             contentDescription = null,
             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-            modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+            modifier =
+                Modifier
+                    .size(
+                        36.dp,
+                    ).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
         )
     }
 }
@@ -1823,6 +1853,7 @@ private fun AccountItem(
 @Composable
 private fun SimpleAnimatedTaskCard(
     task: Task,
+    isReadOnly: Boolean = false,
     animateEntry: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
@@ -1867,6 +1898,7 @@ private fun SimpleAnimatedTaskCard(
         Column {
             TaskCard(
                 task = task.copy(completed = localCompleted),
+                isReadOnly = isReadOnly,
                 onToggleComplete = {
                     if (!isAnimating) {
                         isAnimating = true
@@ -1907,6 +1939,7 @@ private fun SimpleAnimatedTaskCard(
 @Composable
 private fun TaskCard(
     task: Task,
+    isReadOnly: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -1934,7 +1967,12 @@ private fun TaskCard(
             // Checkbox
             Checkbox(
                 checked = task.completed,
-                onCheckedChange = { onToggleComplete() },
+                onCheckedChange =
+                    if (isReadOnly) {
+                        null
+                    } else {
+                        { onToggleComplete() }
+                    },
             )
 
             // Task content
@@ -1997,13 +2035,17 @@ private fun TaskCard(
                 }
             }
 
-            // Delete button
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.delete_description),
-                    tint = MaterialTheme.colorScheme.error,
-                )
+            // Delete button (hidden for read-only lists, but space is preserved for uniform height)
+            if (!isReadOnly) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.delete_description),
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.size(48.dp))
             }
         }
     }
@@ -2018,11 +2060,20 @@ private fun CreateTaskDialog(
     onDismiss: () -> Unit,
     onCreate: (String, String?, String) -> Unit,
 ) {
+    val writableLists = taskLists.filter { it.shareAccess != ShareAccess.READ }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var selectedListId by remember { mutableStateOf(initialListId) }
+    var selectedListId by remember {
+        mutableStateOf(
+            if (writableLists.any { it.id == initialListId }) {
+                initialListId
+            } else {
+                writableLists.firstOrNull()?.id ?: initialListId
+            },
+        )
+    }
     var listDropdownExpanded by remember { mutableStateOf(false) }
-    val selectedList = taskLists.firstOrNull { it.id == selectedListId } ?: taskLists.first()
+    val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.first()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2050,7 +2101,7 @@ private fun CreateTaskDialog(
                             expanded = listDropdownExpanded,
                             onDismissRequest = { listDropdownExpanded = false },
                         ) {
-                            taskLists.forEach { list ->
+                            writableLists.forEach { list ->
                                 DropdownMenuItem(
                                     text = { Text(list.name) },
                                     onClick = {
@@ -2309,6 +2360,7 @@ sealed class CreateListError {
 }
 
 @HiltViewModel
+@Suppress("LongParameterList")
 class TaskListViewModel
     @Inject
     constructor(
