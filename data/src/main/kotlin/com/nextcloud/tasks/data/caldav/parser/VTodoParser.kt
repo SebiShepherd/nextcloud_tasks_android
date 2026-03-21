@@ -45,6 +45,11 @@ class VTodoParser
                 val relatedTo = vtodo.getProperty<net.fortuna.ical4j.model.property.RelatedTo>("RELATED-TO")
                 val parentUid = relatedTo?.value
 
+                val startDate = vtodo.getProperty<net.fortuna.ical4j.model.property.DtStart>("DTSTART")?.date?.toInstant()
+                val location = vtodo.getProperty<net.fortuna.ical4j.model.property.Location>("LOCATION")?.value
+                val url = vtodo.getProperty<net.fortuna.ical4j.model.property.Url>("URL")?.uri?.toString()
+                val percentComplete = vtodo.percentComplete?.percentage
+
                 TaskEntity(
                     id = generateTaskId(uid),
                     accountId = accountId,
@@ -61,6 +66,10 @@ class VTodoParser
                     etag = etag,
                     href = href,
                     parentUid = parentUid,
+                    startDate = startDate,
+                    location = location,
+                    url = url,
+                    percentComplete = percentComplete,
                 )
             } catch (ignored: Exception) {
                 // Log error and return null for malformed data
@@ -231,6 +240,11 @@ class VTodoParser
                 val relatedTo = vtodo.getProperty<net.fortuna.ical4j.model.property.RelatedTo>("RELATED-TO")
                 val parentUid = relatedTo?.value
 
+                val startDate = vtodo.getProperty<net.fortuna.ical4j.model.property.DtStart>("DTSTART")?.date?.toInstant()
+                val location = vtodo.getProperty<net.fortuna.ical4j.model.property.Location>("LOCATION")?.value
+                val url = vtodo.getProperty<net.fortuna.ical4j.model.property.Url>("URL")?.uri?.toString()
+                val percentComplete = vtodo.percentComplete?.percentage
+
                 TaskEntity(
                     id = generateTaskId(uid),
                     accountId = accountId,
@@ -247,6 +261,10 @@ class VTodoParser
                     etag = etag,
                     href = href,
                     parentUid = parentUid,
+                    startDate = startDate,
+                    location = location,
+                    url = url,
+                    percentComplete = percentComplete,
                 )
             } catch (ignored: Exception) {
                 timber.log.Timber.w(ignored, "Failed to parse VTODO component")

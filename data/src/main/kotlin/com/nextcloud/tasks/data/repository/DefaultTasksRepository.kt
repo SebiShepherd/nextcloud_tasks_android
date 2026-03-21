@@ -191,6 +191,10 @@ class DefaultTasksRepository
                         etag = null,
                         href = null,
                         parentUid = null,
+                        startDate = taskEntity.startDate,
+                        location = taskEntity.location,
+                        url = taskEntity.url,
+                        percentComplete = taskEntity.percentComplete,
                     )
 
                 // Generate iCalendar VTODO
@@ -252,6 +256,10 @@ class DefaultTasksRepository
                         etag = task.etag,
                         href = task.href,
                         parentUid = task.parentUid,
+                        startDate = task.startDate,
+                        location = task.location,
+                        url = task.url,
+                        percentComplete = task.percentComplete,
                     )
 
                 database.withTransaction {

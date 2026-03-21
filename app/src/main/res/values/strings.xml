@@ -154,4 +154,28 @@
     <string name="offline_message">You are currently offline. Your changes will be synced when you are back online.</string>
     <string name="syncing_pending_changes">Syncing pending changes\u2026</string>
     <string name="sync_complete">All changes synced</string>
+
+    <!-- Task Detail View -->
+    <string name="task_detail_title_hint">Task title</string>
+    <string name="task_detail_tab_details">Details</string>
+    <string name="task_detail_tab_notes">Notes</string>
+    <string name="task_detail_start_date">Set start date</string>
+    <string name="task_detail_due_date">Set due date</string>
+    <string name="task_detail_action_section">Action required</string>
+    <string name="task_detail_no_priority">No priority assigned</string>
+    <string name="task_detail_priority_none">None</string>
+    <string name="task_detail_priority_low">Low</string>
+    <string name="task_detail_priority_medium">Medium</string>
+    <string name="task_detail_priority_high">High</string>
+    <string name="task_detail_percent_complete">%1$d%% complete</string>
+    <string name="task_detail_location">Set a location</string>
+    <string name="task_detail_url">Set a URL</string>
+    <string name="task_detail_tags">Select tags</string>
+    <string name="task_detail_no_tags">No tags</string>
+    <string name="task_detail_delete">Delete task</string>
+    <string name="task_detail_delete_confirm_title">Delete task?</string>
+    <string name="task_detail_delete_confirm_body">This action cannot be undone.</string>
+    <string name="task_detail_notes_hint">Add notes\u2026</string>
+    <string name="task_detail_clear_date">Clear date</string>
+    <string name="task_detail_back">Back</string>
 </resources>

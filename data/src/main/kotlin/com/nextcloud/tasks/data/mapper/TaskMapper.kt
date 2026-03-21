@@ -56,6 +56,10 @@ class TaskMapper
                 etag = taskWithRelations.task.etag,
                 href = taskWithRelations.task.href,
                 parentUid = taskWithRelations.task.parentUid,
+                startDate = taskWithRelations.task.startDate,
+                location = taskWithRelations.task.location,
+                url = taskWithRelations.task.url,
+                percentComplete = taskWithRelations.task.percentComplete,
             )
         }
 

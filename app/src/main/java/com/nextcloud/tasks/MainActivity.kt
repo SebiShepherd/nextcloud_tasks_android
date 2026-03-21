@@ -130,6 +130,10 @@ import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
 import com.nextcloud.tasks.domain.usecase.ShareListUseCase
 import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.nextcloud.tasks.detail.TaskDetailScreen
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -413,6 +417,7 @@ fun AuthenticatedHome(
     onClearShareError: () -> Unit = {},
     onClearShareSuccess: () -> Unit = {},
 ) {
+    val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -442,78 +447,88 @@ fun AuthenticatedHome(
     val hasWritableLists = taskLists.any { it.shareAccess != ShareAccess.READ }
 
     val mainContent: @Composable () -> Unit = {
-        Scaffold(
-            snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState) { data ->
-                    Snackbar(
-                        snackbarData = data,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            floatingActionButton = {
-                if (hasWritableLists && !isReadOnly) {
-                    FloatingActionButton(onClick = onShowCreateDialog) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(R.string.create_task_description),
+        NavHost(navController = navController, startDestination = "tasks") {
+            composable("tasks") {
+                Scaffold(
+                    snackbarHost = {
+                        SnackbarHost(hostState = snackbarHostState) { data ->
+                            Snackbar(
+                                snackbarData = data,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    floatingActionButton = {
+                        if (hasWritableLists && !isReadOnly) {
+                            FloatingActionButton(onClick = onShowCreateDialog) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = stringResource(R.string.create_task_description),
+                                )
+                            }
+                        }
+                    },
+                ) { padding ->
+                    Column(modifier = Modifier.padding(padding)) {
+                        UnifiedSearchBar(
+                            state = state,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = onSetSearchQuery,
+                            onOpenDrawer = if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
+                            onSwitchAccount = onSwitchAccount,
+                            onLogout = onLogout,
+                            taskSort = taskSort,
+                            onSetSort = onSetSort,
+                            onAddAccount = onAddAccount,
                         )
+
+                        PullToRefreshBox(
+                            isRefreshing = isRefreshing,
+                            onRefresh = onRefresh,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            TasksContent(
+                                padding = PaddingValues(0.dp),
+                                state = state,
+                                tasks = tasks,
+                                taskLists = taskLists,
+                                taskFilter = taskFilter,
+                                taskSort = taskSort,
+                                searchQuery = searchQuery,
+                                isOnline = isOnline,
+                                animatingEntryTaskIds = animatingEntryTaskIds,
+                                isExpandedScreen = isExpandedScreen,
+                                onSetFilter = onSetFilter,
+                                onSetSort = onSetSort,
+                                onToggleTaskComplete = { task ->
+                                    if (!isReadOnly) {
+                                        onToggleTaskComplete(task)
+                                        if (!isOnline) {
+                                            showOfflineSnackbar = true
+                                        }
+                                    }
+                                },
+                                onDeleteTask = { taskId ->
+                                    if (!isReadOnly) {
+                                        onDeleteTask(taskId)
+                                        if (!isOnline) {
+                                            showOfflineSnackbar = true
+                                        }
+                                    }
+                                },
+                                onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
+                                onShowCreateListDialog = onShowCreateListDialog,
+                                onOpenTask = { taskId -> navController.navigate("task/$taskId") },
+                            )
+                        }
                     }
                 }
-            },
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding)) {
-                UnifiedSearchBar(
-                    state = state,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = onSetSearchQuery,
-                    onOpenDrawer = if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
-                    onSwitchAccount = onSwitchAccount,
-                    onLogout = onLogout,
-                    taskSort = taskSort,
-                    onSetSort = onSetSort,
-                    onAddAccount = onAddAccount,
+            }
+            composable("task/{taskId}") {
+                TaskDetailScreen(
+                    onNavigateBack = { navController.popBackStack() },
                 )
-
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = onRefresh,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    TasksContent(
-                        padding = PaddingValues(0.dp),
-                        state = state,
-                        tasks = tasks,
-                        taskLists = taskLists,
-                        taskFilter = taskFilter,
-                        taskSort = taskSort,
-                        searchQuery = searchQuery,
-                        isOnline = isOnline,
-                        animatingEntryTaskIds = animatingEntryTaskIds,
-                        isExpandedScreen = isExpandedScreen,
-                        onSetFilter = onSetFilter,
-                        onSetSort = onSetSort,
-                        onToggleTaskComplete = { task ->
-                            if (!isReadOnly) {
-                                onToggleTaskComplete(task)
-                                if (!isOnline) {
-                                    showOfflineSnackbar = true
-                                }
-                            }
-                        },
-                        onDeleteTask = { taskId ->
-                            if (!isReadOnly) {
-                                onDeleteTask(taskId)
-                                if (!isOnline) {
-                                    showOfflineSnackbar = true
-                                }
-                            }
-                        },
-                        onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
-                        onShowCreateListDialog = onShowCreateListDialog,
-                    )
-                }
             }
         }
     }
@@ -984,6 +999,7 @@ private fun TasksContent(
     onDeleteTask: (String) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onShowCreateListDialog: () -> Unit = {},
+    onOpenTask: (String) -> Unit = {},
 ) {
     var showCompletedTasks by remember { mutableStateOf(false) }
 
@@ -1086,6 +1102,7 @@ private fun TasksContent(
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
                             onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
+                            onOpenTask = { onOpenTask(task.id) },
                         )
                     }
                 }
@@ -1121,6 +1138,7 @@ private fun TasksContent(
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
                             onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
+                            onOpenTask = { onOpenTask(task.id) },
                         )
                     }
                 }
@@ -2012,6 +2030,7 @@ private fun SimpleAnimatedTaskCard(
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
     onEntryAnimationComplete: () -> Unit = {},
+    onOpenTask: () -> Unit = {},
 ) {
     // Only start invisible if this task should animate entry (recently toggled)
     var isVisible by remember { mutableStateOf(!animateEntry) }
@@ -2083,6 +2102,7 @@ private fun SimpleAnimatedTaskCard(
                         }
                     }
                 },
+                onOpenTask = onOpenTask,
             )
             // Bottom spacing - animates with shrinkVertically
             Spacer(modifier = Modifier.height(12.dp))
@@ -2096,6 +2116,7 @@ private fun TaskCard(
     isReadOnly: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
+    onOpenTask: () -> Unit = {},
 ) {
     // Dynamische vertikale Ausrichtung basierend auf Inhalt
     val hasDescription = task.description != null
@@ -2103,6 +2124,7 @@ private fun TaskCard(
     val hasAdditionalContent = hasDescription || hasDueOrTags
 
     Card(
+        onClick = onOpenTask,
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,

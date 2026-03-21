@@ -98,6 +98,38 @@ class VTodoGenerator
                 )
             }
 
+            // DTSTART (start date)
+            task.startDate?.let { startDate ->
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .DtStart(DateTime(java.util.Date.from(startDate))),
+                )
+            }
+
+            // LOCATION
+            task.location?.let { location ->
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .Location(location),
+                )
+            }
+
+            // URL
+            task.url?.let { url ->
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .Url(java.net.URI.create(url)),
+                )
+            }
+
+            // PERCENT-COMPLETE
+            task.percentComplete?.let { pct ->
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .PercentComplete(pct),
+                )
+            }
+
             calendar.components.add(vtodo)
             return calendar.toString()
         }
