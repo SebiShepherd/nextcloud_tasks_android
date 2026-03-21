@@ -39,7 +39,7 @@ import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
 
-@Suppress("TooManyFunctions", "LongParameterList")
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class DefaultTasksRepository
     @Inject
     constructor(
@@ -60,6 +60,7 @@ class DefaultTasksRepository
         private val tasksDao get() = database.tasksDao()
         private val taskListsDao get() = database.taskListsDao()
         private val tagsDao get() = database.tagsDao()
+        private val pendingOperationsDao get() = database.pendingOperationsDao()
 
         @OptIn(ExperimentalCoroutinesApi::class)
         override fun observeTasks(): Flow<List<Task>> =
@@ -697,6 +698,45 @@ class DefaultTasksRepository
                 Timber.d("Task list '$name' created at $href")
 
                 taskListMapper.toDomain(entity)
+            }
+
+        override suspend fun updateTaskList(
+            listId: String,
+            name: String,
+            color: String?,
+        ): TaskList =
+            withContext(ioDispatcher) {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val entity = taskListsDao.getTaskList(listId) ?: throw IOException("Task list not found: $listId")
+                val href = entity.href ?: throw IOException("Task list has no href: $listId")
+
+                calDavService.updateCalendarProperties(baseUrl, href, name, color).getOrElse {
+                    throw IOException("Failed to update calendar properties", it)
+                }
+
+                val updated = entity.copy(name = name, color = color, updatedAt = Instant.now())
+                taskListsDao.upsertTaskList(updated)
+                Timber.d("Task list '$listId' updated: name='$name'")
+                taskListMapper.toDomain(updated)
+            }
+
+        override suspend fun deleteTaskList(listId: String) =
+            withContext(ioDispatcher) {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: throw IOException("No active server URL")
+                val entity = taskListsDao.getTaskList(listId) ?: throw IOException("Task list not found: $listId")
+                val href = entity.href ?: throw IOException("Task list has no href: $listId")
+
+                calDavService.deleteCalendarCollection(baseUrl, href).getOrElse {
+                    throw IOException("Failed to delete calendar collection", it)
+                }
+
+                database.withTransaction {
+                    pendingOperationsDao.deleteByListId(listId)
+                    tasksDao.deleteTagsByListId(listId)
+                    tasksDao.deleteTasksByListId(listId)
+                    taskListsDao.deleteTaskList(listId)
+                }
+                Timber.d("Task list '$listId' deleted")
             }
 
         override suspend fun getSharees(listId: String): List<Sharee> =

@@ -7,6 +7,7 @@ import com.nextcloud.tasks.data.caldav.models.DavSharee
 import com.nextcloud.tasks.data.caldav.models.OcsShareeResult
 import com.nextcloud.tasks.data.caldav.models.PrincipalInfo
 import com.nextcloud.tasks.data.caldav.parser.DavMultistatusParser
+import kotlinx.coroutines.CancellationException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -404,6 +405,99 @@ class CalDavService
 
                 collectionHref
             }
+
+        /**
+         * Update display name and/or color of an existing calendar collection via PROPPATCH.
+         */
+        suspend fun updateCalendarProperties(
+            baseUrl: String,
+            collectionHref: String,
+            displayName: String,
+            color: String?,
+        ): Result<Unit> =
+            runCatching {
+                val collectionUrl = buildFullUrl(baseUrl, collectionHref)
+
+                val escapedName =
+                    displayName
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;")
+                        .replace("\"", "&quot;")
+                        .replace("'", "&apos;")
+
+                val colorProp =
+                    if (color != null) {
+                        // Validate hex color to prevent XML injection from server-provided values
+                        require(color.matches(Regex("^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"))) {
+                            "Invalid color format: $color"
+                        }
+                        "<i:calendar-color>$color</i:calendar-color>"
+                    } else {
+                        ""
+                    }
+
+                val requestBody =
+                    """
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <d:propertyupdate xmlns:d="DAV:" xmlns:i="http://apple.com/ns/ical/">
+                        <d:set>
+                            <d:prop>
+                                <d:displayname>$escapedName</d:displayname>
+                                $colorProp
+                            </d:prop>
+                        </d:set>
+                    </d:propertyupdate>
+                    """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(collectionUrl)
+                        .method("PROPPATCH", requestBody)
+                        .header("Content-Type", "application/xml; charset=utf-8")
+                        .build()
+
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to update calendar properties: ${response.code} - ${response.message}",
+                        )
+                    }
+                }
+            }.also { it.exceptionOrNull()?.let { e -> if (e is CancellationException) throw e } }
+
+        /**
+         * Delete a calendar collection (task list) and all its contents via HTTP DELETE.
+         */
+        suspend fun deleteCalendarCollection(
+            baseUrl: String,
+            collectionHref: String,
+        ): Result<Unit> =
+            runCatching {
+                val collectionUrl = buildFullUrl(baseUrl, collectionHref)
+
+                val request =
+                    Request
+                        .Builder()
+                        .url(collectionUrl)
+                        .delete()
+                        .build()
+
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        if (response.code == 404) {
+                            // Already deleted, consider success
+                            return@runCatching
+                        }
+                        throw CalDavHttpException(
+                            response.code,
+                            "Failed to delete calendar collection: ${response.code} - ${response.message}",
+                        )
+                    }
+                }
+            }.also { it.exceptionOrNull()?.let { e -> if (e is CancellationException) throw e } }
 
         /**
          * Set the calendar color via PROPPATCH on an existing collection.

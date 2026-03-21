@@ -52,4 +52,7 @@ interface PendingOperationsDao {
 
     @Query("SELECT task_id FROM pending_operations WHERE account_id = :accountId AND operation_type = 'CREATE'")
     suspend fun getTaskIdsWithPendingCreate(accountId: String): List<String>
+
+    @Query("DELETE FROM pending_operations WHERE task_id IN (SELECT id FROM tasks WHERE list_id = :listId)")
+    suspend fun deleteByListId(listId: String)
 }

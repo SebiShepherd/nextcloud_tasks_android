@@ -202,6 +202,8 @@ fun NextcloudTasksApp(
     val refreshError by taskListViewModel.refreshError.collectAsState()
     val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
     val createListError by taskListViewModel.createListError.collectAsState()
+    val editListError by taskListViewModel.editListError.collectAsState()
+    val deleteListError by taskListViewModel.deleteListError.collectAsState()
 
     // Sharing state
     val sharingListId by taskListViewModel.sharingListId.collectAsState()
@@ -215,6 +217,8 @@ fun NextcloudTasksApp(
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showCreateListDialog by remember { mutableStateOf(false) }
+    var listToEdit by remember { mutableStateOf<com.nextcloud.tasks.domain.model.TaskList?>(null) }
+    var listToDelete by remember { mutableStateOf<com.nextcloud.tasks.domain.model.TaskList?>(null) }
     var forceShowLogin by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
 
@@ -301,6 +305,24 @@ fun NextcloudTasksApp(
             },
             createListError = createListError,
             onClearCreateListError = taskListViewModel::clearCreateListError,
+            listToEdit = listToEdit,
+            onShowEditListDialog = { list -> listToEdit = list },
+            onDismissEditListDialog = { listToEdit = null },
+            onEditList = { listId, name, color ->
+                taskListViewModel.editTaskList(listId, name, color)
+                listToEdit = null
+            },
+            editListError = editListError,
+            onClearEditListError = taskListViewModel::clearEditListError,
+            listToDelete = listToDelete,
+            onShowDeleteListDialog = { list -> listToDelete = list },
+            onDismissDeleteListDialog = { listToDelete = null },
+            onDeleteList = { listId ->
+                taskListViewModel.deleteTaskList(listId)
+                listToDelete = null
+            },
+            deleteListError = deleteListError,
+            onClearDeleteListError = taskListViewModel::clearDeleteListError,
             sharingListId = sharingListId,
             sharees = sharees,
             shareeSearchResults = shareeSearchResults,
@@ -361,6 +383,18 @@ fun AuthenticatedHome(
     onCreateList: (String, String?) -> Unit = { _, _ -> },
     createListError: CreateListError? = null,
     onClearCreateListError: () -> Unit = {},
+    listToEdit: com.nextcloud.tasks.domain.model.TaskList? = null,
+    onShowEditListDialog: (com.nextcloud.tasks.domain.model.TaskList) -> Unit = {},
+    onDismissEditListDialog: () -> Unit = {},
+    onEditList: (String, String, String?) -> Unit = { _, _, _ -> },
+    editListError: EditListError? = null,
+    onClearEditListError: () -> Unit = {},
+    listToDelete: com.nextcloud.tasks.domain.model.TaskList? = null,
+    onShowDeleteListDialog: (com.nextcloud.tasks.domain.model.TaskList) -> Unit = {},
+    onDismissDeleteListDialog: () -> Unit = {},
+    onDeleteList: (String) -> Unit = {},
+    deleteListError: DeleteListError? = null,
+    onClearDeleteListError: () -> Unit = {},
     // Sharing
     sharingListId: String? = null,
     sharees: List<Sharee> = emptyList(),
@@ -397,6 +431,8 @@ fun AuthenticatedHome(
 
     RefreshErrorEffect(refreshError, snackbarHostState, onClearRefreshError)
     CreateListErrorEffect(createListError, snackbarHostState, onClearCreateListError)
+    EditListErrorEffect(editListError, snackbarHostState, onClearEditListError)
+    DeleteListErrorEffect(deleteListError, snackbarHostState, onClearDeleteListError)
 
     // Share errors and success are shown in the bottom sheet only (no duplicate snackbar)
 
@@ -501,6 +537,14 @@ fun AuthenticatedHome(
                 onOpenShareSheet(listId)
                 if (!isExpandedScreen) scope.launch { drawerState.close() }
             },
+            onEditList = { list ->
+                onShowEditListDialog(list)
+                if (!isExpandedScreen) scope.launch { drawerState.close() }
+            },
+            onDeleteList = { list ->
+                onShowDeleteListDialog(list)
+                if (!isExpandedScreen) scope.launch { drawerState.close() }
+            },
         )
     }
 
@@ -542,6 +586,24 @@ fun AuthenticatedHome(
         CreateTaskListDialog(
             onDismiss = onDismissCreateListDialog,
             onCreate = onCreateList,
+        )
+    }
+
+    // Edit list dialog
+    if (listToEdit != null) {
+        EditTaskListDialog(
+            taskList = listToEdit!!,
+            onDismiss = onDismissEditListDialog,
+            onEdit = { name, color -> onEditList(listToEdit!!.id, name, color) },
+        )
+    }
+
+    // Delete list confirmation dialog
+    if (listToDelete != null) {
+        DeleteListConfirmationDialog(
+            listName = listToDelete!!.name,
+            onDismiss = onDismissDeleteListDialog,
+            onConfirm = { onDeleteList(listToDelete!!.id) },
         )
     }
 
@@ -618,6 +680,50 @@ private fun CreateListErrorEffect(
                 when (error) {
                     is CreateListError.Offline -> offlineMsg
                     is CreateListError.Failed -> failedMsg
+                }
+            snackbarHostState.showSnackbar(message)
+            onClearError()
+        }
+    }
+}
+
+@Composable
+private fun EditListErrorEffect(
+    error: EditListError?,
+    snackbarHostState: SnackbarHostState,
+    onClearError: () -> Unit,
+) {
+    val offlineMsg = stringResource(R.string.error_edit_list_offline)
+    val failedMsg = stringResource(R.string.error_edit_list_failed)
+
+    LaunchedEffect(error) {
+        if (error != null) {
+            val message =
+                when (error) {
+                    is EditListError.Offline -> offlineMsg
+                    is EditListError.Failed -> failedMsg
+                }
+            snackbarHostState.showSnackbar(message)
+            onClearError()
+        }
+    }
+}
+
+@Composable
+private fun DeleteListErrorEffect(
+    error: DeleteListError?,
+    snackbarHostState: SnackbarHostState,
+    onClearError: () -> Unit,
+) {
+    val offlineMsg = stringResource(R.string.error_delete_list_offline)
+    val failedMsg = stringResource(R.string.error_delete_list_failed)
+
+    LaunchedEffect(error) {
+        if (error != null) {
+            val message =
+                when (error) {
+                    is DeleteListError.Offline -> offlineMsg
+                    is DeleteListError.Failed -> failedMsg
                 }
             snackbarHostState.showSnackbar(message)
             onClearError()
@@ -1034,6 +1140,8 @@ private fun TaskListsDrawer(
     hasPendingChanges: Boolean = false,
     onShowCreateListDialog: () -> Unit = {},
     onOpenShareSheet: (String) -> Unit = {},
+    onEditList: (com.nextcloud.tasks.domain.model.TaskList) -> Unit = {},
+    onDeleteList: (com.nextcloud.tasks.domain.model.TaskList) -> Unit = {},
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Row(
@@ -1090,6 +1198,8 @@ private fun TaskListsDrawer(
                         onCloseDrawer()
                     },
                     onOpenShareSheet = { onOpenShareSheet(taskList.id) },
+                    onEditList = { onEditList(taskList) },
+                    onDeleteList = { onDeleteList(taskList) },
                 )
             }
         }
@@ -1131,6 +1241,8 @@ private fun TaskListDrawerItem(
     isSelected: Boolean,
     onSelect: () -> Unit,
     onOpenShareSheet: () -> Unit,
+    onEditList: () -> Unit = {},
+    onDeleteList: () -> Unit = {},
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -1196,8 +1308,10 @@ private fun TaskListDrawerItem(
                         Spacer(modifier = Modifier.width(4.dp))
                     }
                 }
-                // 3-dot menu (only for owner lists)
-                if (taskList.shareAccess == ShareAccess.OWNER) {
+                // 3-dot menu (for owner lists and sharees with edit access)
+                if (taskList.shareAccess == ShareAccess.OWNER ||
+                    taskList.shareAccess == ShareAccess.READ_WRITE
+                ) {
                     Box {
                         IconButton(
                             onClick = { showMenu = true },
@@ -1213,16 +1327,49 @@ private fun TaskListDrawerItem(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
                         ) {
+                            if (taskList.shareAccess == ShareAccess.OWNER) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.share_list)) },
+                                    onClick = {
+                                        showMenu = false
+                                        onOpenShareSheet()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Share, contentDescription = null)
+                                    },
+                                )
+                            }
                             DropdownMenuItem(
-                                text = { Text(stringResource(R.string.share_list)) },
+                                text = { Text(stringResource(R.string.edit_list)) },
                                 onClick = {
                                     showMenu = false
-                                    onOpenShareSheet()
+                                    onEditList()
                                 },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Share, contentDescription = null)
+                                    Icon(Icons.Default.Edit, contentDescription = null)
                                 },
                             )
+                            if (taskList.shareAccess == ShareAccess.OWNER) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.delete_list),
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onDeleteList()
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -2267,6 +2414,128 @@ private fun CreateTaskListDialog(
 }
 
 @Composable
+private fun EditTaskListDialog(
+    taskList: com.nextcloud.tasks.domain.model.TaskList,
+    onDismiss: () -> Unit,
+    onEdit: (String, String?) -> Unit,
+) {
+    // Build the color palette, prepending a custom color swatch if the current color is not in the list
+    val currentColor = taskList.color
+    val paletteColors =
+        if (currentColor != null && !TASK_LIST_COLORS.contains(currentColor)) {
+            listOf(currentColor) + TASK_LIST_COLORS
+        } else {
+            TASK_LIST_COLORS
+        }
+
+    var name by remember { mutableStateOf(taskList.name) }
+    var selectedColor by remember { mutableStateOf<String?>(currentColor) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.edit_list_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(R.string.list_name_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.list_color_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    paletteColors.forEach { colorHex ->
+                        val color =
+                            androidx.compose.ui.graphics.Color(
+                                android.graphics.Color.parseColor(colorHex),
+                            )
+                        val isSelected = selectedColor == colorHex
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier =
+                                Modifier
+                                    .size(28.dp)
+                                    .background(color, CircleShape)
+                                    .selectable(
+                                        selected = isSelected,
+                                        onClick = { selectedColor = colorHex },
+                                        role = Role.RadioButton,
+                                    ).semantics {
+                                        contentDescription = colorHex
+                                    },
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = androidx.compose.ui.graphics.Color.White,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onEdit(name.trim(), selectedColor)
+                    }
+                },
+                enabled = name.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun DeleteListConfirmationDialog(
+    listName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.delete_list_dialog_title)) },
+        text = {
+            Text(stringResource(R.string.delete_list_dialog_message, listName))
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors =
+                    androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+            ) {
+                Text(stringResource(R.string.delete_list_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
 fun EmptyState(
     modifier: Modifier = Modifier,
     padding: PaddingValues = PaddingValues(),
@@ -2366,6 +2635,18 @@ sealed class CreateListError {
     data object Failed : CreateListError()
 }
 
+sealed class EditListError {
+    data object Offline : EditListError()
+
+    data object Failed : EditListError()
+}
+
+sealed class DeleteListError {
+    data object Offline : DeleteListError()
+
+    data object Failed : DeleteListError()
+}
+
 @HiltViewModel
 @Suppress("LongParameterList")
 class TaskListViewModel
@@ -2459,6 +2740,63 @@ class TaskListViewModel
                             CreateListError.Offline
                         } else {
                             CreateListError.Failed
+                        }
+                }
+            }
+        }
+
+        private val _editListError = MutableStateFlow<EditListError?>(null)
+        val editListError = _editListError.asStateFlow()
+
+        fun clearEditListError() {
+            _editListError.value = null
+        }
+
+        fun editTaskList(
+            listId: String,
+            name: String,
+            color: String?,
+        ) {
+            viewModelScope.launch {
+                try {
+                    tasksRepository.updateTaskList(listId, name, color)
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    timber.log.Timber.e(e, "Failed to edit task list")
+                    _editListError.value =
+                        if (!tasksRepository.isCurrentlyOnline()) {
+                            EditListError.Offline
+                        } else {
+                            EditListError.Failed
+                        }
+                }
+            }
+        }
+
+        private val _deleteListError = MutableStateFlow<DeleteListError?>(null)
+        val deleteListError = _deleteListError.asStateFlow()
+
+        fun clearDeleteListError() {
+            _deleteListError.value = null
+        }
+
+        fun deleteTaskList(listId: String) {
+            viewModelScope.launch {
+                try {
+                    tasksRepository.deleteTaskList(listId)
+                    if (_selectedListId.value == listId) {
+                        _selectedListId.value = null
+                    }
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    timber.log.Timber.e(e, "Failed to delete task list")
+                    _deleteListError.value =
+                        if (!tasksRepository.isCurrentlyOnline()) {
+                            DeleteListError.Offline
+                        } else {
+                            DeleteListError.Failed
                         }
                 }
             }

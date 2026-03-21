@@ -56,6 +56,14 @@ interface TasksRepository {
         color: String? = null,
     ): TaskList
 
+    suspend fun updateTaskList(
+        listId: String,
+        name: String,
+        color: String?,
+    ): TaskList
+
+    suspend fun deleteTaskList(listId: String)
+
     suspend fun getSharees(listId: String): List<Sharee>
 
     suspend fun shareList(
