@@ -25,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Label
@@ -37,8 +36,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -64,6 +61,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -91,6 +91,7 @@ fun TaskDetailScreen(
     val task by viewModel.task.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val availableTags by viewModel.availableTags.collectAsState()
+    val isReadOnly by viewModel.isReadOnly.collectAsState()
 
     // Navigate back when task is null (not yet loaded) or after deletion
     BackHandler { onNavigateBack() }
@@ -132,6 +133,7 @@ fun TaskDetailScreen(
             TaskDetailContent(
                 task = task!!,
                 availableTags = availableTags,
+                isReadOnly = isReadOnly,
                 modifier = Modifier.padding(padding),
                 onUpdateTitle = viewModel::updateTitle,
                 onUpdateDescription = viewModel::updateDescription,
@@ -178,6 +180,7 @@ fun TaskDetailScreen(
 private fun TaskDetailContent(
     task: Task,
     availableTags: List<Tag>,
+    isReadOnly: Boolean,
     modifier: Modifier = Modifier,
     onUpdateTitle: (String) -> Unit,
     onUpdateDescription: (String?) -> Unit,
@@ -199,12 +202,21 @@ private fun TaskDetailContent(
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()),
     ) {
-        // Editable title
-        TitleField(
-            title = task.title,
-            onTitleChange = onUpdateTitle,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+        // Editable title (read-only if shared with read access)
+        if (isReadOnly) {
+            Text(
+                text = task.title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        } else {
+            TitleField(
+                title = task.title,
+                onTitleChange = onUpdateTitle,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
 
         TabRow(selectedTabIndex = selectedTab) {
             tabs.forEachIndexed { index, label ->
@@ -221,6 +233,7 @@ private fun TaskDetailContent(
                 DetailsTab(
                     task = task,
                     availableTags = availableTags,
+                    isReadOnly = isReadOnly,
                     onUpdateStartDate = onUpdateStartDate,
                     onUpdateDueDate = onUpdateDueDate,
                     onUpdatePriority = onUpdatePriority,
@@ -232,14 +245,16 @@ private fun TaskDetailContent(
             1 ->
                 NotesTab(
                     description = task.description,
+                    isReadOnly = isReadOnly,
                     onUpdateDescription = onUpdateDescription,
                 )
         }
 
         Spacer(Modifier.height(24.dp))
 
-        OutlinedButton(
-            onClick = onDeleteClick,
+        if (!isReadOnly) {
+            OutlinedButton(
+                onClick = onDeleteClick,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             border = androidx.compose.foundation.BorderStroke(
                 1.dp,
@@ -256,6 +271,7 @@ private fun TaskDetailContent(
                 stringResource(R.string.task_detail_delete),
                 color = MaterialTheme.colorScheme.error,
             )
+        }
         }
 
         Spacer(Modifier.height(24.dp))
@@ -300,6 +316,7 @@ private fun TitleField(
 private fun DetailsTab(
     task: Task,
     availableTags: List<Tag>,
+    isReadOnly: Boolean,
     onUpdateStartDate: (Instant?) -> Unit,
     onUpdateDueDate: (Instant?) -> Unit,
     onUpdatePriority: (Int?) -> Unit,
@@ -314,6 +331,7 @@ private fun DetailsTab(
             icon = Icons.Default.CalendarToday,
             label = stringResource(R.string.task_detail_start_date),
             date = task.startDate,
+            enabled = !isReadOnly,
             onDateSelected = onUpdateStartDate,
         )
 
@@ -324,6 +342,7 @@ private fun DetailsTab(
             icon = Icons.Default.CalendarMonth,
             label = stringResource(R.string.task_detail_due_date),
             date = task.due,
+            enabled = !isReadOnly,
             onDateSelected = onUpdateDueDate,
         )
 
@@ -351,12 +370,14 @@ private fun DetailsTab(
         // Priority
         PriorityRow(
             priority = task.priority,
+            enabled = !isReadOnly,
             onPrioritySelected = onUpdatePriority,
         )
 
         // Percent complete
         PercentCompleteRow(
             percentComplete = task.percentComplete,
+            enabled = !isReadOnly,
             onPercentChange = onUpdatePercentComplete,
         )
 
@@ -367,6 +388,7 @@ private fun DetailsTab(
             icon = Icons.Default.LocationOn,
             label = stringResource(R.string.task_detail_location),
             value = task.location,
+            enabled = !isReadOnly,
             onValueChange = onUpdateLocation,
             keyboardType = KeyboardType.Text,
         )
@@ -378,6 +400,7 @@ private fun DetailsTab(
             icon = Icons.Default.Language,
             label = stringResource(R.string.task_detail_url),
             value = task.url,
+            enabled = !isReadOnly,
             onValueChange = onUpdateUrl,
             keyboardType = KeyboardType.Uri,
         )
@@ -388,6 +411,7 @@ private fun DetailsTab(
         TagsRow(
             selectedTags = task.tags,
             availableTags = availableTags,
+            enabled = !isReadOnly,
             onTagsChange = onUpdateTags,
         )
 
@@ -401,6 +425,7 @@ private fun DateDetailRow(
     icon: ImageVector,
     label: String,
     date: Instant?,
+    enabled: Boolean = true,
     onDateSelected: (Instant?) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
@@ -412,7 +437,7 @@ private fun DateDetailRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable { showPicker = true }
+                .then(if (enabled) Modifier.clickable { showPicker = true } else Modifier)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -439,7 +464,7 @@ private fun DateDetailRow(
                 },
             modifier = Modifier.weight(1f),
         )
-        if (date != null) {
+        if (date != null && enabled) {
             IconButton(
                 onClick = { onDateSelected(null) },
                 modifier = Modifier.size(20.dp),
@@ -453,7 +478,7 @@ private fun DateDetailRow(
         }
     }
 
-    if (showPicker) {
+    if (showPicker && enabled) {
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
             confirmButton = {
@@ -482,70 +507,56 @@ private fun DateDetailRow(
 @Composable
 private fun PriorityRow(
     priority: Int?,
+    enabled: Boolean = true,
     onPrioritySelected: (Int?) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val prio = priority ?: 0
 
     val priorityLabel =
-        when (priority) {
-            1 -> stringResource(R.string.task_detail_priority_high)
-            5 -> stringResource(R.string.task_detail_priority_medium)
-            9 -> stringResource(R.string.task_detail_priority_low)
+        when {
+            prio == 0 -> stringResource(R.string.task_detail_no_priority)
+            prio in 1..4 -> stringResource(R.string.task_detail_priority_high)
+            prio == 5 -> stringResource(R.string.task_detail_priority_medium)
+            prio in 6..9 -> stringResource(R.string.task_detail_priority_low)
             else -> stringResource(R.string.task_detail_no_priority)
         }
 
-    Box {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = true }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Spacer(Modifier.width(20.dp)) // align with icon rows
-            Text(
-                text = priorityLabel,
-                style = MaterialTheme.typography.bodyMedium,
-                color =
-                    if (priority != null) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                modifier = Modifier.weight(1f),
-            )
-        }
-
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.task_detail_priority_none)) },
-                onClick = { onPrioritySelected(null); expanded = false },
-                trailingIcon = { if (priority == null) Icon(Icons.Default.Check, null) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.task_detail_priority_high)) },
-                onClick = { onPrioritySelected(1); expanded = false },
-                trailingIcon = { if (priority == 1) Icon(Icons.Default.Check, null) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.task_detail_priority_medium)) },
-                onClick = { onPrioritySelected(5); expanded = false },
-                trailingIcon = { if (priority == 5) Icon(Icons.Default.Check, null) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.task_detail_priority_low)) },
-                onClick = { onPrioritySelected(9); expanded = false },
-                trailingIcon = { if (priority == 9) Icon(Icons.Default.Check, null) },
-            )
-        }
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text =
+                if (prio == 0) {
+                    priorityLabel
+                } else {
+                    "$priorityLabel ($prio)"
+                },
+            style = MaterialTheme.typography.bodyMedium,
+            color =
+                if (priority != null && priority > 0) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+        )
+        Slider(
+            value = prio.toFloat(),
+            onValueChange = { newVal ->
+                val intVal = newVal.toInt()
+                onPrioritySelected(if (intVal == 0) null else intVal)
+            },
+            enabled = enabled,
+            valueRange = 0f..9f,
+            steps = 8,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
 @Composable
 private fun PercentCompleteRow(
     percentComplete: Int?,
+    enabled: Boolean = true,
     onPercentChange: (Int?) -> Unit,
 ) {
     val pct = percentComplete ?: 0
@@ -561,6 +572,7 @@ private fun PercentCompleteRow(
         Slider(
             value = pct.toFloat(),
             onValueChange = { onPercentChange(it.toInt()) },
+            enabled = enabled,
             valueRange = 0f..100f,
             steps = 9,
             modifier = Modifier.fillMaxWidth(),
@@ -573,17 +585,26 @@ private fun TextDetailRow(
     icon: ImageVector,
     label: String,
     value: String?,
+    enabled: Boolean = true,
     onValueChange: (String?) -> Unit,
     keyboardType: KeyboardType = KeyboardType.Text,
 ) {
     var isEditing by remember { mutableStateOf(false) }
     var editValue by remember(value) { mutableStateOf(value ?: "") }
+    val focusRequester = remember { FocusRequester() }
+
+    // Auto-focus when entering edit mode
+    LaunchedEffect(isEditing) {
+        if (isEditing) {
+            focusRequester.requestFocus()
+        }
+    }
 
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable { isEditing = true }
+                .then(if (enabled) Modifier.clickable { isEditing = true } else Modifier)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -597,14 +618,17 @@ private fun TextDetailRow(
         if (isEditing) {
             BasicTextField(
                 value = editValue,
-                onValueChange = { editValue = it },
+                onValueChange = {
+                    editValue = it
+                    onValueChange(it.takeIf { s -> s.isNotEmpty() })
+                },
                 modifier =
                     Modifier
                         .weight(1f)
+                        .focusRequester(focusRequester)
                         .onFocusChanged { focusState ->
                             if (!focusState.isFocused && isEditing) {
                                 isEditing = false
-                                onValueChange(editValue.takeIf { it.isNotEmpty() })
                             }
                         },
                 textStyle =
@@ -660,6 +684,7 @@ private fun TextDetailRow(
 private fun TagsRow(
     selectedTags: List<Tag>,
     availableTags: List<Tag>,
+    enabled: Boolean = true,
     onTagsChange: (List<Tag>) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
@@ -668,7 +693,7 @@ private fun TagsRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable { showPicker = true }
+                .then(if (enabled) Modifier.clickable { showPicker = true } else Modifier)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -706,7 +731,7 @@ private fun TagsRow(
         }
     }
 
-    if (showPicker && availableTags.isNotEmpty()) {
+    if (showPicker && enabled && availableTags.isNotEmpty()) {
         AlertDialog(
             onDismissRequest = { showPicker = false },
             title = { Text(stringResource(R.string.task_detail_tags)) },
@@ -760,13 +785,15 @@ private fun TagsRow(
 @Composable
 private fun NotesTab(
     description: String?,
+    isReadOnly: Boolean = false,
     onUpdateDescription: (String?) -> Unit,
 ) {
     var text by remember(description) { mutableStateOf(description ?: "") }
 
     BasicTextField(
         value = text,
-        onValueChange = { text = it },
+        onValueChange = { if (!isReadOnly) text = it },
+        readOnly = isReadOnly,
         modifier =
             Modifier
                 .fillMaxWidth()

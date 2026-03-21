@@ -2164,14 +2164,6 @@ private fun TaskCard(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    task.priority?.let { priority ->
-                        Text(
-                            text = "P$priority",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
                 }
 
                 task.description?.let {

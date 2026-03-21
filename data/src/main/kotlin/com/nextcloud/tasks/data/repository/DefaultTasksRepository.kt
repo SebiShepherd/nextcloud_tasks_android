@@ -238,6 +238,11 @@ class DefaultTasksRepository
             withContext(ioDispatcher) {
                 val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
+                // Read current DB state to get fresh etag and href (may have been updated by background sync)
+                val currentDbTask = tasksDao.getTaskEntity(task.id)
+                val freshEtag = currentDbTask?.etag ?: task.etag
+                val freshHref = currentDbTask?.href ?: task.href
+
                 // Update local database immediately (optimistic update)
                 val taskEntity =
                     TaskEntity(
@@ -252,9 +257,9 @@ class DefaultTasksRepository
                         priority = task.priority,
                         status = task.status,
                         completedAt = task.completedAt,
-                        uid = task.uid,
-                        etag = task.etag,
-                        href = task.href,
+                        uid = task.uid ?: currentDbTask?.uid,
+                        etag = freshEtag,
+                        href = freshHref,
                         parentUid = task.parentUid,
                         startDate = task.startDate,
                         location = task.location,
@@ -268,17 +273,18 @@ class DefaultTasksRepository
 
                 Timber.d("Task ${task.id} updated locally (optimistic)")
 
+                // Build a task with fresh etag/href for server sync
+                val syncTask = task.copy(etag = freshEtag, href = freshHref)
+
                 // Sync with server in background
-                if (networkMonitor.isCurrentlyOnline() && task.href != null) {
+                if (networkMonitor.isCurrentlyOnline() && freshHref != null) {
                     backgroundScope.launch {
-                        syncTaskToServer(task, taskEntity)
+                        syncTaskToServer(syncTask, taskEntity)
                     }
                 } else {
-                    // Queue for later sync when offline or no href
-                    if (task.href != null) {
-                        pendingOperationsManager.queueUpdateOperation(taskEntity)
-                        Timber.d("Task ${task.id} queued for sync (offline)")
-                    }
+                    // Queue for later sync when offline or no href yet
+                    pendingOperationsManager.queueUpdateOperation(taskEntity)
+                    Timber.d("Task ${task.id} queued for sync (offline or no href)")
                 }
 
                 getTask(task.id) ?: error("Updated task missing from local database")

@@ -3,6 +3,7 @@ package com.nextcloud.tasks.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nextcloud.tasks.domain.model.ShareAccess
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.repository.TasksRepository
@@ -34,6 +35,9 @@ class TaskDetailViewModel
         private val _isSaving = MutableStateFlow(false)
         val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
+        private val _isReadOnly = MutableStateFlow(false)
+        val isReadOnly: StateFlow<Boolean> = _isReadOnly.asStateFlow()
+
         val availableTags: StateFlow<List<Tag>> =
             tasksRepository
                 .observeTags()
@@ -47,7 +51,15 @@ class TaskDetailViewModel
 
         init {
             viewModelScope.launch {
-                _task.value = tasksRepository.getTask(taskId)
+                val loadedTask = tasksRepository.getTask(taskId)
+                _task.value = loadedTask
+                // Determine read-only status from the task's list
+                if (loadedTask != null) {
+                    tasksRepository.observeLists().collect { lists ->
+                        val taskList = lists.find { it.id == loadedTask.listId }
+                        _isReadOnly.value = taskList?.shareAccess == ShareAccess.READ
+                    }
+                }
             }
         }
 

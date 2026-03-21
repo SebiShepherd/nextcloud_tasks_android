@@ -105,6 +105,10 @@ class PendingOperationsManager
                         etag = task.etag,
                         href = task.href,
                         parentUid = task.parentUid,
+                        startDate = task.startDate,
+                        location = task.location,
+                        url = task.url,
+                        percentComplete = task.percentComplete,
                     )
 
                 val operation =
@@ -187,6 +191,10 @@ class PendingOperationsManager
                     status = task.status,
                     completedAt = task.completedAt,
                     uid = task.uid,
+                    startDate = task.startDate,
+                    location = task.location,
+                    url = task.url,
+                    percentComplete = task.percentComplete,
                 )
 
             val operation =
@@ -307,6 +315,10 @@ class PendingOperationsManager
                     etag = currentTask?.task?.etag ?: payload.etag,
                     href = href,
                     parentUid = payload.parentUid,
+                    startDate = payload.startDate,
+                    location = payload.location,
+                    url = payload.url,
+                    percentComplete = payload.percentComplete,
                 )
 
             // Convert to domain model for generator
@@ -375,6 +387,10 @@ class PendingOperationsManager
                     etag = null,
                     href = null,
                     parentUid = null,
+                    startDate = payload.startDate,
+                    location = payload.location,
+                    url = payload.url,
+                    percentComplete = payload.percentComplete,
                 )
 
             // Generate iCalendar VTODO
@@ -405,6 +421,10 @@ class PendingOperationsManager
                         etag = etag,
                         href = href,
                         parentUid = null,
+                        startDate = payload.startDate,
+                        location = payload.location,
+                        url = payload.url,
+                        percentComplete = payload.percentComplete,
                     )
                 tasksDao.upsertTask(taskEntity)
 
@@ -432,6 +452,10 @@ class PendingOperationsManager
                 etag = entity.etag,
                 href = entity.href,
                 parentUid = entity.parentUid,
+                startDate = entity.startDate,
+                location = entity.location,
+                url = entity.url,
+                percentComplete = entity.percentComplete,
             )
 
         /**
@@ -482,6 +506,10 @@ data class TaskPayload(
     val etag: String?,
     val href: String?,
     val parentUid: String?,
+    val startDate: Instant? = null,
+    val location: String? = null,
+    val url: String? = null,
+    val percentComplete: Int? = null,
 )
 
 /**
@@ -509,6 +537,10 @@ data class CreatePayload(
     val status: String?,
     val completedAt: Instant?,
     val uid: String?,
+    val startDate: Instant? = null,
+    val location: String? = null,
+    val url: String? = null,
+    val percentComplete: Int? = null,
 )
 
 /**
