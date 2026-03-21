@@ -426,11 +426,21 @@ class DefaultTasksRepository
                 Timber.d("Found ${collections.size} calendar collections with VTODO support (before filtering)")
 
                 // Convert collections to TaskListEntity
+                val currentPrincipal = principal.principalUrl
                 val taskLists =
                     collections.map { collection ->
-                        val shareAccess = collection.shareAccess ?: "shared-owner"
+                        // Determine ownership: compare oc:owner-principal with current user
+                        val isOwner =
+                            collection.ownerPrincipalHref == null ||
+                                collection.ownerPrincipalHref == currentPrincipal
+                        val shareAccess =
+                            if (isOwner) {
+                                collection.shareAccess ?: "shared-owner"
+                            } else {
+                                // Shared-with-me: default to read-write
+                                collection.shareAccess ?: "read-write"
+                            }
                         val hasSharees = collection.invites.isNotEmpty()
-                        val isNotOwner = shareAccess != "shared-owner"
                         TaskListEntity(
                             id = collection.href,
                             accountId = accountId,
@@ -441,7 +451,7 @@ class DefaultTasksRepository
                             href = collection.href,
                             order = collection.order,
                             shareAccess = shareAccess,
-                            isShared = hasSharees || isNotOwner,
+                            isShared = hasSharees || !isOwner,
                         )
                     }
 

@@ -34,6 +34,7 @@ object DavProperty {
 
     // Sharing properties
     const val SHARE_ACCESS = "share-access"
+    const val OWNER_PRINCIPAL = "owner-principal"
     const val INVITE = "invite"
     const val SHARED_OWNER = "shared-owner"
     const val READ_WRITE = "read-write"

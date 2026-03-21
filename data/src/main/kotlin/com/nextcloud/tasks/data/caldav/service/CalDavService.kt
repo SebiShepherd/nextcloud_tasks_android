@@ -131,7 +131,7 @@ class CalDavService
                 val requestBody =
                     """
                     <?xml version="1.0" encoding="UTF-8"?>
-                    <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:i="http://apple.com/ns/ical/">
+                    <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:i="http://apple.com/ns/ical/" xmlns:oc="http://owncloud.org/ns">
                         <d:prop>
                             <d:displayname/>
                             <d:resourcetype/>
@@ -139,8 +139,8 @@ class CalDavService
                             <i:calendar-color/>
                             <i:calendar-order/>
                             <d:getetag/>
-                            <d:share-access/>
-                            <d:invite/>
+                            <oc:owner-principal/>
+                            <oc:invite/>
                         </d:prop>
                     </d:propfind>
                     """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
@@ -508,9 +508,9 @@ class CalDavService
                 val requestBody =
                     """
                     <?xml version="1.0" encoding="UTF-8"?>
-                    <d:propfind xmlns:d="DAV:">
+                    <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">
                         <d:prop>
-                            <d:invite/>
+                            <oc:invite/>
                         </d:prop>
                     </d:propfind>
                     """.trimIndent().toRequestBody(XML_MEDIA_TYPE)
