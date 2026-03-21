@@ -429,16 +429,32 @@ class DefaultTasksRepository
                 val currentPrincipal = principal.principalUrl
                 val taskLists =
                     collections.map { collection ->
-                        // Determine ownership: compare oc:owner-principal with current user
+                        // Determine ownership: use oc:invite organizer, oc:owner-principal,
+                        // or default to owner if no sharing info available
                         val isOwner =
-                            collection.ownerPrincipalHref == null ||
-                                collection.ownerPrincipalHref == currentPrincipal
+                            when {
+                                collection.organizerHref != null -> {
+                                    // Organizer in invite = shared calendar; check if we're the organizer
+                                    val orgId = extractIdFromPrincipal(collection.organizerHref)
+                                    val currentId = extractIdFromPrincipal(currentPrincipal)
+                                    orgId == currentId
+                                }
+                                collection.ownerPrincipalHref != null -> {
+                                    collection.ownerPrincipalHref == currentPrincipal
+                                }
+                                else -> true
+                            }
                         val shareAccess =
                             if (isOwner) {
                                 collection.shareAccess ?: "shared-owner"
                             } else {
-                                // Shared-with-me: default to read-write
-                                collection.shareAccess ?: "read-write"
+                                // Shared-with-me: check invites for our access level
+                                val currentId = extractIdFromPrincipal(currentPrincipal)
+                                val myInvite =
+                                    collection.invites.firstOrNull {
+                                        extractIdFromPrincipal(it.href) == currentId
+                                    }
+                                myInvite?.access ?: collection.shareAccess ?: "read-write"
                             }
                         val hasSharees = collection.invites.isNotEmpty()
                         TaskListEntity(

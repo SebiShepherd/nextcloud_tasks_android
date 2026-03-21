@@ -130,6 +130,7 @@
     <string name="error_share_forbidden">You do not have permission to share this list.</string>
     <string name="share_success">User added successfully</string>
     <string name="error_share_offline">Cannot share while offline.</string>
+    <string name="error_load_sharees_failed">Failed to load shared users. Please try again.</string>
     <string name="list_options">List options</string>
 
     <!-- Offline Mode -->
