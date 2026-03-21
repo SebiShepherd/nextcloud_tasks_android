@@ -39,7 +39,7 @@ import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
 
-@Suppress("TooManyFunctions", "LongParameterList")
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class DefaultTasksRepository
     @Inject
     constructor(

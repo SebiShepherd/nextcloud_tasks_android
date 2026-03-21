@@ -114,6 +114,21 @@
     <string name="error_create_list_offline">Im Offline-Modus können keine Listen erstellt werden.</string>
     <string name="error_create_list_failed">Liste konnte nicht erstellt werden. Bitte versuchen Sie es erneut.</string>
 
+    <!-- Edit List Dialog -->
+    <string name="edit_list_dialog_title">Liste bearbeiten</string>
+    <string name="error_edit_list_offline">Im Offline-Modus können keine Listen bearbeitet werden.</string>
+    <string name="error_edit_list_failed">Liste konnte nicht bearbeitet werden. Bitte versuchen Sie es erneut.</string>
+
+    <!-- Delete List Dialog -->
+    <string name="delete_list_dialog_title">Liste löschen?</string>
+    <string name="delete_list_dialog_message">„%s" und alle zugehörigen Aufgaben werden unwiderruflich gelöscht.</string>
+    <string name="delete_list_confirm">Löschen</string>
+    <string name="error_delete_list_offline">Im Offline-Modus können keine Listen gelöscht werden.</string>
+    <string name="error_delete_list_failed">Liste konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.</string>
+    <string name="edit_list">Bearbeiten</string>
+    <string name="delete_list">Löschen</string>
+    <string name="save">Speichern</string>
+
     <!-- Sharing -->
     <string name="share_list">Teilen</string>
     <string name="share_list_title">Liste teilen</string>
