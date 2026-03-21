@@ -98,6 +98,9 @@ class DavMultistatusParser
         ): Map<String, String?> {
             val properties = mutableMapOf<String, String?>()
             var statusCode: String? = null
+            // Use a local list so a non-200 propstat (e.g. the common 404 block for
+            // unsupported properties) doesn't wipe organizer info from a prior 200 block.
+            val localOrganizerRef = mutableListOf<String>()
 
             while (true) {
                 val eventType = parser.next()
@@ -111,17 +114,17 @@ class DavMultistatusParser
                         statusCode = parser.nextText()
                     }
                     matchesTag(parser.name, "prop") -> {
-                        parseProp(parser, properties, invites, organizerRef)
+                        parseProp(parser, properties, invites, localOrganizerRef)
                     }
                 }
             }
 
-            // Only return properties if status is 200 OK
+            // Only propagate data from 200 OK propstats.
             if (statusCode?.contains("200") != true) {
                 invites.clear()
-                organizerRef.clear()
                 return emptyMap()
             }
+            organizerRef.addAll(localOrganizerRef)
             return properties
         }
 
