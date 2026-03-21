@@ -1308,8 +1308,10 @@ private fun TaskListDrawerItem(
                         Spacer(modifier = Modifier.width(4.dp))
                     }
                 }
-                // 3-dot menu (only for owner lists)
-                if (taskList.shareAccess == ShareAccess.OWNER) {
+                // 3-dot menu (for owner lists and sharees with edit access)
+                if (taskList.shareAccess == ShareAccess.OWNER ||
+                    taskList.shareAccess == ShareAccess.READ_WRITE
+                ) {
                     Box {
                         IconButton(
                             onClick = { showMenu = true },
@@ -1325,16 +1327,18 @@ private fun TaskListDrawerItem(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
                         ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.share_list)) },
-                                onClick = {
-                                    showMenu = false
-                                    onOpenShareSheet()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Share, contentDescription = null)
-                                },
-                            )
+                            if (taskList.shareAccess == ShareAccess.OWNER) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.share_list)) },
+                                    onClick = {
+                                        showMenu = false
+                                        onOpenShareSheet()
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Share, contentDescription = null)
+                                    },
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.edit_list)) },
                                 onClick = {
@@ -1345,25 +1349,27 @@ private fun TaskListDrawerItem(
                                     Icon(Icons.Default.Edit, contentDescription = null)
                                 },
                             )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = stringResource(R.string.delete_list),
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onDeleteList()
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                    )
-                                },
-                            )
+                            if (taskList.shareAccess == ShareAccess.OWNER) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = stringResource(R.string.delete_list),
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onDeleteList()
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                    },
+                                )
+                            }
                         }
                     }
                 }
