@@ -2124,6 +2124,9 @@ private fun TaskCard(
     val hasDescription = task.description != null
     val hasDueOrTags = task.due != null || task.tags.isNotEmpty()
     val hasAdditionalContent = hasDescription || hasDueOrTags
+    // CANCELLED tasks are treated as completed for display purposes.
+    val isCancelledTask = task.status?.uppercase() == "CANCELLED"
+    val localCompleted = task.completed || isCancelledTask
 
     Card(
         onClick = onOpenTask,
