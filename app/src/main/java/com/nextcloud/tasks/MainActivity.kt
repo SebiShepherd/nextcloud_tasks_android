@@ -403,6 +403,7 @@ fun AuthenticatedHome(
     // Determine if selected list is read-only
     val selectedListAccess = taskLists.find { it.id == selectedListId }?.shareAccess
     val isReadOnly = selectedListAccess == ShareAccess.READ
+    val hasWritableLists = taskLists.any { it.shareAccess != ShareAccess.READ }
 
     val mainContent: @Composable () -> Unit = {
         Scaffold(
@@ -416,7 +417,7 @@ fun AuthenticatedHome(
                 }
             },
             floatingActionButton = {
-                if (taskLists.isNotEmpty() && !isReadOnly) {
+                if (hasWritableLists && !isReadOnly) {
                     FloatingActionButton(onClick = onShowCreateDialog) {
                         Icon(
                             imageVector = Icons.Default.Add,
