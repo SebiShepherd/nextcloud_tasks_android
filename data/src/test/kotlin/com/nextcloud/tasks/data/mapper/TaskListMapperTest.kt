@@ -2,10 +2,13 @@ package com.nextcloud.tasks.data.mapper
 
 import com.nextcloud.tasks.data.api.dto.TaskListDto
 import com.nextcloud.tasks.data.database.entity.TaskListEntity
+import com.nextcloud.tasks.domain.model.ShareAccess
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class TaskListMapperTest {
     private val mapper = TaskListMapper()
@@ -99,5 +102,63 @@ class TaskListMapperTest {
         assertNull(domain.etag)
         assertNull(domain.href)
         assertNull(domain.order)
+    }
+
+    // ── shareAccess mapping ───────────────────────────────────────────────────
+
+    private fun entityWithAccess(
+        shareAccess: String,
+        isShared: Boolean = false,
+    ) = TaskListEntity(
+        id = "list-1",
+        accountId = "acc-1",
+        name = "List",
+        color = null,
+        updatedAt = Instant.ofEpochMilli(0),
+        etag = null,
+        href = null,
+        order = null,
+        shareAccess = shareAccess,
+        isShared = isShared,
+    )
+
+    @Test
+    fun `toDomain maps shareAccess OWNER`() {
+        assertEquals(ShareAccess.OWNER, mapper.toDomain(entityWithAccess("OWNER")).shareAccess)
+    }
+
+    @Test
+    fun `toDomain maps shareAccess READ_WRITE`() {
+        assertEquals(ShareAccess.READ_WRITE, mapper.toDomain(entityWithAccess("READ_WRITE")).shareAccess)
+    }
+
+    @Test
+    fun `toDomain maps shareAccess READ`() {
+        assertEquals(ShareAccess.READ, mapper.toDomain(entityWithAccess("READ")).shareAccess)
+    }
+
+    @Test
+    fun `toDomain maps lowercase read-write to READ_WRITE`() {
+        assertEquals(ShareAccess.READ_WRITE, mapper.toDomain(entityWithAccess("read-write")).shareAccess)
+    }
+
+    @Test
+    fun `toDomain maps lowercase read to READ`() {
+        assertEquals(ShareAccess.READ, mapper.toDomain(entityWithAccess("read")).shareAccess)
+    }
+
+    @Test
+    fun `toDomain falls back to OWNER for unknown shareAccess value`() {
+        assertEquals(ShareAccess.OWNER, mapper.toDomain(entityWithAccess("shared-owner")).shareAccess)
+    }
+
+    @Test
+    fun `toDomain propagates isShared true`() {
+        assertTrue(mapper.toDomain(entityWithAccess("OWNER", isShared = true)).isShared)
+    }
+
+    @Test
+    fun `toDomain propagates isShared false`() {
+        assertFalse(mapper.toDomain(entityWithAccess("OWNER", isShared = false)).isShared)
     }
 }

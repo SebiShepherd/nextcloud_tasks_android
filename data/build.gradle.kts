@@ -57,6 +57,7 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.kxml2)
     detektPlugins(libs.detekt.formatting)
 }
 

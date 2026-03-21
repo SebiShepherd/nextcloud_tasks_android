@@ -1,6 +1,5 @@
 package com.nextcloud.tasks.data.caldav.parser
 
-import android.util.Xml
 import com.nextcloud.tasks.data.caldav.models.CalendarCollectionInfo
 import com.nextcloud.tasks.data.caldav.models.CalendarHomeInfo
 import com.nextcloud.tasks.data.caldav.models.CalendarObjectInfo
@@ -10,6 +9,7 @@ import com.nextcloud.tasks.data.caldav.models.DavResourceResponse
 import com.nextcloud.tasks.data.caldav.models.DavSharee
 import com.nextcloud.tasks.data.caldav.models.PrincipalInfo
 import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserFactory
 import timber.log.Timber
 import java.io.StringReader
 import javax.inject.Inject
@@ -22,8 +22,9 @@ class DavMultistatusParser
     @Inject
     constructor() {
         fun parseMultistatus(xml: String): DavMultistatus {
-            val parser = Xml.newPullParser()
-            parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
+            val factory = XmlPullParserFactory.newInstance()
+            factory.isNamespaceAware = false
+            val parser = factory.newPullParser()
             parser.setInput(StringReader(xml))
 
             val responses = mutableListOf<DavResourceResponse>()
