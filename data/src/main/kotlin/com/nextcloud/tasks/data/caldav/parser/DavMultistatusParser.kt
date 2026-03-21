@@ -82,8 +82,12 @@ class DavMultistatusParser
                 organizerRef.firstOrNull(),
                 ownerHref = properties[DavProperty.OWNER],
                 hasWriteAccess =
-                    properties[DavProperty.CURRENT_USER_PRIVILEGE_SET]
-                        ?.contains("write") == true,
+                    properties[DavProperty.CURRENT_USER_PRIVILEGE_SET]?.let { privilegeStr ->
+                        // Split into individual privilege names and check for exact write access.
+                        // "write-properties" is granted even for read-only sharees (for display
+                        // preferences) and must not be mistaken for actual write access.
+                        privilegeStr.split(",").any { it in listOf("write", "write-content") }
+                    },
             )
         }
 
@@ -126,6 +130,7 @@ class DavMultistatusParser
             val organizerHref: String? = null,
         )
 
+        @Suppress("CyclomaticComplexMethod")
         private fun parseProp(
             parser: XmlPullParser,
             properties: MutableMap<String, String?>,
