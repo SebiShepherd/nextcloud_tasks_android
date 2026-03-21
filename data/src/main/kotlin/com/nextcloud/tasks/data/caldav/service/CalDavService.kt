@@ -139,7 +139,8 @@ class CalDavService
                             <i:calendar-color/>
                             <i:calendar-order/>
                             <d:getetag/>
-                            <oc:owner-principal/>
+                            <d:owner/>
+                            <d:current-user-privilege-set/>
                             <oc:invite/>
                         </d:prop>
                     </d:propfind>

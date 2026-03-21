@@ -2617,7 +2617,8 @@ class TaskListViewModel
             _shareeSearchQuery.value = ""
             _shareeSearchResults.value = emptyList()
             _shareError.value = null
-            loadSharees(listId)
+            _shareSuccess.value = false
+            viewModelScope.launch { loadSharees(listId) }
         }
 
         fun closeShareSheet() {
@@ -2625,21 +2626,21 @@ class TaskListViewModel
             _sharees.value = emptyList()
             _shareeSearchResults.value = emptyList()
             _shareeSearchQuery.value = ""
+            _shareError.value = null
+            _shareSuccess.value = false
         }
 
-        private fun loadSharees(listId: String) {
-            viewModelScope.launch {
-                _isLoadingSharees.value = true
-                try {
-                    _sharees.value = getShareesUseCase(listId)
-                } catch (
-                    @Suppress("TooGenericExceptionCaught") e: Exception,
-                ) {
-                    timber.log.Timber.e(e, "Failed to load sharees")
-                    _shareError.value = "load_sharees_failed"
-                } finally {
-                    _isLoadingSharees.value = false
-                }
+        private suspend fun loadSharees(listId: String) {
+            _isLoadingSharees.value = true
+            try {
+                _sharees.value = getShareesUseCase(listId)
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                timber.log.Timber.e(e, "Failed to load sharees")
+                _shareError.value = "load_sharees_failed"
+            } finally {
+                _isLoadingSharees.value = false
             }
         }
 
@@ -2677,6 +2678,10 @@ class TaskListViewModel
                     shareListUseCase(listId, shareeId, type, access)
                     loadSharees(listId)
                     _shareSuccess.value = true
+                    viewModelScope.launch {
+                        delay(3000)
+                        _shareSuccess.value = false
+                    }
                 } catch (
                     @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
