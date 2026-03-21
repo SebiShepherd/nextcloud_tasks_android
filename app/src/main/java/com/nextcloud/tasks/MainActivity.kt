@@ -521,8 +521,8 @@ fun AuthenticatedHome(
         )
     }
 
-    // Create task dialog
-    if (showCreateDialog && taskLists.isNotEmpty()) {
+    // Create task dialog — only shown when at least one writable list exists.
+    if (showCreateDialog && hasWritableLists) {
         CreateTaskDialog(
             taskLists = taskLists,
             initialListId = selectedListId ?: taskLists.first().id,
@@ -1169,7 +1169,7 @@ private fun TaskListDrawerItem(
                     taskList.shareAccess == ShareAccess.OWNER && taskList.isShared -> {
                         Icon(
                             imageVector = Icons.Default.People,
-                            contentDescription = stringResource(R.string.shared_with_you),
+                            contentDescription = stringResource(R.string.shared_by_you),
                             modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1352,12 +1352,12 @@ private fun ShareListBottomSheet(
             // Search results
             if (searchResults.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                val existingIds = sharees.map { it.id }.toSet()
-                searchResults.filter { it.id !in existingIds }.forEach { result ->
+                val existingKeys = sharees.map { "${it.id}:${it.type}" }.toSet()
+                searchResults.filter { "${it.id}:${it.type}" !in existingKeys }.forEach { result ->
                     ShareeSearchResultItem(
                         result = result,
                         serverUrl = serverUrl,
-                        isLoading = actionInProgress == "add:${result.id}",
+                        isLoading = actionInProgress == "add:${result.id}:${result.type}",
                         onAdd = { onAddSharee(result.id, result.type, ShareAccess.READ) },
                     )
                 }
@@ -1395,9 +1395,9 @@ private fun ShareListBottomSheet(
                         sharee = sharee,
                         serverUrl = serverUrl,
                         isActionLoading =
-                            actionInProgress == "remove:${sharee.id}" ||
-                                actionInProgress == "access:${sharee.id}",
-                        isAccessLoading = actionInProgress == "access:${sharee.id}",
+                            actionInProgress == "remove:${sharee.id}:${sharee.type}" ||
+                                actionInProgress == "access:${sharee.id}:${sharee.type}",
+                        isAccessLoading = actionInProgress == "access:${sharee.id}:${sharee.type}",
                         onRemove = { onRemoveSharee(sharee.id, sharee.type) },
                         onUpdateAccess = { newAccess ->
                             onUpdateAccess(sharee.id, sharee.type, newAccess)
@@ -1428,7 +1428,7 @@ private fun ShareeSearchResultItem(
             Text(text = result.displayName, style = MaterialTheme.typography.bodyLarge)
             if (result.type == ShareeType.GROUP) {
                 Text(
-                    text = "Group",
+                    text = stringResource(R.string.sharee_type_group),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -2080,7 +2080,7 @@ private fun CreateTaskDialog(
         )
     }
     var listDropdownExpanded by remember { mutableStateOf(false) }
-    val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.first()
+    val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.firstOrNull() ?: return
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -2731,7 +2731,7 @@ class TaskListViewModel
             access: ShareAccess = ShareAccess.READ,
         ) {
             val listId = _sharingListId.value ?: return
-            _shareActionInProgress.value = "add:$shareeId"
+            _shareActionInProgress.value = "add:$shareeId:$type"
             viewModelScope.launch {
                 try {
                     shareListUseCase(listId, shareeId, type, access)
@@ -2767,7 +2767,7 @@ class TaskListViewModel
             type: ShareeType,
         ) {
             val listId = _sharingListId.value ?: return
-            _shareActionInProgress.value = "remove:$shareeId"
+            _shareActionInProgress.value = "remove:$shareeId:$type"
             viewModelScope.launch {
                 try {
                     unshareListUseCase(listId, shareeId, type)
@@ -2789,7 +2789,7 @@ class TaskListViewModel
             access: ShareAccess,
         ) {
             val listId = _sharingListId.value ?: return
-            _shareActionInProgress.value = "access:$shareeId"
+            _shareActionInProgress.value = "access:$shareeId:$type"
             viewModelScope.launch {
                 try {
                     shareListUseCase(listId, shareeId, type, access)

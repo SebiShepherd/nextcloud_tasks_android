@@ -440,12 +440,14 @@ class DefaultTasksRepository
                                 collection.ownerHref != null -> {
                                     val ownerId = extractIdFromPrincipal(collection.ownerHref)
                                     val currentId = extractIdFromPrincipal(currentPrincipal)
-                                    ownerId == currentId
+                                    // Explicitly require both IDs to be non-null; null == null must
+                                    // not be treated as ownership (malformed principal hrefs).
+                                    ownerId != null && ownerId == currentId
                                 }
                                 collection.organizerHref != null -> {
                                     val orgId = extractIdFromPrincipal(collection.organizerHref)
                                     val currentId = extractIdFromPrincipal(currentPrincipal)
-                                    orgId == currentId
+                                    orgId != null && orgId == currentId
                                 }
                                 collection.ownerPrincipalHref != null -> {
                                     collection.ownerPrincipalHref == currentPrincipal
@@ -734,7 +736,7 @@ class DefaultTasksRepository
             calDavService.shareResource(baseUrl, listId, principalHref, davAccess).getOrThrow()
 
             // Update local DB to reflect sharing state
-            val accountId = authTokenProvider.activeAccountId() ?: return@withContext
+            authTokenProvider.activeAccountId() ?: return@withContext
             taskListsDao.getTaskList(listId)?.let { entity ->
                 taskListsDao.upsertTaskList(entity.copy(isShared = true))
             }
@@ -751,11 +753,13 @@ class DefaultTasksRepository
             val principalHref = "principal:principals/$principalType/$shareeId"
             calDavService.shareResource(baseUrl, listId, principalHref, "no-access").getOrThrow()
 
-            // Update local isShared flag based on remaining invites
-            val remainingInvites = calDavService.getInvites(baseUrl, listId).getOrDefault(emptyList())
-            Timber.d("unshareList: %d remaining invites for %s", remainingInvites.size, listId)
-            taskListsDao.getTaskList(listId)?.let { entity ->
-                taskListsDao.upsertTaskList(entity.copy(isShared = remainingInvites.isNotEmpty()))
+            // Update local isShared flag based on remaining invites.
+            // Only update if the PROPFIND succeeds; on network/auth failure keep the previous value.
+            calDavService.getInvites(baseUrl, listId).onSuccess { remainingInvites ->
+                Timber.d("unshareList: %d remaining invites for %s", remainingInvites.size, listId)
+                taskListsDao.getTaskList(listId)?.let { entity ->
+                    taskListsDao.upsertTaskList(entity.copy(isShared = remainingInvites.isNotEmpty()))
+                }
             }
             Unit
         }
