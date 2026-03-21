@@ -85,6 +85,16 @@ class TaskDetailViewModel
                 }
         }
 
+        /** Saves the description immediately without debounce delay.
+         *  Called on back-press or tab switch to prevent data loss. */
+        fun saveDescriptionNow(description: String?) {
+            descriptionDebounceJob?.cancel()
+            val current = _task.value ?: return
+            val updated = current.copy(description = description?.takeIf { it.isNotEmpty() })
+            _task.value = updated
+            viewModelScope.launch { saveTask(updated) }
+        }
+
         fun updateStartDate(startDate: Instant?) {
             val current = _task.value ?: return
             _task.value = current.copy(startDate = startDate)
@@ -135,6 +145,18 @@ class TaskDetailViewModel
             val current = _task.value ?: return
             _task.value = current.copy(tags = tags)
             viewModelScope.launch { saveTask(_task.value ?: return@launch) }
+        }
+
+        fun triggerSync() {
+            viewModelScope.launch {
+                try {
+                    tasksRepository.refresh()
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    Timber.e(e, "Sync from detail screen failed")
+                }
+            }
         }
 
         fun updateStatus(status: String?) {

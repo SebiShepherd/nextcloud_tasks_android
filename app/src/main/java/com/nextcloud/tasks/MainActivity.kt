@@ -2035,8 +2035,10 @@ private fun SimpleAnimatedTaskCard(
     // Only start invisible if this task should animate entry (recently toggled)
     var isVisible by remember { mutableStateOf(!animateEntry) }
     var isAnimating by remember { mutableStateOf(false) }
-    // Local checkbox state to show change before animation
-    var localCompleted by remember(task.id) { mutableStateOf(task.completed) }
+    // Local checkbox state to show change before animation.
+    // CANCELLED tasks are treated as completed for display purposes.
+    val isCancelledTask = task.status?.uppercase() == "CANCELLED"
+    var localCompleted by remember(task.id) { mutableStateOf(task.completed || isCancelledTask) }
     val scope = rememberCoroutineScope()
 
     // Trigger entry animation only for recently toggled tasks
@@ -2050,9 +2052,9 @@ private fun SimpleAnimatedTaskCard(
     }
 
     // Sync local state when task changes (e.g., from server sync)
-    LaunchedEffect(task.completed) {
+    LaunchedEffect(task.completed, task.status) {
         if (!isAnimating) {
-            localCompleted = task.completed
+            localCompleted = task.completed || task.status?.uppercase() == "CANCELLED"
         }
     }
 
@@ -2140,9 +2142,9 @@ private fun TaskCard(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = if (hasAdditionalContent) Alignment.Top else Alignment.CenterVertically,
         ) {
-            // Checkbox
+            // Checkbox — CANCELLED tasks are displayed as checked (like the web UI)
             Checkbox(
-                checked = task.completed,
+                checked = localCompleted,
                 onCheckedChange =
                     if (isReadOnly) {
                         null
@@ -2160,7 +2162,15 @@ private fun TaskCard(
                 ) {
                     Text(
                         text = task.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style =
+                            MaterialTheme.typography.titleMedium.copy(
+                                textDecoration =
+                                    if (isCancelledTask) {
+                                        androidx.compose.ui.text.style.TextDecoration.LineThrough
+                                    } else {
+                                        androidx.compose.ui.text.style.TextDecoration.None
+                                    },
+                            ),
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
@@ -2830,11 +2840,13 @@ class TaskListViewModel
                         // Filter by selected list
                         (listId == null || task.listId == listId)
                     }.filter { task ->
-                        // Filter by task status
+                        // Filter by task status — CANCELLED is treated the same as COMPLETED
+                        // (it appears in the web UI under completed tasks with strikethrough).
+                        val isEffectivelyDone = task.completed || task.status?.uppercase() == "CANCELLED"
                         when (filter) {
                             com.nextcloud.tasks.domain.model.TaskFilter.ALL -> true
-                            com.nextcloud.tasks.domain.model.TaskFilter.CURRENT -> !task.completed
-                            com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED -> task.completed
+                            com.nextcloud.tasks.domain.model.TaskFilter.CURRENT -> !isEffectivelyDone
+                            com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED -> isEffectivelyDone
                         }
                     }.filter { task ->
                         // Filter by search query (case-insensitive)
@@ -2973,12 +2985,29 @@ class TaskListViewModel
             _animatingEntryTaskIds.update { it + task.id }
             viewModelScope.launch {
                 try {
+                    val isCancelled = task.status?.uppercase() == "CANCELLED"
                     val updated =
-                        task.copy(
-                            completed = !task.completed,
-                            completedAt = if (!task.completed) java.time.Instant.now() else null,
-                            status = if (!task.completed) "COMPLETED" else "NEEDS-ACTION",
-                        )
+                        when {
+                            // COMPLETED → NEEDS-ACTION (uncheck)
+                            task.completed ->
+                                task.copy(
+                                    completed = false,
+                                    completedAt = null,
+                                    status = "NEEDS-ACTION",
+                                )
+                            // CANCELLED → NEEDS-ACTION (uncheck / reopen)
+                            isCancelled ->
+                                task.copy(
+                                    status = "NEEDS-ACTION",
+                                )
+                            // NEEDS-ACTION / IN-PROCESS → COMPLETED (check)
+                            else ->
+                                task.copy(
+                                    completed = true,
+                                    completedAt = java.time.Instant.now(),
+                                    status = "COMPLETED",
+                                )
+                        }
                     tasksRepository.updateTask(updated)
                     timber.log.Timber.d("Task completion toggled")
                 } catch (ignored: Exception) {

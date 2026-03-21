@@ -19,10 +19,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
@@ -46,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Tab
@@ -55,6 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -140,6 +144,7 @@ fun TaskDetailScreen(
                 modifier = Modifier.padding(padding),
                 onUpdateTitle = viewModel::updateTitle,
                 onUpdateDescription = viewModel::updateDescription,
+                onSaveDescriptionNow = viewModel::saveDescriptionNow,
                 onUpdateStartDate = viewModel::updateStartDate,
                 onUpdateDueDate = viewModel::updateDueDate,
                 onUpdatePriority = viewModel::updatePriority,
@@ -148,6 +153,7 @@ fun TaskDetailScreen(
                 onUpdateLocation = viewModel::updateLocation,
                 onUpdateUrl = viewModel::updateUrl,
                 onUpdateTags = viewModel::updateTags,
+                onRequestSync = viewModel::triggerSync,
                 onDeleteClick = { showDeleteConfirm = true },
             )
         }
@@ -188,6 +194,7 @@ private fun TaskDetailContent(
     modifier: Modifier = Modifier,
     onUpdateTitle: (String) -> Unit,
     onUpdateDescription: (String?) -> Unit,
+    onSaveDescriptionNow: (String?) -> Unit,
     onUpdateStartDate: (Instant?) -> Unit,
     onUpdateDueDate: (Instant?) -> Unit,
     onUpdateStatus: (String?) -> Unit,
@@ -196,6 +203,7 @@ private fun TaskDetailContent(
     onUpdateLocation: (String?) -> Unit,
     onUpdateUrl: (String?) -> Unit,
     onUpdateTags: (List<Tag>) -> Unit,
+    onRequestSync: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -248,12 +256,14 @@ private fun TaskDetailContent(
                     onUpdateLocation = onUpdateLocation,
                     onUpdateUrl = onUpdateUrl,
                     onUpdateTags = onUpdateTags,
+                    onRequestSync = onRequestSync,
                 )
             1 ->
                 NotesTab(
                     description = task.description,
                     isReadOnly = isReadOnly,
                     onUpdateDescription = onUpdateDescription,
+                    onSaveNow = onSaveDescriptionNow,
                 )
         }
 
@@ -333,6 +343,7 @@ private fun DetailsTab(
     onUpdateLocation: (String?) -> Unit,
     onUpdateUrl: (String?) -> Unit,
     onUpdateTags: (List<Tag>) -> Unit,
+    onRequestSync: () -> Unit,
 ) {
     Column {
         // Status
@@ -431,6 +442,7 @@ private fun DetailsTab(
             availableTags = availableTags,
             enabled = !isReadOnly,
             onTagsChange = onUpdateTags,
+            onRequestSync = onRequestSync,
         )
 
         HorizontalDivider()
@@ -698,6 +710,11 @@ private fun TextDetailRow(
     keyboardType: KeyboardType = KeyboardType.Text,
 ) {
     var isEditing by remember { mutableStateOf(false) }
+    // Track whether the BasicTextField has actually received focus at least once.
+    // onFocusChanged fires with isFocused=false when the node is first inserted into
+    // the composition (before the LaunchedEffect can request focus). Without this guard,
+    // isEditing would be reset to false immediately, making the field appear unresponsive.
+    var hadFocus by remember { mutableStateOf(false) }
     var editValue by remember(value) { mutableStateOf(value ?: "") }
     val focusRequester = remember { FocusRequester() }
 
@@ -707,6 +724,8 @@ private fun TextDetailRow(
         if (isEditing) {
             kotlinx.coroutines.delay(50L)
             runCatching { focusRequester.requestFocus() }
+        } else {
+            hadFocus = false
         }
     }
 
@@ -737,7 +756,9 @@ private fun TextDetailRow(
                         .weight(1f)
                         .focusRequester(focusRequester)
                         .onFocusChanged { focusState ->
-                            if (!focusState.isFocused && isEditing) {
+                            if (focusState.isFocused) {
+                                hadFocus = true
+                            } else if (hadFocus) {
                                 isEditing = false
                             }
                         },
@@ -750,6 +771,10 @@ private fun TextDetailRow(
                     KeyboardOptions(
                         keyboardType = keyboardType,
                         imeAction = ImeAction.Done,
+                    ),
+                keyboardActions =
+                    KeyboardActions(
+                        onDone = { isEditing = false },
                     ),
                 singleLine = true,
             )
@@ -796,8 +821,16 @@ private fun TagsRow(
     availableTags: List<Tag>,
     enabled: Boolean = true,
     onTagsChange: (List<Tag>) -> Unit,
+    onRequestSync: (() -> Unit)? = null,
 ) {
     var showPicker by remember { mutableStateOf(false) }
+    var newTagText by remember { mutableStateOf("") }
+
+    // Trigger a background sync whenever the picker is opened so that
+    // tags from the server are loaded and available immediately.
+    LaunchedEffect(showPicker) {
+        if (showPicker) onRequestSync?.invoke()
+    }
 
     Row(
         modifier =
@@ -843,17 +876,69 @@ private fun TagsRow(
 
     if (showPicker && enabled) {
         AlertDialog(
-            onDismissRequest = { showPicker = false },
+            onDismissRequest = {
+                showPicker = false
+                newTagText = ""
+            },
             title = { Text(stringResource(R.string.task_detail_tags)) },
             text = {
-                if (availableTags.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.task_detail_no_tags_available),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Column {
+                    // Text field to create a new tag
+                    OutlinedTextField(
+                        value = newTagText,
+                        onValueChange = { newTagText = it },
+                        label = { Text(stringResource(R.string.task_detail_new_tag_label)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions =
+                            KeyboardActions(onDone = {
+                                val trimmed = newTagText.trim()
+                                if (trimmed.isNotEmpty() && selectedTags.none { it.name == trimmed }) {
+                                    val newTag =
+                                        Tag(
+                                            id =
+                                                java.util.UUID
+                                                    .randomUUID()
+                                                    .toString(),
+                                            name = trimmed,
+                                            updatedAt = java.time.Instant.now(),
+                                        )
+                                    onTagsChange(selectedTags + newTag)
+                                }
+                                newTagText = ""
+                            }),
+                        trailingIcon = {
+                            if (newTagText.isNotBlank()) {
+                                IconButton(onClick = {
+                                    val trimmed = newTagText.trim()
+                                    if (trimmed.isNotEmpty() && selectedTags.none { it.name == trimmed }) {
+                                        val newTag =
+                                            Tag(
+                                                id =
+                                                    java.util.UUID
+                                                        .randomUUID()
+                                                        .toString(),
+                                                name = trimmed,
+                                                updatedAt = java.time.Instant.now(),
+                                            )
+                                        onTagsChange(selectedTags + newTag)
+                                    }
+                                    newTagText = ""
+                                }) {
+                                    Icon(Icons.Default.Add, contentDescription = null)
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     )
-                } else {
-                    Column {
+
+                    if (availableTags.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.task_detail_no_tags_available),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
                         availableTags.forEach { tag ->
                             val isSelected = selectedTags.any { it.id == tag.id }
                             Row(
@@ -891,7 +976,10 @@ private fun TagsRow(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showPicker = false }) {
+                TextButton(onClick = {
+                    showPicker = false
+                    newTagText = ""
+                }) {
                     Text(stringResource(R.string.close))
                 }
             },
@@ -904,8 +992,18 @@ private fun NotesTab(
     description: String?,
     isReadOnly: Boolean = false,
     onUpdateDescription: (String?) -> Unit,
+    onSaveNow: (String?) -> Unit = {},
 ) {
     var text by remember(description) { mutableStateOf(description ?: "") }
+
+    // Save immediately when the composable leaves the composition (back press or tab switch)
+    // to prevent data loss. onUpdateDescription alone relies on focus changes, which are not
+    // reliably fired during navigation teardown.
+    DisposableEffect(Unit) {
+        onDispose {
+            onSaveNow(text.takeIf { it.isNotEmpty() })
+        }
+    }
 
     BasicTextField(
         value = text,
