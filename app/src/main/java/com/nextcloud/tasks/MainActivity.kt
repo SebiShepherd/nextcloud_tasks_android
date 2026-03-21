@@ -314,6 +314,7 @@ fun NextcloudTasksApp(
             onAddSharee = { id, type, access -> taskListViewModel.addSharee(id, type, access) },
             onRemoveSharee = { id, type -> taskListViewModel.removeSharee(id, type) },
             onUpdateShareeAccess = { id, type, access -> taskListViewModel.updateShareeAccess(id, type, access) },
+            shareActionInProgress = shareActionInProgress,
             onClearShareError = taskListViewModel::clearShareError,
             onClearShareSuccess = taskListViewModel::clearShareSuccess,
         )
@@ -374,6 +375,7 @@ fun AuthenticatedHome(
     onAddSharee: (String, ShareeType, ShareAccess) -> Unit = { _, _, _ -> },
     onRemoveSharee: (String, ShareeType) -> Unit = { _, _ -> },
     onUpdateShareeAccess: (String, ShareeType, ShareAccess) -> Unit = { _, _, _ -> },
+    shareActionInProgress: String? = null,
     onClearShareError: () -> Unit = {},
     onClearShareSuccess: () -> Unit = {},
 ) {
