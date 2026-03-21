@@ -450,7 +450,7 @@ class CalDavService
          * Share or update sharing for a calendar collection.
          * POST with ownCloud sharing protocol (oc:share namespace)
          *
-         * @param principalHrefs list of sharee principal URIs
+         * @param principalHref sharee principal URI
          *   (e.g., "principal:principals/users/john" or "principal:principals/groups/team")
          * @param access one of "read-write", "read", or "no-access" (to remove)
          */
@@ -462,6 +462,7 @@ class CalDavService
         ): Result<Unit> =
             runCatching {
                 val fullUrl = buildFullUrl(baseUrl, collectionHref)
+                val escapedHref = principalHref.escapeXml()
 
                 val shareBody =
                     if (access == "no-access") {
@@ -469,7 +470,7 @@ class CalDavService
                         <?xml version="1.0" encoding="utf-8" ?>
                         <o:share xmlns:d="DAV:" xmlns:o="http://owncloud.org/ns">
                             <o:remove>
-                                <d:href>$principalHref</d:href>
+                                <d:href>$escapedHref</d:href>
                             </o:remove>
                         </o:share>
                         """.trimIndent()
@@ -480,7 +481,7 @@ class CalDavService
                         <?xml version="1.0" encoding="utf-8" ?>
                         <o:share xmlns:d="DAV:" xmlns:o="http://owncloud.org/ns">
                             <o:set>
-                                <d:href>$principalHref</d:href>
+                                <d:href>$escapedHref</d:href>
                                 $accessElement
                             </o:set>
                         </o:share>
@@ -661,3 +662,8 @@ class CalDavService
             }
         }
     }
+
+private fun String.escapeXml(): String =
+    replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")

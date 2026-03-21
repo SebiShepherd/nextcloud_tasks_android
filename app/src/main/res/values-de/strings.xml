@@ -126,6 +126,8 @@
     <string name="no_sharees_found">Keine Benutzer oder Gruppen gefunden</string>
     <string name="list_read_only_hint">Diese Liste wurde schreibgeschützt mit dir geteilt</string>
     <string name="shared_with_you">Mit dir geteilt</string>
+    <string name="shared_by_you">Von dir geteilt</string>
+    <string name="sharee_type_group">Gruppe</string>
     <string name="error_share_failed">Teilen fehlgeschlagen. Bitte versuche es erneut.</string>
     <string name="error_share_forbidden">Du hast keine Berechtigung, diese Liste zu teilen.</string>
     <string name="share_success">Benutzer erfolgreich hinzugefügt</string>
