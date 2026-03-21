@@ -21,4 +21,7 @@ interface TagsDao {
 
     @Query("SELECT updated_at FROM tags WHERE id = :tagId LIMIT 1")
     suspend fun getUpdatedAt(tagId: String): Instant?
+
+    @Query("SELECT * FROM tags WHERE name = :name LIMIT 1")
+    suspend fun getTagByName(name: String): TagEntity?
 }

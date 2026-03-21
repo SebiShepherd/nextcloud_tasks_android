@@ -36,7 +36,8 @@ class VTodoGenerator
             val uid = task.uid ?: UUID.randomUUID().toString()
             vtodo.properties.add(Uid(uid))
 
-            // DTSTAMP - current timestamp
+            // DTSTAMP - current timestamp (remove any pre-existing to avoid duplicates)
+            vtodo.properties.removeIf { it is DtStamp }
             vtodo.properties.add(DtStamp(DateTime()))
 
             // SUMMARY - task title (always include for CalDAV compatibility)
@@ -60,7 +61,13 @@ class VTodoGenerator
                     vtodo.properties.add(Completed(DateTime(java.util.Date.from(completedAt))))
                 }
             } else {
-                vtodo.properties.add(Status.VTODO_NEEDS_ACTION)
+                val statusProp =
+                    when (task.status?.uppercase()) {
+                        "IN-PROCESS" -> Status.VTODO_IN_PROCESS
+                        "CANCELLED" -> Status.VTODO_CANCELLED
+                        else -> Status.VTODO_NEEDS_ACTION
+                    }
+                vtodo.properties.add(statusProp)
             }
 
             // PRIORITY

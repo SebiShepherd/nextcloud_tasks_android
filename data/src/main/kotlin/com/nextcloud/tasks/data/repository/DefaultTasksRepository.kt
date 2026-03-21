@@ -513,6 +513,7 @@ class DefaultTasksRepository
 
                 // Fetch tasks from each collection
                 val allTasks = mutableListOf<TaskEntity>()
+                val allCategories = mutableMapOf<String, List<String>>()
                 collections.forEach { collection ->
                     val todosResult = calDavService.fetchTodosFromCollection(baseUrl, collection.href)
                     if (todosResult.isSuccess) {
@@ -521,7 +522,7 @@ class DefaultTasksRepository
 
                         todos.forEach { todo ->
                             // Each server response contains one complete VCALENDAR with one VTODO
-                            val taskEntity =
+                            val parsed =
                                 vTodoParser.parseVTodo(
                                     icalData = todo.calendarData,
                                     accountId = accountId,
@@ -529,8 +530,11 @@ class DefaultTasksRepository
                                     href = todo.href,
                                     etag = todo.etag,
                                 )
-                            if (taskEntity != null) {
-                                allTasks.add(taskEntity)
+                            if (parsed != null) {
+                                allTasks.add(parsed.entity)
+                                if (parsed.categories.isNotEmpty()) {
+                                    allCategories[parsed.entity.id] = parsed.categories
+                                }
                             }
                         }
                     } else {
@@ -579,7 +583,7 @@ class DefaultTasksRepository
                     }
 
                     upsertTaskLists(taskLists)
-                    upsertTasksFromCalDav(allTasks)
+                    upsertTasksFromCalDav(allTasks, allCategories)
                 }
             }
 
@@ -615,7 +619,10 @@ class DefaultTasksRepository
          * - Existing task with same etag: skip (no changes)
          * - Existing task with different etag: perform field-level merge
          */
-        private suspend fun upsertTasksFromCalDav(tasks: List<TaskEntity>) {
+        private suspend fun upsertTasksFromCalDav(
+            tasks: List<TaskEntity>,
+            allCategories: Map<String, List<String>> = emptyMap(),
+        ) {
             tasks.forEach { serverTask ->
                 val localTask = tasksDao.getTaskEntity(serverTask.id)
 
@@ -627,6 +634,7 @@ class DefaultTasksRepository
                         )
                     tasksDao.upsertTask(taskWithSnapshot)
                     tasksDao.clearTagsForTask(serverTask.id)
+                    syncTagsForTask(serverTask.id, allCategories[serverTask.id] ?: emptyList())
                 } else if (localTask.etag != null && localTask.etag == serverTask.etag) {
                     // Same etag — no server changes
                     // But update account_id, listId, or missing baseSnapshot (schema migration backfill)
@@ -650,8 +658,41 @@ class DefaultTasksRepository
                     val merged = taskFieldMerger.mergeTask(serverTask, localTask)
                     tasksDao.upsertTask(merged)
                     tasksDao.clearTagsForTask(serverTask.id)
+                    syncTagsForTask(serverTask.id, allCategories[serverTask.id] ?: emptyList())
                 }
             }
+        }
+
+        private suspend fun syncTagsForTask(
+            taskId: String,
+            categoryNames: List<String>,
+        ) {
+            if (categoryNames.isEmpty()) return
+            val tagIds =
+                categoryNames.map { name ->
+                    val existing = tagsDao.getTagByName(name)
+                    if (existing != null) {
+                        existing.id
+                    } else {
+                        val newTag =
+                            com.nextcloud.tasks.data.database.entity.TagEntity(
+                                id =
+                                    java.util.UUID
+                                        .randomUUID()
+                                        .toString(),
+                                name = name,
+                                updatedAt = java.time.Instant.now(),
+                            )
+                        tagsDao.upsertTag(newTag)
+                        newTag.id
+                    }
+                }
+            tasksDao.upsertTaskTagCrossRefs(
+                tagIds.map {
+                    com.nextcloud.tasks.data.database.entity
+                        .TaskTagCrossRef(taskId, it)
+                },
+            )
         }
 
         override suspend fun clearAccountData(accountId: String) =

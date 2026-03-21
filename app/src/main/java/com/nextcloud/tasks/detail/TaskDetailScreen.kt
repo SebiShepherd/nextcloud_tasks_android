@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
@@ -36,6 +37,8 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -52,6 +55,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -61,7 +65,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -141,6 +144,7 @@ fun TaskDetailScreen(
                 onUpdateDueDate = viewModel::updateDueDate,
                 onUpdatePriority = viewModel::updatePriority,
                 onUpdatePercentComplete = viewModel::updatePercentComplete,
+                onUpdateStatus = viewModel::updateStatus,
                 onUpdateLocation = viewModel::updateLocation,
                 onUpdateUrl = viewModel::updateUrl,
                 onUpdateTags = viewModel::updateTags,
@@ -186,6 +190,7 @@ private fun TaskDetailContent(
     onUpdateDescription: (String?) -> Unit,
     onUpdateStartDate: (Instant?) -> Unit,
     onUpdateDueDate: (Instant?) -> Unit,
+    onUpdateStatus: (String?) -> Unit,
     onUpdatePriority: (Int?) -> Unit,
     onUpdatePercentComplete: (Int?) -> Unit,
     onUpdateLocation: (String?) -> Unit,
@@ -194,10 +199,11 @@ private fun TaskDetailContent(
     onDeleteClick: () -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = listOf(
-        stringResource(R.string.task_detail_tab_details),
-        stringResource(R.string.task_detail_tab_notes),
-    )
+    val tabs =
+        listOf(
+            stringResource(R.string.task_detail_tab_details),
+            stringResource(R.string.task_detail_tab_notes),
+        )
 
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()),
@@ -236,6 +242,7 @@ private fun TaskDetailContent(
                     isReadOnly = isReadOnly,
                     onUpdateStartDate = onUpdateStartDate,
                     onUpdateDueDate = onUpdateDueDate,
+                    onUpdateStatus = onUpdateStatus,
                     onUpdatePriority = onUpdatePriority,
                     onUpdatePercentComplete = onUpdatePercentComplete,
                     onUpdateLocation = onUpdateLocation,
@@ -255,23 +262,24 @@ private fun TaskDetailContent(
         if (!isReadOnly) {
             OutlinedButton(
                 onClick = onDeleteClick,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                MaterialTheme.colorScheme.error,
-            ),
-        ) {
-            Icon(
-                Icons.Default.Delete,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                stringResource(R.string.task_detail_delete),
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                border =
+                    androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.error,
+                    ),
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.task_detail_delete),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         Spacer(Modifier.height(24.dp))
@@ -319,6 +327,7 @@ private fun DetailsTab(
     isReadOnly: Boolean,
     onUpdateStartDate: (Instant?) -> Unit,
     onUpdateDueDate: (Instant?) -> Unit,
+    onUpdateStatus: (String?) -> Unit,
     onUpdatePriority: (Int?) -> Unit,
     onUpdatePercentComplete: (Int?) -> Unit,
     onUpdateLocation: (String?) -> Unit,
@@ -326,6 +335,15 @@ private fun DetailsTab(
     onUpdateTags: (List<Tag>) -> Unit,
 ) {
     Column {
+        // Status
+        StatusRow(
+            status = task.status,
+            enabled = !isReadOnly,
+            onStatusSelected = onUpdateStatus,
+        )
+
+        HorizontalDivider()
+
         // Start date
         DateDetailRow(
             icon = Icons.Default.CalendarToday,
@@ -419,6 +437,81 @@ private fun DetailsTab(
     }
 }
 
+@Composable
+private fun StatusRow(
+    status: String?,
+    enabled: Boolean = true,
+    onStatusSelected: (String?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val currentLabel =
+        when (status?.uppercase()) {
+            "IN-PROCESS" -> stringResource(R.string.task_detail_status_in_process)
+            "CANCELLED" -> stringResource(R.string.task_detail_status_cancelled)
+            "COMPLETED" -> stringResource(R.string.task_detail_status_completed)
+            else -> stringResource(R.string.task_detail_status_needs_action)
+        }
+
+    Box {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .then(if (enabled) Modifier.clickable { expanded = true } else Modifier)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                Icons.Default.AssignmentTurnedIn,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.task_detail_status),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = currentLabel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.task_detail_status_needs_action)) },
+                onClick = {
+                    expanded = false
+                    onStatusSelected("NEEDS-ACTION")
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.task_detail_status_in_process)) },
+                onClick = {
+                    expanded = false
+                    onStatusSelected("IN-PROCESS")
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.task_detail_status_cancelled)) },
+                onClick = {
+                    expanded = false
+                    onStatusSelected("CANCELLED")
+                },
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateDetailRow(
@@ -429,9 +522,10 @@ private fun DateDetailRow(
     onDateSelected: (Instant?) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
-    val dateState = rememberDatePickerState(
-        initialSelectedDateMillis = date?.toEpochMilli(),
-    )
+    val dateState =
+        rememberDatePickerState(
+            initialSelectedDateMillis = date?.toEpochMilli(),
+        )
 
     Row(
         modifier =
@@ -511,13 +605,19 @@ private fun PriorityRow(
     onPrioritySelected: (Int?) -> Unit,
 ) {
     val prio = priority ?: 0
+    var sliderValue by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(prio.toFloat()) }
+
+    // Keep slider in sync when priority changes externally (e.g. after server sync)
+    androidx.compose.runtime.LaunchedEffect(priority) {
+        sliderValue = prio.toFloat()
+    }
 
     val priorityLabel =
         when {
-            prio == 0 -> stringResource(R.string.task_detail_no_priority)
-            prio in 1..4 -> stringResource(R.string.task_detail_priority_high)
-            prio == 5 -> stringResource(R.string.task_detail_priority_medium)
-            prio in 6..9 -> stringResource(R.string.task_detail_priority_low)
+            sliderValue.toInt() == 0 -> stringResource(R.string.task_detail_no_priority)
+            sliderValue.toInt() in 1..4 -> stringResource(R.string.task_detail_priority_high)
+            sliderValue.toInt() == 5 -> stringResource(R.string.task_detail_priority_medium)
+            sliderValue.toInt() in 6..9 -> stringResource(R.string.task_detail_priority_low)
             else -> stringResource(R.string.task_detail_no_priority)
         }
 
@@ -526,23 +626,24 @@ private fun PriorityRow(
     ) {
         Text(
             text =
-                if (prio == 0) {
+                if (sliderValue.toInt() == 0) {
                     priorityLabel
                 } else {
-                    "$priorityLabel ($prio)"
+                    "$priorityLabel (${sliderValue.toInt()})"
                 },
             style = MaterialTheme.typography.bodyMedium,
             color =
-                if (priority != null && priority > 0) {
+                if (sliderValue.toInt() > 0) {
                     MaterialTheme.colorScheme.onSurface
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
         )
         Slider(
-            value = prio.toFloat(),
-            onValueChange = { newVal ->
-                val intVal = newVal.toInt()
+            value = sliderValue,
+            onValueChange = { sliderValue = it },
+            onValueChangeFinished = {
+                val intVal = sliderValue.toInt()
                 onPrioritySelected(if (intVal == 0) null else intVal)
             },
             enabled = enabled,
@@ -560,18 +661,25 @@ private fun PercentCompleteRow(
     onPercentChange: (Int?) -> Unit,
 ) {
     val pct = percentComplete ?: 0
+    var sliderPct by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(pct.toFloat()) }
+
+    // Keep slider in sync when percentComplete changes externally
+    androidx.compose.runtime.LaunchedEffect(percentComplete) {
+        sliderPct = pct.toFloat()
+    }
 
     Column(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         Text(
-            text = stringResource(R.string.task_detail_percent_complete, pct),
+            text = stringResource(R.string.task_detail_percent_complete, sliderPct.toInt()),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Slider(
-            value = pct.toFloat(),
-            onValueChange = { onPercentChange(it.toInt()) },
+            value = sliderPct,
+            onValueChange = { sliderPct = it },
+            onValueChangeFinished = { onPercentChange(sliderPct.toInt()) },
             enabled = enabled,
             valueRange = 0f..100f,
             steps = 9,
@@ -593,10 +701,12 @@ private fun TextDetailRow(
     var editValue by remember(value) { mutableStateOf(value ?: "") }
     val focusRequester = remember { FocusRequester() }
 
-    // Auto-focus when entering edit mode
+    // Auto-focus when entering edit mode — delay allows Compose to lay out
+    // the BasicTextField (inside the if-isEditing branch) before requesting focus.
     LaunchedEffect(isEditing) {
         if (isEditing) {
-            focusRequester.requestFocus()
+            kotlinx.coroutines.delay(50L)
+            runCatching { focusRequester.requestFocus() }
         }
     }
 
@@ -731,19 +841,40 @@ private fun TagsRow(
         }
     }
 
-    if (showPicker && enabled && availableTags.isNotEmpty()) {
+    if (showPicker && enabled) {
         AlertDialog(
             onDismissRequest = { showPicker = false },
             title = { Text(stringResource(R.string.task_detail_tags)) },
             text = {
-                Column {
-                    availableTags.forEach { tag ->
-                        val isSelected = selectedTags.any { it.id == tag.id }
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
+                if (availableTags.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.task_detail_no_tags_available),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Column {
+                        availableTags.forEach { tag ->
+                            val isSelected = selectedTags.any { it.id == tag.id }
+                            Row(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val newTags =
+                                                if (isSelected) {
+                                                    selectedTags.filter { it.id != tag.id }
+                                                } else {
+                                                    selectedTags + tag
+                                                }
+                                            onTagsChange(newTags)
+                                        }.padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
                                         val newTags =
                                             if (isSelected) {
                                                 selectedTags.filter { it.id != tag.id }
@@ -751,24 +882,10 @@ private fun TagsRow(
                                                 selectedTags + tag
                                             }
                                         onTagsChange(newTags)
-                                    }
-                                    .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = {
-                                    val newTags =
-                                        if (isSelected) {
-                                            selectedTags.filter { it.id != tag.id }
-                                        } else {
-                                            selectedTags + tag
-                                        }
-                                    onTagsChange(newTags)
-                                },
-                                label = { Text(tag.name) },
-                            )
+                                    },
+                                    label = { Text(tag.name) },
+                                )
+                            }
                         }
                     }
                 }

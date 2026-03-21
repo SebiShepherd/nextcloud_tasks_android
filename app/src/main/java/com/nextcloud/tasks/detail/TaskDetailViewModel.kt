@@ -137,6 +137,17 @@ class TaskDetailViewModel
             viewModelScope.launch { saveTask(_task.value ?: return@launch) }
         }
 
+        fun updateStatus(status: String?) {
+            val current = _task.value ?: return
+            val updated =
+                current.copy(
+                    status = status,
+                    completed = status == "COMPLETED",
+                )
+            _task.value = updated
+            viewModelScope.launch { saveTask(updated) }
+        }
+
         fun deleteTask(onDeleted: () -> Unit) {
             viewModelScope.launch {
                 try {

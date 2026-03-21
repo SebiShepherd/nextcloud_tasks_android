@@ -161,7 +161,13 @@
     <string name="task_detail_tab_notes">Notes</string>
     <string name="task_detail_start_date">Set start date</string>
     <string name="task_detail_due_date">Set due date</string>
-    <string name="task_detail_action_section">Action required</string>
+    <string name="task_detail_action_section">Priority</string>
+    <string name="task_detail_status">Status</string>
+    <string name="task_detail_status_needs_action">Needs action</string>
+    <string name="task_detail_status_in_process">In progress</string>
+    <string name="task_detail_status_cancelled">Cancelled</string>
+    <string name="task_detail_status_completed">Completed</string>
+    <string name="task_detail_no_tags_available">No tags available. Sync to load tags from server.</string>
     <string name="task_detail_no_priority">No priority assigned</string>
     <string name="task_detail_priority_none">None</string>
     <string name="task_detail_priority_low">Low</string>

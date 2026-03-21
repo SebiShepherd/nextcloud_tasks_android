@@ -114,11 +114,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.nextcloud.tasks.auth.LoginFlowUiState
 import com.nextcloud.tasks.auth.LoginFlowViewModel
 import com.nextcloud.tasks.auth.ServerInputScreen
 import com.nextcloud.tasks.data.caldav.service.CalDavHttpException
+import com.nextcloud.tasks.detail.TaskDetailScreen
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.model.ShareAccess
 import com.nextcloud.tasks.domain.model.Sharee
@@ -130,10 +134,6 @@ import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
 import com.nextcloud.tasks.domain.usecase.ShareListUseCase
 import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.nextcloud.tasks.detail.TaskDetailScreen
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -527,7 +527,7 @@ fun AuthenticatedHome(
             }
             composable("task/{taskId}") {
                 TaskDetailScreen(
-                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateBack = { navController.navigateUp() },
                 )
             }
         }
