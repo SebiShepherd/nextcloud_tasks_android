@@ -123,10 +123,18 @@ class VTodoGenerator
 
             // URL
             task.url?.let { url ->
-                vtodo.properties.add(
-                    net.fortuna.ical4j.model.property
-                        .Url(java.net.URI.create(url)),
-                )
+                val uri =
+                    try {
+                        java.net.URI(url)
+                    } catch (e: java.net.URISyntaxException) {
+                        null
+                    }
+                if (uri != null) {
+                    vtodo.properties.add(
+                        net.fortuna.ical4j.model.property
+                            .Url(uri),
+                    )
+                }
             }
 
             // PERCENT-COMPLETE

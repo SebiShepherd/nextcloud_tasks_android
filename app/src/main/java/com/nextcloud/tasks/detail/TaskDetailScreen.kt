@@ -643,11 +643,13 @@ private fun DateDetailRow(
                     onClick = {
                         showDatePicker = false
                         dateState.selectedDateMillis?.let { millis ->
-                            // Keep the previously selected time when changing date
+                            // Keep the previously selected time when changing date.
+                            // DatePickerState returns midnight UTC, so convert via UTC
+                            // to avoid off-by-one day in negative UTC-offset time zones.
                             val selectedLocalDate =
                                 Instant
                                     .ofEpochMilli(millis)
-                                    .atZone(localZone)
+                                    .atZone(java.time.ZoneOffset.UTC)
                                     .toLocalDate()
                             val hour = zonedDate?.hour ?: 0
                             val minute = zonedDate?.minute ?: 0
@@ -826,7 +828,7 @@ private fun TextDetailRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .then(if (enabled) Modifier.clickable { isEditing = true } else Modifier)
+                .then(if (enabled && !isEditing) Modifier.clickable { isEditing = true } else Modifier)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

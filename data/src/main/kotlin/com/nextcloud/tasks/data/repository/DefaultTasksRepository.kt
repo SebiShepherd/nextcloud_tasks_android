@@ -281,14 +281,16 @@ class DefaultTasksRepository
                 val syncTask = task.copy(etag = freshEtag, href = freshHref)
 
                 // Sync with server in background
-                if (networkMonitor.isCurrentlyOnline() && freshHref != null) {
+                if (freshHref == null) {
+                    // Task not yet on server; a pending CREATE op handles the initial push.
+                    Timber.d("Task ${task.id} has no href yet; local update only")
+                } else if (networkMonitor.isCurrentlyOnline()) {
                     backgroundScope.launch {
                         syncTaskToServer(syncTask, taskEntity)
                     }
                 } else {
-                    // Queue for later sync when offline or no href yet
                     pendingOperationsManager.queueUpdateOperation(taskEntity)
-                    Timber.d("Task ${task.id} queued for sync (offline or no href)")
+                    Timber.d("Task ${task.id} queued for sync (offline)")
                 }
 
                 getTask(task.id) ?: error("Updated task missing from local database")

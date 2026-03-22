@@ -79,6 +79,14 @@ class PendingOperationsManager
          */
         suspend fun queueUpdateOperation(task: TaskEntity) =
             withContext(ioDispatcher) {
+                if (task.href == null) {
+                    // Task has never been synced to the server yet; a pending CREATE op
+                    // (if queued earlier) will push all current local data when connectivity
+                    // returns. Queuing an UPDATE with href=null would create a stuck op.
+                    Timber.d("Skipping UPDATE queue for task ${task.id}: no href yet")
+                    return@withContext
+                }
+
                 val accountId =
                     authTokenProvider.activeAccountId() ?: run {
                         Timber.w("No active account, cannot queue operation")
