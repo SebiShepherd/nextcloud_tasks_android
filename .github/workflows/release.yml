@@ -140,9 +140,9 @@ jobs:
           NOTES_DIR="app/src/main/play/release-notes"
           PREV_TAG=$(git describe --tags --abbrev=0 ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
 
-          # Collect commits
+          # Collect commits (capped at 3000 chars to keep the API payload manageable)
           if [ -n "$PREV_TAG" ]; then
-            COMMITS=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges)
+            COMMITS=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | head -c 3000)
           else
             COMMITS=""
           fi
@@ -155,6 +155,7 @@ jobs:
               --arg commits "$COMMITS" \
               '{
                 model: "grok-3-mini-fast",
+                response_format: {type: "json_object"},
                 messages: [
                   {
                     role: "system",
@@ -179,8 +180,8 @@ jobs:
               DE_NOTES=$(echo "$CONTENT" | jq -r '.de // empty' 2>/dev/null || echo "")
 
               if [ -n "$EN_NOTES" ] && [ -n "$DE_NOTES" ]; then
-                printf '%s' "${EN_NOTES:0:500}" > "${NOTES_DIR}/en-US/default.txt"
-                printf '%s' "${DE_NOTES:0:500}" > "${NOTES_DIR}/de-DE/default.txt"
+                printf '%s' "${EN_NOTES:0:450}" > "${NOTES_DIR}/en-US/default.txt"
+                printf '%s' "${DE_NOTES:0:450}" > "${NOTES_DIR}/de-DE/default.txt"
                 GROK_SUCCESS=true
                 echo "✓ Release notes generated via Grok API"
               fi
