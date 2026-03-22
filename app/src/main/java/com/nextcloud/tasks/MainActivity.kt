@@ -2129,7 +2129,7 @@ private fun TaskCard(
     // CANCELLED tasks are treated as completed for display purposes.
     val isCancelledTask = task.status?.uppercase() == "CANCELLED"
     val localCompleted = task.completed || isCancelledTask
-    val locale = androidx.compose.ui.platform.LocalContext.current.resources.configuration.locales[0]
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val shortDateFormatter =
         remember(locale) {
             val pattern =

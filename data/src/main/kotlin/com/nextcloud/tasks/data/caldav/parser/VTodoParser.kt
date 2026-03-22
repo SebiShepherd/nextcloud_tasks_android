@@ -45,7 +45,12 @@ class VTodoParser
                 val relatedTo = vtodo.getProperty<net.fortuna.ical4j.model.property.RelatedTo>("RELATED-TO")
                 val parentUid = relatedTo?.value
 
-                val startDate = vtodo.getProperty<net.fortuna.ical4j.model.property.DtStart>("DTSTART")?.date?.toInstant()
+                val startDate =
+                    vtodo
+                        .getProperty<net.fortuna.ical4j.model.property.DtStart>(
+                            "DTSTART",
+                        )?.date
+                        ?.toInstant()
                 val location = vtodo.getProperty<net.fortuna.ical4j.model.property.Location>("LOCATION")?.value
                 val url = vtodo.getProperty<net.fortuna.ical4j.model.property.Url>("URL")?.uri?.toString()
                 val percentComplete = vtodo.percentComplete?.percentage
@@ -255,7 +260,12 @@ class VTodoParser
                 val relatedTo = vtodo.getProperty<net.fortuna.ical4j.model.property.RelatedTo>("RELATED-TO")
                 val parentUid = relatedTo?.value
 
-                val startDate = vtodo.getProperty<net.fortuna.ical4j.model.property.DtStart>("DTSTART")?.date?.toInstant()
+                val startDate =
+                    vtodo
+                        .getProperty<net.fortuna.ical4j.model.property.DtStart>(
+                            "DTSTART",
+                        )?.date
+                        ?.toInstant()
                 val location = vtodo.getProperty<net.fortuna.ical4j.model.property.Location>("LOCATION")?.value
                 val url = vtodo.getProperty<net.fortuna.ical4j.model.property.Url>("URL")?.uri?.toString()
                 val percentComplete = vtodo.percentComplete?.percentage

@@ -24,6 +24,7 @@ class VTodoGenerator
         /**
          * Generate a complete iCalendar with VTODO for a task
          */
+        @Suppress("LongMethod") // flat property-builder; extracting helpers adds indirection without clarity
         fun generateVTodo(task: Task): String {
             val calendar = Calendar()
             calendar.properties.add(ProdId("-//Nextcloud Tasks Android//EN"))
@@ -126,7 +127,7 @@ class VTodoGenerator
                 val uri =
                     try {
                         java.net.URI(url)
-                    } catch (e: java.net.URISyntaxException) {
+                    } catch (_: java.net.URISyntaxException) {
                         null
                     }
                 if (uri != null) {

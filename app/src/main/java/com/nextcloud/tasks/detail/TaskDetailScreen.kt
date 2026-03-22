@@ -82,6 +82,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -551,7 +552,7 @@ private fun DateDetailRow(
     val localZone = ZoneId.systemDefault()
     val zonedDate = remember(date) { date?.atZone(localZone) }
 
-    val locale = LocalContext.current.resources.configuration.locales[0]
+    val locale = LocalConfiguration.current.locales[0]
     val dateFormatter =
         remember(locale) {
             val pattern =
@@ -711,7 +712,11 @@ private fun PriorityRow(
     onPrioritySelected: (Int?) -> Unit,
 ) {
     val prio = priority ?: 0
-    var sliderValue by androidx.compose.runtime.remember { androidx.compose.runtime.mutableFloatStateOf(prio.toFloat()) }
+    var sliderValue by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableFloatStateOf(
+            prio.toFloat(),
+        )
+    }
 
     // Keep slider in sync when priority changes externally (e.g. after server sync)
     androidx.compose.runtime.LaunchedEffect(priority) {

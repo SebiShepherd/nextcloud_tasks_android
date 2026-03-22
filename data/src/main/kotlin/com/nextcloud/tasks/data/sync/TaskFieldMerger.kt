@@ -135,7 +135,12 @@ class TaskFieldMerger
                 mergeField("location", baseSnapshot.location, localTask.location, serverTask.location)
             val mergedUrl = mergeField("url", baseSnapshot.url, localTask.url, serverTask.url)
             val mergedPercentComplete =
-                mergeField("percentComplete", baseSnapshot.percentComplete, localTask.percentComplete, serverTask.percentComplete)
+                mergeField(
+                    "percentComplete",
+                    baseSnapshot.percentComplete,
+                    localTask.percentComplete,
+                    serverTask.percentComplete,
+                )
 
             // Build merged entity — use server's etag/href/updatedAt as canonical
             val merged =
