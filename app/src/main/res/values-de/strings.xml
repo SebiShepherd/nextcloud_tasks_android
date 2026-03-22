@@ -154,4 +154,37 @@
     <string name="offline_message">Du bist aktuell offline. Deine Änderungen werden synchronisiert, sobald du wieder online bist.</string>
     <string name="syncing_pending_changes">Ausstehende Änderungen werden synchronisiert\u2026</string>
     <string name="sync_complete">Alle Änderungen synchronisiert</string>
+
+    <!-- Task Detail View -->
+    <string name="task_detail_title_hint">Aufgabentitel</string>
+    <string name="task_detail_tab_details">Details</string>
+    <string name="task_detail_tab_notes">Notizen</string>
+    <string name="task_detail_start_date">Startdatum festlegen</string>
+    <string name="task_detail_due_date">Fälligkeitsdatum festlegen</string>
+    <string name="task_detail_action_section">Dringlichkeit</string>
+    <string name="task_detail_status">Status</string>
+    <string name="task_detail_status_needs_action">Offen</string>
+    <string name="task_detail_status_in_process">In Bearbeitung</string>
+    <string name="task_detail_status_cancelled">Abgebrochen</string>
+    <string name="task_detail_status_completed">Abgeschlossen</string>
+    <string name="task_detail_no_tags_available">Noch keine Tags. Oben eingeben, um einen zu erstellen.</string>
+    <string name="task_detail_new_tag_label">Neues Tag</string>
+    <string name="task_detail_no_priority">Keine Dringlichkeit zugewiesen</string>
+    <string name="task_detail_priority_none">Keine</string>
+    <string name="task_detail_priority_low">Niedrig</string>
+    <string name="task_detail_priority_medium">Mittel</string>
+    <string name="task_detail_priority_high">Hoch</string>
+    <string name="task_detail_percent_complete">%1$d%% abgeschlossen</string>
+    <string name="task_detail_location">Standort festlegen</string>
+    <string name="task_detail_url">URL festlegen</string>
+    <string name="task_detail_tags">Tags auswählen</string>
+    <string name="task_detail_no_tags">Keine Tags</string>
+    <string name="task_detail_delete">Aufgabe löschen</string>
+    <string name="task_detail_delete_confirm_title">Aufgabe löschen?</string>
+    <string name="task_detail_delete_confirm_body">Diese Aktion kann nicht rückgängig gemacht werden.</string>
+    <string name="task_detail_notes_hint">Notizen hinzufügen\u2026</string>
+    <string name="task_detail_clear_date">Datum löschen</string>
+    <string name="task_detail_select_time">Uhrzeit auswählen</string>
+    <string name="task_detail_back">Zurück</string>
+    <string name="task_due_label">Fällig: %1$s</string>
 </resources>

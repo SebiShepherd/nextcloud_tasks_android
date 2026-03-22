@@ -31,4 +31,12 @@ data class TaskEntity(
     val parentUid: String?,
     @ColumnInfo(name = "base_snapshot", defaultValue = "NULL")
     val baseSnapshot: String? = null,
+    @ColumnInfo(name = "start_date", defaultValue = "NULL")
+    val startDate: Instant? = null,
+    @ColumnInfo(name = "location", defaultValue = "NULL")
+    val location: String? = null,
+    @ColumnInfo(name = "url", defaultValue = "NULL")
+    val url: String? = null,
+    @ColumnInfo(name = "percent_complete", defaultValue = "NULL")
+    val percentComplete: Int? = null,
 )

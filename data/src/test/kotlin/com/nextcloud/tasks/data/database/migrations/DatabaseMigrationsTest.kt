@@ -8,7 +8,7 @@ class DatabaseMigrationsTest {
     fun `all migrations in order`() {
         val all = DatabaseMigrations.all
 
-        assertEquals(6, all.size)
+        assertEquals(7, all.size)
         assertEquals(1, all[0].startVersion)
         assertEquals(2, all[0].endVersion)
         assertEquals(2, all[1].startVersion)
@@ -21,6 +21,8 @@ class DatabaseMigrationsTest {
         assertEquals(6, all[4].endVersion)
         assertEquals(6, all[5].startVersion)
         assertEquals(7, all[5].endVersion)
+        assertEquals(7, all[6].startVersion)
+        assertEquals(8, all[6].endVersion)
     }
 
     @Test
@@ -57,6 +59,12 @@ class DatabaseMigrationsTest {
     fun `MIGRATION_6_7 has correct version range`() {
         assertEquals(6, DatabaseMigrations.MIGRATION_6_7.startVersion)
         assertEquals(7, DatabaseMigrations.MIGRATION_6_7.endVersion)
+    }
+
+    @Test
+    fun `MIGRATION_7_8 has correct version range`() {
+        assertEquals(7, DatabaseMigrations.MIGRATION_7_8.startVersion)
+        assertEquals(8, DatabaseMigrations.MIGRATION_7_8.endVersion)
     }
 
     @Test

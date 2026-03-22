@@ -21,6 +21,10 @@ data class TaskSnapshot(
     val status: String?,
     val completedAt: Long?,
     val parentUid: String?,
+    val startDate: Long? = null,
+    val location: String? = null,
+    val url: String? = null,
+    val percentComplete: Int? = null,
 )
 
 /**
@@ -59,6 +63,10 @@ class TaskFieldMerger
                     status = task.status,
                     completedAt = task.completedAt?.toEpochMilli(),
                     parentUid = task.parentUid,
+                    startDate = task.startDate?.toEpochMilli(),
+                    location = task.location,
+                    url = task.url,
+                    percentComplete = task.percentComplete,
                 ),
             )
 
@@ -121,6 +129,18 @@ class TaskFieldMerger
                 )
             val mergedParentUid =
                 mergeField("parentUid", baseSnapshot.parentUid, localTask.parentUid, serverTask.parentUid)
+            val mergedStartDate =
+                mergeField("startDate", fromEpoch(baseSnapshot.startDate), localTask.startDate, serverTask.startDate)
+            val mergedLocation =
+                mergeField("location", baseSnapshot.location, localTask.location, serverTask.location)
+            val mergedUrl = mergeField("url", baseSnapshot.url, localTask.url, serverTask.url)
+            val mergedPercentComplete =
+                mergeField(
+                    "percentComplete",
+                    baseSnapshot.percentComplete,
+                    localTask.percentComplete,
+                    serverTask.percentComplete,
+                )
 
             // Build merged entity — use server's etag/href/updatedAt as canonical
             val merged =
@@ -133,6 +153,10 @@ class TaskFieldMerger
                     status = mergedStatus,
                     completedAt = mergedCompletedAt,
                     parentUid = mergedParentUid,
+                    startDate = mergedStartDate,
+                    location = mergedLocation,
+                    url = mergedUrl,
+                    percentComplete = mergedPercentComplete,
                     baseSnapshot = createSnapshot(serverTask),
                 )
 

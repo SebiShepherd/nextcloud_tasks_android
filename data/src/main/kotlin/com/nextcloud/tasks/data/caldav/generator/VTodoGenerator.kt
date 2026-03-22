@@ -24,6 +24,7 @@ class VTodoGenerator
         /**
          * Generate a complete iCalendar with VTODO for a task
          */
+        @Suppress("LongMethod") // flat property-builder; extracting helpers adds indirection without clarity
         fun generateVTodo(task: Task): String {
             val calendar = Calendar()
             calendar.properties.add(ProdId("-//Nextcloud Tasks Android//EN"))
@@ -36,7 +37,8 @@ class VTodoGenerator
             val uid = task.uid ?: UUID.randomUUID().toString()
             vtodo.properties.add(Uid(uid))
 
-            // DTSTAMP - current timestamp
+            // DTSTAMP - current timestamp (remove any pre-existing to avoid duplicates)
+            vtodo.properties.removeIf { it is DtStamp }
             vtodo.properties.add(DtStamp(DateTime()))
 
             // SUMMARY - task title (always include for CalDAV compatibility)
@@ -60,7 +62,13 @@ class VTodoGenerator
                     vtodo.properties.add(Completed(DateTime(java.util.Date.from(completedAt))))
                 }
             } else {
-                vtodo.properties.add(Status.VTODO_NEEDS_ACTION)
+                val statusProp =
+                    when (task.status?.uppercase()) {
+                        "IN-PROCESS" -> Status.VTODO_IN_PROCESS
+                        "CANCELLED" -> Status.VTODO_CANCELLED
+                        else -> Status.VTODO_NEEDS_ACTION
+                    }
+                vtodo.properties.add(statusProp)
             }
 
             // PRIORITY
@@ -95,6 +103,46 @@ class VTodoGenerator
                 vtodo.properties.add(
                     net.fortuna.ical4j.model.property
                         .RelatedTo(parentUid),
+                )
+            }
+
+            // DTSTART (start date)
+            task.startDate?.let { startDate ->
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .DtStart(DateTime(java.util.Date.from(startDate))),
+                )
+            }
+
+            // LOCATION
+            task.location?.let { location ->
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .Location(location),
+                )
+            }
+
+            // URL
+            task.url?.let { url ->
+                val uri =
+                    try {
+                        java.net.URI(url)
+                    } catch (_: java.net.URISyntaxException) {
+                        null
+                    }
+                if (uri != null) {
+                    vtodo.properties.add(
+                        net.fortuna.ical4j.model.property
+                            .Url(uri),
+                    )
+                }
+            }
+
+            // PERCENT-COMPLETE
+            task.percentComplete?.let { pct ->
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .PercentComplete(pct),
                 )
             }
 

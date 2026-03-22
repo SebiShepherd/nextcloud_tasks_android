@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.data.caldav.parser
 
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -29,18 +30,18 @@ class VTodoParserTest {
             END:VCALENDAR
             """.trimIndent()
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNotNull(task)
-        assertEquals("task-123", task.id)
-        assertEquals("task-123", task.uid)
-        assertEquals(accountId, task.accountId)
-        assertEquals(listId, task.listId)
-        assertEquals("Buy groceries", task.title)
-        assertNull(task.description)
-        assertEquals(false, task.completed)
-        assertEquals(href, task.href)
-        assertEquals(etag, task.etag)
+        assertNotNull(result)
+        assertEquals("task-123", result.entity.id)
+        assertEquals("task-123", result.entity.uid)
+        assertEquals(accountId, result.entity.accountId)
+        assertEquals(listId, result.entity.listId)
+        assertEquals("Buy groceries", result.entity.title)
+        assertNull(result.entity.description)
+        assertEquals(false, result.entity.completed)
+        assertEquals(href, result.entity.href)
+        assertEquals(etag, result.entity.etag)
     }
 
     @Test
@@ -59,11 +60,11 @@ class VTodoParserTest {
             END:VCALENDAR
             """.trimIndent()
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNotNull(task)
-        assertEquals("Meeting", task.title)
-        assertEquals("Discuss project timeline", task.description)
+        assertNotNull(result)
+        assertEquals("Meeting", result.entity.title)
+        assertEquals("Discuss project timeline", result.entity.description)
     }
 
     @Test
@@ -83,12 +84,12 @@ class VTodoParserTest {
             END:VCALENDAR
             """.trimIndent()
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNotNull(task)
-        assertEquals(true, task.completed)
-        assertEquals("COMPLETED", task.status)
-        assertNotNull(task.completedAt)
+        assertNotNull(result)
+        assertEquals(true, result.entity.completed)
+        assertEquals("COMPLETED", result.entity.status)
+        assertNotNull(result.entity.completedAt)
     }
 
     @Test
@@ -107,10 +108,10 @@ class VTodoParserTest {
             END:VCALENDAR
             """.trimIndent()
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNotNull(task)
-        assertNotNull(task.due)
+        assertNotNull(result)
+        assertNotNull(result.entity.due)
     }
 
     @Test
@@ -129,10 +130,10 @@ class VTodoParserTest {
             END:VCALENDAR
             """.trimIndent()
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNotNull(task)
-        assertEquals(1, task.priority)
+        assertNotNull(result)
+        assertEquals(1, result.entity.priority)
     }
 
     @Test
@@ -151,10 +152,10 @@ class VTodoParserTest {
             END:VCALENDAR
             """.trimIndent()
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNotNull(task)
-        assertEquals("parent-task-456", task.parentUid)
+        assertNotNull(result)
+        assertEquals("parent-task-456", result.entity.parentUid)
     }
 
     @Test
@@ -171,27 +172,27 @@ class VTodoParserTest {
             END:VCALENDAR
             """.trimIndent()
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNull(task)
+        assertNull(result)
     }
 
     @Test
     fun `parseVTodo with malformed iCalendar returns null`() {
         val icalData = "This is not valid iCalendar data"
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNull(task)
+        assertNull(result)
     }
 
     @Test
     fun `parseVTodo with empty string returns null`() {
         val icalData = ""
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNull(task)
+        assertNull(result)
     }
 
     @Test
@@ -212,7 +213,7 @@ class VTodoParserTest {
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
         assertEquals(1, tasks.size)
-        assertEquals("Single task", tasks[0].title)
+        assertEquals("Single task", tasks[0].entity.title)
     }
 
     @Test
@@ -243,9 +244,9 @@ class VTodoParserTest {
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
         assertEquals(3, tasks.size)
-        assertEquals("First task", tasks[0].title)
-        assertEquals("Second task", tasks[1].title)
-        assertEquals("Third task", tasks[2].title)
+        assertEquals("First task", tasks[0].entity.title)
+        assertEquals("Second task", tasks[1].entity.title)
+        assertEquals("Third task", tasks[2].entity.title)
     }
 
     @Test
@@ -275,8 +276,8 @@ class VTodoParserTest {
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
         assertEquals(2, tasks.size)
-        assertEquals("Task A", tasks[0].title)
-        assertEquals("Task B", tasks[1].title)
+        assertEquals("Task A", tasks[0].entity.title)
+        assertEquals("Task B", tasks[1].entity.title)
     }
 
     @Test
@@ -301,7 +302,7 @@ class VTodoParserTest {
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
         assertEquals(1, tasks.size)
-        assertEquals("Valid task", tasks[0].title)
+        assertEquals("Valid task", tasks[0].entity.title)
     }
 
     @Test
@@ -311,6 +312,166 @@ class VTodoParserTest {
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
         assertTrue(tasks.isEmpty())
+    }
+
+    @Test
+    fun `parseVTodo with DTSTART sets startDate`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-dtstart
+            SUMMARY:Task with start date
+            DTSTART:20231215T090000Z
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals(Instant.parse("2023-12-15T09:00:00Z"), result.entity.startDate)
+    }
+
+    @Test
+    fun `parseVTodo with LOCATION sets location`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-location
+            SUMMARY:Task with location
+            LOCATION:Conference Room A
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals("Conference Room A", result.entity.location)
+    }
+
+    @Test
+    fun `parseVTodo with URL sets url`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-url
+            SUMMARY:Task with URL
+            URL:https://example.com/task
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals("https://example.com/task", result.entity.url)
+    }
+
+    @Test
+    fun `parseVTodo with PERCENT-COMPLETE sets percentComplete`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-percent
+            SUMMARY:Task in progress
+            PERCENT-COMPLETE:75
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals(75, result.entity.percentComplete)
+    }
+
+    @Test
+    fun `parseVTodo with single CATEGORIES tag sets categories list`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-cat-single
+            SUMMARY:Task with one category
+            CATEGORIES:work
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals(listOf("work"), result.categories)
+    }
+
+    @Test
+    fun `parseVTodo with multiple CATEGORIES tags sets all categories`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-cat-multi
+            SUMMARY:Task with multiple categories
+            CATEGORIES:work,project,urgent
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals(3, result.categories.size)
+        assertTrue(result.categories.contains("work"))
+        assertTrue(result.categories.contains("project"))
+        assertTrue(result.categories.contains("urgent"))
+    }
+
+    @Test
+    fun `parseVTodo without new optional fields leaves them null`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-minimal
+            SUMMARY:Minimal task
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertNull(result.entity.startDate)
+        assertNull(result.entity.location)
+        assertNull(result.entity.url)
+        assertNull(result.entity.percentComplete)
+        assertTrue(result.categories.isEmpty())
     }
 
     @Test
@@ -334,17 +495,17 @@ class VTodoParserTest {
             END:VCALENDAR
             """.trimIndent()
 
-        val task = parser.parseVTodo(icalData, accountId, listId, href, etag)
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
 
-        assertNotNull(task)
-        assertEquals("complex-task-123", task.uid)
-        assertEquals("Complex task", task.title)
-        assertNotNull(task.description)
-        assertEquals("IN-PROCESS", task.status)
-        assertEquals(1, task.priority)
-        assertNotNull(task.due)
-        assertNotNull(task.updatedAt)
-        assertEquals("parent-task-789", task.parentUid)
-        assertEquals(false, task.completed) // IN-PROCESS is not COMPLETED
+        assertNotNull(result)
+        assertEquals("complex-task-123", result.entity.uid)
+        assertEquals("Complex task", result.entity.title)
+        assertNotNull(result.entity.description)
+        assertEquals("IN-PROCESS", result.entity.status)
+        assertEquals(1, result.entity.priority)
+        assertNotNull(result.entity.due)
+        assertNotNull(result.entity.updatedAt)
+        assertEquals("parent-task-789", result.entity.parentUid)
+        assertEquals(false, result.entity.completed) // IN-PROCESS is not COMPLETED
     }
 }

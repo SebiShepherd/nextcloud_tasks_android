@@ -191,6 +191,10 @@ class DefaultTasksRepository
                         etag = null,
                         href = null,
                         parentUid = null,
+                        startDate = taskEntity.startDate,
+                        location = taskEntity.location,
+                        url = taskEntity.url,
+                        percentComplete = taskEntity.percentComplete,
                     )
 
                 // Generate iCalendar VTODO
@@ -234,6 +238,11 @@ class DefaultTasksRepository
             withContext(ioDispatcher) {
                 val accountId = authTokenProvider.activeAccountId() ?: throw IOException("No active account")
 
+                // Read current DB state to get fresh etag and href (may have been updated by background sync)
+                val currentDbTask = tasksDao.getTaskEntity(task.id)
+                val freshEtag = currentDbTask?.etag ?: task.etag
+                val freshHref = currentDbTask?.href ?: task.href
+
                 // Update local database immediately (optimistic update)
                 val taskEntity =
                     TaskEntity(
@@ -248,29 +257,40 @@ class DefaultTasksRepository
                         priority = task.priority,
                         status = task.status,
                         completedAt = task.completedAt,
-                        uid = task.uid,
-                        etag = task.etag,
-                        href = task.href,
+                        uid = task.uid ?: currentDbTask?.uid,
+                        etag = freshEtag,
+                        href = freshHref,
                         parentUid = task.parentUid,
+                        startDate = task.startDate,
+                        location = task.location,
+                        url = task.url,
+                        percentComplete = task.percentComplete,
                     )
 
                 database.withTransaction {
                     tasksDao.upsertTask(taskEntity)
+                    // Persist tag associations locally so they are immediately visible
+                    // in observeTags() and in the picker for other tasks.
+                    tasksDao.clearTagsForTask(task.id)
+                    syncTagsForTask(task.id, task.tags.map { it.name })
                 }
 
                 Timber.d("Task ${task.id} updated locally (optimistic)")
 
+                // Build a task with fresh etag/href for server sync
+                val syncTask = task.copy(etag = freshEtag, href = freshHref)
+
                 // Sync with server in background
-                if (networkMonitor.isCurrentlyOnline() && task.href != null) {
+                if (freshHref == null) {
+                    // Task not yet on server; a pending CREATE op handles the initial push.
+                    Timber.d("Task ${task.id} has no href yet; local update only")
+                } else if (networkMonitor.isCurrentlyOnline()) {
                     backgroundScope.launch {
-                        syncTaskToServer(task, taskEntity)
+                        syncTaskToServer(syncTask, taskEntity)
                     }
                 } else {
-                    // Queue for later sync when offline or no href
-                    if (task.href != null) {
-                        pendingOperationsManager.queueUpdateOperation(taskEntity)
-                        Timber.d("Task ${task.id} queued for sync (offline)")
-                    }
+                    pendingOperationsManager.queueUpdateOperation(taskEntity)
+                    Timber.d("Task ${task.id} queued for sync (offline)")
                 }
 
                 getTask(task.id) ?: error("Updated task missing from local database")
@@ -499,6 +519,7 @@ class DefaultTasksRepository
 
                 // Fetch tasks from each collection
                 val allTasks = mutableListOf<TaskEntity>()
+                val allCategories = mutableMapOf<String, List<String>>()
                 collections.forEach { collection ->
                     val todosResult = calDavService.fetchTodosFromCollection(baseUrl, collection.href)
                     if (todosResult.isSuccess) {
@@ -507,7 +528,7 @@ class DefaultTasksRepository
 
                         todos.forEach { todo ->
                             // Each server response contains one complete VCALENDAR with one VTODO
-                            val taskEntity =
+                            val parsed =
                                 vTodoParser.parseVTodo(
                                     icalData = todo.calendarData,
                                     accountId = accountId,
@@ -515,8 +536,11 @@ class DefaultTasksRepository
                                     href = todo.href,
                                     etag = todo.etag,
                                 )
-                            if (taskEntity != null) {
-                                allTasks.add(taskEntity)
+                            if (parsed != null) {
+                                allTasks.add(parsed.entity)
+                                if (parsed.categories.isNotEmpty()) {
+                                    allCategories[parsed.entity.id] = parsed.categories
+                                }
                             }
                         }
                     } else {
@@ -565,7 +589,7 @@ class DefaultTasksRepository
                     }
 
                     upsertTaskLists(taskLists)
-                    upsertTasksFromCalDav(allTasks)
+                    upsertTasksFromCalDav(allTasks, allCategories)
                 }
             }
 
@@ -601,7 +625,10 @@ class DefaultTasksRepository
          * - Existing task with same etag: skip (no changes)
          * - Existing task with different etag: perform field-level merge
          */
-        private suspend fun upsertTasksFromCalDav(tasks: List<TaskEntity>) {
+        private suspend fun upsertTasksFromCalDav(
+            tasks: List<TaskEntity>,
+            allCategories: Map<String, List<String>> = emptyMap(),
+        ) {
             tasks.forEach { serverTask ->
                 val localTask = tasksDao.getTaskEntity(serverTask.id)
 
@@ -613,6 +640,7 @@ class DefaultTasksRepository
                         )
                     tasksDao.upsertTask(taskWithSnapshot)
                     tasksDao.clearTagsForTask(serverTask.id)
+                    syncTagsForTask(serverTask.id, allCategories[serverTask.id] ?: emptyList())
                 } else if (localTask.etag != null && localTask.etag == serverTask.etag) {
                     // Same etag — no server changes
                     // But update account_id, listId, or missing baseSnapshot (schema migration backfill)
@@ -636,8 +664,41 @@ class DefaultTasksRepository
                     val merged = taskFieldMerger.mergeTask(serverTask, localTask)
                     tasksDao.upsertTask(merged)
                     tasksDao.clearTagsForTask(serverTask.id)
+                    syncTagsForTask(serverTask.id, allCategories[serverTask.id] ?: emptyList())
                 }
             }
+        }
+
+        private suspend fun syncTagsForTask(
+            taskId: String,
+            categoryNames: List<String>,
+        ) {
+            if (categoryNames.isEmpty()) return
+            val tagIds =
+                categoryNames.map { name ->
+                    val existing = tagsDao.getTagByName(name)
+                    if (existing != null) {
+                        existing.id
+                    } else {
+                        val newTag =
+                            com.nextcloud.tasks.data.database.entity.TagEntity(
+                                id =
+                                    java.util.UUID
+                                        .randomUUID()
+                                        .toString(),
+                                name = name,
+                                updatedAt = java.time.Instant.now(),
+                            )
+                        tagsDao.upsertTag(newTag)
+                        newTag.id
+                    }
+                }
+            tasksDao.upsertTaskTagCrossRefs(
+                tagIds.map {
+                    com.nextcloud.tasks.data.database.entity
+                        .TaskTagCrossRef(taskId, it)
+                },
+            )
         }
 
         override suspend fun clearAccountData(accountId: String) =

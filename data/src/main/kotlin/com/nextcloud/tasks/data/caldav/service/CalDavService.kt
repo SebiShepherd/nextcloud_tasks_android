@@ -232,7 +232,7 @@ class CalDavService
             collectionHref: String,
             filename: String,
             icalData: String,
-        ): Result<String> =
+        ): Result<String?> =
             runCatching {
                 val todoUrl = buildFullUrl(baseUrl, "$collectionHref/$filename")
 
@@ -253,8 +253,8 @@ class CalDavService
                             "Failed to create todo: ${response.code} - ${response.message}",
                         )
                     }
-                    // Extract ETag from response
-                    response.header("ETag")?.trim('"') ?: ""
+                    // Extract ETag from response (Nextcloud may omit it on 201)
+                    response.header("ETag")?.trim('"')
                 }
             }
 
@@ -266,7 +266,7 @@ class CalDavService
             todoHref: String,
             icalData: String,
             etag: String?,
-        ): Result<String> =
+        ): Result<String?> =
             runCatching {
                 val todoUrl = buildFullUrl(baseUrl, todoHref)
 
@@ -279,9 +279,9 @@ class CalDavService
                         .put(requestBody)
                         .header("Content-Type", "text/calendar; charset=utf-8")
 
-                // Add If-Match header for optimistic locking
-                etag?.let {
-                    requestBuilder.header("If-Match", "\"$it\"")
+                // Add If-Match header for optimistic locking (skip if etag unknown)
+                if (!etag.isNullOrBlank()) {
+                    requestBuilder.header("If-Match", "\"$etag\"")
                 }
 
                 val request = requestBuilder.build()
@@ -296,7 +296,7 @@ class CalDavService
                         )
                     }
                     // Return new ETag
-                    response.header("ETag")?.trim('"') ?: etag ?: ""
+                    response.header("ETag")?.trim('"') ?: etag
                 }
             }
 

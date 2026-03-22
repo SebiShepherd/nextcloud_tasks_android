@@ -114,11 +114,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.nextcloud.tasks.auth.LoginFlowUiState
 import com.nextcloud.tasks.auth.LoginFlowViewModel
 import com.nextcloud.tasks.auth.ServerInputScreen
 import com.nextcloud.tasks.data.caldav.service.CalDavHttpException
+import com.nextcloud.tasks.detail.TaskDetailScreen
 import com.nextcloud.tasks.domain.model.NextcloudAccount
 import com.nextcloud.tasks.domain.model.ShareAccess
 import com.nextcloud.tasks.domain.model.Sharee
@@ -413,6 +417,7 @@ fun AuthenticatedHome(
     onClearShareError: () -> Unit = {},
     onClearShareSuccess: () -> Unit = {},
 ) {
+    val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -442,78 +447,88 @@ fun AuthenticatedHome(
     val hasWritableLists = taskLists.any { it.shareAccess != ShareAccess.READ }
 
     val mainContent: @Composable () -> Unit = {
-        Scaffold(
-            snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState) { data ->
-                    Snackbar(
-                        snackbarData = data,
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            floatingActionButton = {
-                if (hasWritableLists && !isReadOnly) {
-                    FloatingActionButton(onClick = onShowCreateDialog) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stringResource(R.string.create_task_description),
+        NavHost(navController = navController, startDestination = "tasks") {
+            composable("tasks") {
+                Scaffold(
+                    snackbarHost = {
+                        SnackbarHost(hostState = snackbarHostState) { data ->
+                            Snackbar(
+                                snackbarData = data,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                    floatingActionButton = {
+                        if (hasWritableLists && !isReadOnly) {
+                            FloatingActionButton(onClick = onShowCreateDialog) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = stringResource(R.string.create_task_description),
+                                )
+                            }
+                        }
+                    },
+                ) { padding ->
+                    Column(modifier = Modifier.padding(padding)) {
+                        UnifiedSearchBar(
+                            state = state,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = onSetSearchQuery,
+                            onOpenDrawer = if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
+                            onSwitchAccount = onSwitchAccount,
+                            onLogout = onLogout,
+                            taskSort = taskSort,
+                            onSetSort = onSetSort,
+                            onAddAccount = onAddAccount,
                         )
+
+                        PullToRefreshBox(
+                            isRefreshing = isRefreshing,
+                            onRefresh = onRefresh,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            TasksContent(
+                                padding = PaddingValues(0.dp),
+                                state = state,
+                                tasks = tasks,
+                                taskLists = taskLists,
+                                taskFilter = taskFilter,
+                                taskSort = taskSort,
+                                searchQuery = searchQuery,
+                                isOnline = isOnline,
+                                animatingEntryTaskIds = animatingEntryTaskIds,
+                                isExpandedScreen = isExpandedScreen,
+                                onSetFilter = onSetFilter,
+                                onSetSort = onSetSort,
+                                onToggleTaskComplete = { task ->
+                                    if (!isReadOnly) {
+                                        onToggleTaskComplete(task)
+                                        if (!isOnline) {
+                                            showOfflineSnackbar = true
+                                        }
+                                    }
+                                },
+                                onDeleteTask = { taskId ->
+                                    if (!isReadOnly) {
+                                        onDeleteTask(taskId)
+                                        if (!isOnline) {
+                                            showOfflineSnackbar = true
+                                        }
+                                    }
+                                },
+                                onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
+                                onShowCreateListDialog = onShowCreateListDialog,
+                                onOpenTask = { taskId -> navController.navigate("task/$taskId") },
+                            )
+                        }
                     }
                 }
-            },
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding)) {
-                UnifiedSearchBar(
-                    state = state,
-                    searchQuery = searchQuery,
-                    onSearchQueryChange = onSetSearchQuery,
-                    onOpenDrawer = if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
-                    onSwitchAccount = onSwitchAccount,
-                    onLogout = onLogout,
-                    taskSort = taskSort,
-                    onSetSort = onSetSort,
-                    onAddAccount = onAddAccount,
+            }
+            composable("task/{taskId}") {
+                TaskDetailScreen(
+                    onNavigateBack = { navController.navigateUp() },
                 )
-
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = onRefresh,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    TasksContent(
-                        padding = PaddingValues(0.dp),
-                        state = state,
-                        tasks = tasks,
-                        taskLists = taskLists,
-                        taskFilter = taskFilter,
-                        taskSort = taskSort,
-                        searchQuery = searchQuery,
-                        isOnline = isOnline,
-                        animatingEntryTaskIds = animatingEntryTaskIds,
-                        isExpandedScreen = isExpandedScreen,
-                        onSetFilter = onSetFilter,
-                        onSetSort = onSetSort,
-                        onToggleTaskComplete = { task ->
-                            if (!isReadOnly) {
-                                onToggleTaskComplete(task)
-                                if (!isOnline) {
-                                    showOfflineSnackbar = true
-                                }
-                            }
-                        },
-                        onDeleteTask = { taskId ->
-                            if (!isReadOnly) {
-                                onDeleteTask(taskId)
-                                if (!isOnline) {
-                                    showOfflineSnackbar = true
-                                }
-                            }
-                        },
-                        onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
-                        onShowCreateListDialog = onShowCreateListDialog,
-                    )
-                }
             }
         }
     }
@@ -984,6 +999,7 @@ private fun TasksContent(
     onDeleteTask: (String) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onShowCreateListDialog: () -> Unit = {},
+    onOpenTask: (String) -> Unit = {},
 ) {
     var showCompletedTasks by remember { mutableStateOf(false) }
 
@@ -993,8 +1009,8 @@ private fun TasksContent(
     // Group tasks by completion status, filtering out tasks with unknown lists
     // (can happen briefly during account switch before refresh completes)
     val knownTasks = remember(tasks, taskListMap) { tasks.filter { it.listId in taskListMap } }
-    val openTasks = knownTasks.filter { !it.completed }
-    val completedTasks = knownTasks.filter { it.completed }
+    val openTasks = knownTasks.filter { !it.completed && it.status?.uppercase() != "CANCELLED" }
+    val completedTasks = knownTasks.filter { it.completed || it.status?.uppercase() == "CANCELLED" }
 
     // Group open tasks by list
     val openTasksByList = openTasks.groupBy { it.listId }
@@ -1086,6 +1102,7 @@ private fun TasksContent(
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
                             onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
+                            onOpenTask = { onOpenTask(task.id) },
                         )
                     }
                 }
@@ -1121,6 +1138,7 @@ private fun TasksContent(
                             onToggleComplete = { onToggleTaskComplete(task) },
                             onDelete = { onDeleteTask(task.id) },
                             onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
+                            onOpenTask = { onOpenTask(task.id) },
                         )
                     }
                 }
@@ -2012,12 +2030,15 @@ private fun SimpleAnimatedTaskCard(
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
     onEntryAnimationComplete: () -> Unit = {},
+    onOpenTask: () -> Unit = {},
 ) {
     // Only start invisible if this task should animate entry (recently toggled)
     var isVisible by remember { mutableStateOf(!animateEntry) }
     var isAnimating by remember { mutableStateOf(false) }
-    // Local checkbox state to show change before animation
-    var localCompleted by remember(task.id) { mutableStateOf(task.completed) }
+    // Local checkbox state to show change before animation.
+    // CANCELLED tasks are treated as completed for display purposes.
+    val isCancelledTask = task.status?.uppercase() == "CANCELLED"
+    var localCompleted by remember(task.id) { mutableStateOf(task.completed || isCancelledTask) }
     val scope = rememberCoroutineScope()
 
     // Trigger entry animation only for recently toggled tasks
@@ -2031,9 +2052,9 @@ private fun SimpleAnimatedTaskCard(
     }
 
     // Sync local state when task changes (e.g., from server sync)
-    LaunchedEffect(task.completed) {
+    LaunchedEffect(task.completed, task.status) {
         if (!isAnimating) {
-            localCompleted = task.completed
+            localCompleted = task.completed || task.status?.uppercase() == "CANCELLED"
         }
     }
 
@@ -2067,6 +2088,8 @@ private fun SimpleAnimatedTaskCard(
                             delay(250)
                             // Then trigger the data change
                             onToggleComplete()
+                            // Reset so subsequent toggles on the same card work
+                            isAnimating = false
                         }
                     }
                 },
@@ -2083,6 +2106,7 @@ private fun SimpleAnimatedTaskCard(
                         }
                     }
                 },
+                onOpenTask = onOpenTask,
             )
             // Bottom spacing - animates with shrinkVertically
             Spacer(modifier = Modifier.height(12.dp))
@@ -2096,13 +2120,27 @@ private fun TaskCard(
     isReadOnly: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
+    onOpenTask: () -> Unit = {},
 ) {
     // Dynamische vertikale Ausrichtung basierend auf Inhalt
     val hasDescription = task.description != null
     val hasDueOrTags = task.due != null || task.tags.isNotEmpty()
     val hasAdditionalContent = hasDescription || hasDueOrTags
+    // CANCELLED tasks are treated as completed for display purposes.
+    val isCancelledTask = task.status?.uppercase() == "CANCELLED"
+    val localCompleted = task.completed || isCancelledTask
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val shortDateFormatter =
+        remember(locale) {
+            val pattern =
+                android.text.format.DateFormat
+                    .getBestDateTimePattern(locale, "MMMMd")
+            java.time.format.DateTimeFormatter
+                .ofPattern(pattern, locale)
+        }
 
     Card(
+        onClick = onOpenTask,
         colors =
             CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -2118,9 +2156,9 @@ private fun TaskCard(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = if (hasAdditionalContent) Alignment.Top else Alignment.CenterVertically,
         ) {
-            // Checkbox
+            // Checkbox — CANCELLED tasks are displayed as checked (like the web UI)
             Checkbox(
-                checked = task.completed,
+                checked = localCompleted,
                 onCheckedChange =
                     if (isReadOnly) {
                         null
@@ -2138,18 +2176,18 @@ private fun TaskCard(
                 ) {
                     Text(
                         text = task.title,
-                        style = MaterialTheme.typography.titleMedium,
+                        style =
+                            MaterialTheme.typography.titleMedium.copy(
+                                textDecoration =
+                                    if (isCancelledTask) {
+                                        androidx.compose.ui.text.style.TextDecoration.LineThrough
+                                    } else {
+                                        androidx.compose.ui.text.style.TextDecoration.None
+                                    },
+                            ),
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    task.priority?.let { priority ->
-                        Text(
-                            text = "P$priority",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
                 }
 
                 task.description?.let {
@@ -2171,9 +2209,11 @@ private fun TaskCard(
                     ) {
                         task.due?.let { due ->
                             Text(
-                                text = "Due: ${java.time.format.DateTimeFormatter.ofPattern(
-                                    "MMM dd",
-                                ).format(due.atZone(java.time.ZoneId.systemDefault()))}",
+                                text =
+                                    stringResource(
+                                        R.string.task_due_label,
+                                        shortDateFormatter.format(due.atZone(java.time.ZoneId.systemDefault())),
+                                    ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -2816,11 +2856,13 @@ class TaskListViewModel
                         // Filter by selected list
                         (listId == null || task.listId == listId)
                     }.filter { task ->
-                        // Filter by task status
+                        // Filter by task status — CANCELLED is treated the same as COMPLETED
+                        // (it appears in the web UI under completed tasks with strikethrough).
+                        val isEffectivelyDone = task.completed || task.status?.uppercase() == "CANCELLED"
                         when (filter) {
                             com.nextcloud.tasks.domain.model.TaskFilter.ALL -> true
-                            com.nextcloud.tasks.domain.model.TaskFilter.CURRENT -> !task.completed
-                            com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED -> task.completed
+                            com.nextcloud.tasks.domain.model.TaskFilter.CURRENT -> !isEffectivelyDone
+                            com.nextcloud.tasks.domain.model.TaskFilter.COMPLETED -> isEffectivelyDone
                         }
                     }.filter { task ->
                         // Filter by search query (case-insensitive)
@@ -2959,12 +3001,29 @@ class TaskListViewModel
             _animatingEntryTaskIds.update { it + task.id }
             viewModelScope.launch {
                 try {
+                    val isCancelled = task.status?.uppercase() == "CANCELLED"
                     val updated =
-                        task.copy(
-                            completed = !task.completed,
-                            completedAt = if (!task.completed) java.time.Instant.now() else null,
-                            status = if (!task.completed) "COMPLETED" else "NEEDS-ACTION",
-                        )
+                        when {
+                            // COMPLETED → NEEDS-ACTION (uncheck)
+                            task.completed ->
+                                task.copy(
+                                    completed = false,
+                                    completedAt = null,
+                                    status = "NEEDS-ACTION",
+                                )
+                            // CANCELLED → NEEDS-ACTION (uncheck / reopen)
+                            isCancelled ->
+                                task.copy(
+                                    status = "NEEDS-ACTION",
+                                )
+                            // NEEDS-ACTION / IN-PROCESS → COMPLETED (check)
+                            else ->
+                                task.copy(
+                                    completed = true,
+                                    completedAt = java.time.Instant.now(),
+                                    status = "COMPLETED",
+                                )
+                        }
                     tasksRepository.updateTask(updated)
                     timber.log.Timber.d("Task completion toggled")
                 } catch (ignored: Exception) {

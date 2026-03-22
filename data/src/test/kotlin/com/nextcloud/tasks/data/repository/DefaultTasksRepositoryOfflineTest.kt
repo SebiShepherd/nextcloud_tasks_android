@@ -185,6 +185,7 @@ class DefaultTasksRepositoryOfflineTest {
             val task = createDomainTask(completed = true)
             val taskWithRelations = mockk<TaskWithRelations>()
             every { taskMapper.toDomain(taskWithRelations) } returns task
+            coEvery { tasksDao.getTaskEntity("task-1") } returns null
             coEvery { tasksDao.getTaskWithRelations("task-1") } returns taskWithRelations
 
             repo.updateTask(task)
@@ -206,6 +207,7 @@ class DefaultTasksRepositoryOfflineTest {
             val task = createDomainTask(completed = true)
             val taskWithRelations = mockk<TaskWithRelations>()
             every { taskMapper.toDomain(taskWithRelations) } returns task
+            coEvery { tasksDao.getTaskEntity("task-1") } returns null
             coEvery { tasksDao.getTaskWithRelations("task-1") } returns taskWithRelations
 
             // Set up online sync mocks so background sync succeeds
@@ -229,6 +231,7 @@ class DefaultTasksRepositoryOfflineTest {
             val task = createDomainTask(href = null)
             val taskWithRelations = mockk<TaskWithRelations>()
             every { taskMapper.toDomain(taskWithRelations) } returns task
+            coEvery { tasksDao.getTaskEntity("task-1") } returns null
             coEvery { tasksDao.getTaskWithRelations("task-1") } returns taskWithRelations
 
             repo.updateTask(task)

@@ -22,7 +22,7 @@ class VTodoParser
             listId: String,
             href: String,
             etag: String,
-        ): TaskEntity? {
+        ): ParsedVTodo? {
             return try {
                 val builder = CalendarBuilder()
                 val calendar = builder.build(StringReader(icalData))
@@ -45,22 +45,51 @@ class VTodoParser
                 val relatedTo = vtodo.getProperty<net.fortuna.ical4j.model.property.RelatedTo>("RELATED-TO")
                 val parentUid = relatedTo?.value
 
-                TaskEntity(
-                    id = generateTaskId(uid),
-                    accountId = accountId,
-                    listId = listId,
-                    title = summary,
-                    description = description,
-                    completed = completed,
-                    due = due,
-                    updatedAt = lastModified,
-                    priority = priority,
-                    status = status,
-                    completedAt = completedAt,
-                    uid = uid,
-                    etag = etag,
-                    href = href,
-                    parentUid = parentUid,
+                val startDate =
+                    vtodo
+                        .getProperty<net.fortuna.ical4j.model.property.DtStart>(
+                            "DTSTART",
+                        )?.date
+                        ?.toInstant()
+                val location = vtodo.getProperty<net.fortuna.ical4j.model.property.Location>("LOCATION")?.value
+                val url = vtodo.getProperty<net.fortuna.ical4j.model.property.Url>("URL")?.uri?.toString()
+                val percentComplete = vtodo.percentComplete?.percentage
+
+                @Suppress("UNCHECKED_CAST")
+                val categories: List<String> = (
+                    vtodo
+                        .getProperty<net.fortuna.ical4j.model.property.Categories>("CATEGORIES")
+                        ?.categories
+                        ?.filterNotNull()
+                        ?.map { it.toString() }
+                        ?.filter { it.isNotBlank() }
+                        ?: emptyList()
+                )
+
+                ParsedVTodo(
+                    entity =
+                        TaskEntity(
+                            id = generateTaskId(uid),
+                            accountId = accountId,
+                            listId = listId,
+                            title = summary,
+                            description = description,
+                            completed = completed,
+                            due = due,
+                            updatedAt = lastModified,
+                            priority = priority,
+                            status = status,
+                            completedAt = completedAt,
+                            uid = uid,
+                            etag = etag,
+                            href = href,
+                            parentUid = parentUid,
+                            startDate = startDate,
+                            location = location,
+                            url = url,
+                            percentComplete = percentComplete,
+                        ),
+                    categories = categories,
                 )
             } catch (ignored: Exception) {
                 // Log error and return null for malformed data
@@ -79,7 +108,7 @@ class VTodoParser
             listId: String,
             href: String,
             etag: String,
-        ): List<TaskEntity> {
+        ): List<ParsedVTodo> {
             // Check if there are multiple VCALENDAR blocks
             val vcalendarCount = icalData.lines().count { it.trim().startsWith("BEGIN:VCALENDAR") }
 
@@ -214,7 +243,7 @@ class VTodoParser
             listId: String,
             href: String,
             etag: String,
-        ): TaskEntity? {
+        ): ParsedVTodo? {
             return try {
                 val uid = vtodo.uid?.value ?: return null
                 val summary = vtodo.summary?.value ?: ""
@@ -231,22 +260,51 @@ class VTodoParser
                 val relatedTo = vtodo.getProperty<net.fortuna.ical4j.model.property.RelatedTo>("RELATED-TO")
                 val parentUid = relatedTo?.value
 
-                TaskEntity(
-                    id = generateTaskId(uid),
-                    accountId = accountId,
-                    listId = listId,
-                    title = summary,
-                    description = description,
-                    completed = completed,
-                    due = due,
-                    updatedAt = lastModified,
-                    priority = priority,
-                    status = status,
-                    completedAt = completedAt,
-                    uid = uid,
-                    etag = etag,
-                    href = href,
-                    parentUid = parentUid,
+                val startDate =
+                    vtodo
+                        .getProperty<net.fortuna.ical4j.model.property.DtStart>(
+                            "DTSTART",
+                        )?.date
+                        ?.toInstant()
+                val location = vtodo.getProperty<net.fortuna.ical4j.model.property.Location>("LOCATION")?.value
+                val url = vtodo.getProperty<net.fortuna.ical4j.model.property.Url>("URL")?.uri?.toString()
+                val percentComplete = vtodo.percentComplete?.percentage
+
+                @Suppress("UNCHECKED_CAST")
+                val categories: List<String> = (
+                    vtodo
+                        .getProperty<net.fortuna.ical4j.model.property.Categories>("CATEGORIES")
+                        ?.categories
+                        ?.filterNotNull()
+                        ?.map { it.toString() }
+                        ?.filter { it.isNotBlank() }
+                        ?: emptyList()
+                )
+
+                ParsedVTodo(
+                    entity =
+                        TaskEntity(
+                            id = generateTaskId(uid),
+                            accountId = accountId,
+                            listId = listId,
+                            title = summary,
+                            description = description,
+                            completed = completed,
+                            due = due,
+                            updatedAt = lastModified,
+                            priority = priority,
+                            status = status,
+                            completedAt = completedAt,
+                            uid = uid,
+                            etag = etag,
+                            href = href,
+                            parentUid = parentUid,
+                            startDate = startDate,
+                            location = location,
+                            url = url,
+                            percentComplete = percentComplete,
+                        ),
+                    categories = categories,
                 )
             } catch (ignored: Exception) {
                 timber.log.Timber.w(ignored, "Failed to parse VTODO component")
