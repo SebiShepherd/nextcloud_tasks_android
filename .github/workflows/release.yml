@@ -131,22 +131,72 @@ jobs:
           echo "- Nextcloud server with Tasks app installed" >> release_notes.md
 
       - name: Generate Play Store release notes
+        continue-on-error: true
         if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && env.HAS_PLAY_SECRET == 'true'
         env:
           HAS_PLAY_SECRET: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
           NOTES_DIR="app/src/main/play/release-notes"
           PREV_TAG=$(git describe --tags --abbrev=0 ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
 
-          # English release notes
+          # Collect commits
           if [ -n "$PREV_TAG" ]; then
-            git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | head -c 500 > "${NOTES_DIR}/en-US/default.txt"
+            COMMITS=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges)
           else
-            echo "Initial release." > "${NOTES_DIR}/en-US/default.txt"
+            COMMITS=""
           fi
 
-          # German release notes (same content — manual translation can be done later)
-          cp "${NOTES_DIR}/en-US/default.txt" "${NOTES_DIR}/de-DE/default.txt"
+          GROK_SUCCESS=false
+
+          # Try Grok API if key available and commits exist
+          if [ -n "$XAI_API_KEY" ] && [ -n "$COMMITS" ]; then
+            PAYLOAD=$(jq -n \
+              --arg commits "$COMMITS" \
+              '{
+                model: "grok-3-mini-fast",
+                messages: [
+                  {
+                    role: "system",
+                    content: "Du bist ein Release-Notes-Schreiber für eine Android-App namens '\''Nextcloud Tasks'\''. Die App synchronisiert Aufgaben (Tasks/Todos) mit einem Nextcloud-Server."
+                  },
+                  {
+                    role: "user",
+                    content: ("Commits für diesen Release:\n" + $commits + "\n\nErstelle nutzerfreundliche Release Notes. Technische Details (CI, Refactoring, Code-Cleanup) weglassen. Nur nutzerrelevante Features und Bugfixes. Aufzählungsliste mit •. Kein Markdown.\n\nAntworte ausschließlich mit einem validen JSON-Objekt (kein Markdown, kein Codeblock) mit zwei Schlüsseln:\n- \"en\": Englische Release Notes (max 450 Zeichen)\n- \"de\": Deutsche Release Notes (max 450 Zeichen)")
+                  }
+                ]
+              }')
+
+            RESPONSE=$(curl -sf --max-time 30 \
+              -X POST "https://api.x.ai/v1/chat/completions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $XAI_API_KEY" \
+              -d "$PAYLOAD" || echo "")
+
+            if [ -n "$RESPONSE" ]; then
+              CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
+              EN_NOTES=$(echo "$CONTENT" | jq -r '.en // empty' 2>/dev/null || echo "")
+              DE_NOTES=$(echo "$CONTENT" | jq -r '.de // empty' 2>/dev/null || echo "")
+
+              if [ -n "$EN_NOTES" ] && [ -n "$DE_NOTES" ]; then
+                printf '%s' "${EN_NOTES:0:500}" > "${NOTES_DIR}/en-US/default.txt"
+                printf '%s' "${DE_NOTES:0:500}" > "${NOTES_DIR}/de-DE/default.txt"
+                GROK_SUCCESS=true
+                echo "✓ Release notes generated via Grok API"
+              fi
+            fi
+          fi
+
+          # Fallback: raw commit messages
+          if [ "$GROK_SUCCESS" = false ]; then
+            echo "→ Using fallback: raw commit messages"
+            if [ -n "$PREV_TAG" ]; then
+              git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | head -c 500 > "${NOTES_DIR}/en-US/default.txt"
+            else
+              echo "Initial release." > "${NOTES_DIR}/en-US/default.txt"
+            fi
+            cp "${NOTES_DIR}/en-US/default.txt" "${NOTES_DIR}/de-DE/default.txt"
+          fi
 
       - name: Publish to Google Play
         continue-on-error: true
