@@ -2549,7 +2549,7 @@ fun EmptyState(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = stringResource(id = R.string.welcome_message),
+            text = stringResource(id = R.string.empty_list_title),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )

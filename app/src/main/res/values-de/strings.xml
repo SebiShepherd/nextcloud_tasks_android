@@ -3,7 +3,6 @@
     <string name="app_name">Aufgaben</string>
 
     <!-- Login Screen -->
-    <string name="welcome_message">Diese Liste enthält noch keine Aufgaben.</string>
     <string name="server_url_label">Nextcloud URL</string>
     <string name="server_url_hint">Nextcloud-Webserver https://</string>
     <string name="server_url_placeholder">cloud.beispiel.de</string>
@@ -23,6 +22,7 @@
 
     <!-- Task List -->
     <string name="task_list_title">Aufgabenübersicht</string>
+    <string name="empty_list_title">Diese Liste enthält noch keine Aufgaben.</string>
     <string name="empty_task_hint">Den + Button antippen, um eine neue Aufgabe hinzuzufügen.</string>
     <string name="all_tasks">Alle Aufgaben</string>
     <string name="task_lists_title">Aufgabenlisten</string>
