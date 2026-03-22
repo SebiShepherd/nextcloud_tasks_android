@@ -948,17 +948,11 @@ private fun TagsRow(
                 modifier = Modifier.weight(1f),
             )
         } else {
-            Box(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .heightIn(max = 120.dp)
-                        .verticalScroll(rememberScrollState()),
-            ) {
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                 FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     selectedTags.forEach { tag ->
                         AssistChip(
@@ -1072,26 +1066,34 @@ private fun TagsRow(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         } else {
-                            FlowRow(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 200.dp)
+                                        .verticalScroll(rememberScrollState()),
                             ) {
-                                availableTags.forEach { tag ->
-                                    val isSelected = selectedTags.any { it.name == tag.name }
-                                    FilterChip(
-                                        selected = isSelected,
-                                        onClick = {
-                                            val newTags =
-                                                if (isSelected) {
-                                                    selectedTags.filter { it.name != tag.name }
-                                                } else {
-                                                    selectedTags + tag
-                                                }
-                                            onTagsChange(newTags)
-                                        },
-                                        label = { Text(tag.name) },
-                                    )
+                                FlowRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    availableTags.forEach { tag ->
+                                        val isSelected = selectedTags.any { it.name == tag.name }
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = {
+                                                val newTags =
+                                                    if (isSelected) {
+                                                        selectedTags.filter { it.name != tag.name }
+                                                    } else {
+                                                        selectedTags + tag
+                                                    }
+                                                onTagsChange(newTags)
+                                            },
+                                            label = { Text(tag.name) },
+                                        )
+                                    }
                                 }
                             }
                         }
