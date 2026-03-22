@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.data.caldav.parser
 
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -311,6 +312,166 @@ class VTodoParserTest {
         val tasks = parser.parseVTodos(icalData, accountId, listId, href, etag)
 
         assertTrue(tasks.isEmpty())
+    }
+
+    @Test
+    fun `parseVTodo with DTSTART sets startDate`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-dtstart
+            SUMMARY:Task with start date
+            DTSTART:20231215T090000Z
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals(Instant.parse("2023-12-15T09:00:00Z"), result.entity.startDate)
+    }
+
+    @Test
+    fun `parseVTodo with LOCATION sets location`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-location
+            SUMMARY:Task with location
+            LOCATION:Conference Room A
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals("Conference Room A", result.entity.location)
+    }
+
+    @Test
+    fun `parseVTodo with URL sets url`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-url
+            SUMMARY:Task with URL
+            URL:https://example.com/task
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals("https://example.com/task", result.entity.url)
+    }
+
+    @Test
+    fun `parseVTodo with PERCENT-COMPLETE sets percentComplete`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-percent
+            SUMMARY:Task in progress
+            PERCENT-COMPLETE:75
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals(75, result.entity.percentComplete)
+    }
+
+    @Test
+    fun `parseVTodo with single CATEGORIES tag sets categories list`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-cat-single
+            SUMMARY:Task with one category
+            CATEGORIES:work
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals(listOf("work"), result.categories)
+    }
+
+    @Test
+    fun `parseVTodo with multiple CATEGORIES tags sets all categories`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-cat-multi
+            SUMMARY:Task with multiple categories
+            CATEGORIES:work,project,urgent
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertEquals(3, result.categories.size)
+        assertTrue(result.categories.contains("work"))
+        assertTrue(result.categories.contains("project"))
+        assertTrue(result.categories.contains("urgent"))
+    }
+
+    @Test
+    fun `parseVTodo without new optional fields leaves them null`() {
+        val icalData =
+            """
+            BEGIN:VCALENDAR
+            VERSION:2.0
+            PRODID:-//Test//Test//EN
+            BEGIN:VTODO
+            UID:task-minimal
+            SUMMARY:Minimal task
+            DTSTAMP:20231201T120000Z
+            END:VTODO
+            END:VCALENDAR
+            """.trimIndent()
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result)
+        assertNull(result.entity.startDate)
+        assertNull(result.entity.location)
+        assertNull(result.entity.url)
+        assertNull(result.entity.percentComplete)
+        assertTrue(result.categories.isEmpty())
     }
 
     @Test

@@ -624,7 +624,6 @@ private fun DateDetailRow(
         if (date != null && enabled) {
             IconButton(
                 onClick = { onDateSelected(null) },
-                modifier = Modifier.size(20.dp),
             ) {
                 Icon(
                     Icons.Default.Close,
@@ -880,7 +879,6 @@ private fun TextDetailRow(
                         isEditing = false
                         onValueChange(null)
                     },
-                    modifier = Modifier.size(20.dp),
                 ) {
                     Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
@@ -900,7 +898,6 @@ private fun TextDetailRow(
             if (value != null) {
                 IconButton(
                     onClick = { onValueChange(null) },
-                    modifier = Modifier.size(20.dp),
                 ) {
                     Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                 }

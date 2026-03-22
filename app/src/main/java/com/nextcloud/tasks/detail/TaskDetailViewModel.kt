@@ -14,7 +14,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.time.Instant
@@ -32,8 +34,11 @@ class TaskDetailViewModel
         private val _task = MutableStateFlow<Task?>(null)
         val task: StateFlow<Task?> = _task.asStateFlow()
 
-        private val _isSaving = MutableStateFlow(false)
-        val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+        private val activeSaveCount = MutableStateFlow(0)
+        val isSaving: StateFlow<Boolean> =
+            activeSaveCount
+                .map { it > 0 }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
         private val _isReadOnly = MutableStateFlow(false)
         val isReadOnly: StateFlow<Boolean> = _isReadOnly.asStateFlow()
@@ -184,7 +189,7 @@ class TaskDetailViewModel
         }
 
         private suspend fun saveTask(task: Task) {
-            _isSaving.value = true
+            activeSaveCount.update { it + 1 }
             try {
                 tasksRepository.updateTask(task)
             } catch (
@@ -192,7 +197,7 @@ class TaskDetailViewModel
             ) {
                 Timber.e(e, "Failed to save task ${task.id}")
             } finally {
-                _isSaving.value = false
+                activeSaveCount.update { maxOf(0, it - 1) }
             }
         }
 
