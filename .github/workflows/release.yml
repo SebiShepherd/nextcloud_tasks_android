@@ -163,7 +163,7 @@ jobs:
                   },
                   {
                     role: "user",
-                    content: ("Commits für diesen Release:\n" + $commits + "\n\nErstelle nutzerfreundliche Release Notes. Technische Details (CI, Refactoring, Code-Cleanup) weglassen. Nur nutzerrelevante Features und Bugfixes. Aufzählungsliste mit •. Kein Markdown.\n\nAntworte ausschließlich mit einem validen JSON-Objekt (kein Markdown, kein Codeblock) mit zwei Schlüsseln:\n- \"en\": Englische Release Notes (max 450 Zeichen)\n- \"de\": Deutsche Release Notes (max 450 Zeichen)")
+                    content: ("Commits für diesen Release:\n" + $commits + "\n\nErstelle nutzerfreundliche Release Notes. Technische Details (CI, Refactoring, Code-Cleanup) weglassen. Nur nutzerrelevante Features und Bugfixes. Aufzählungsliste mit - (Bindestrich). Kein Markdown.\n\nAntworte ausschließlich mit einem validen JSON-Objekt (kein Markdown, kein Codeblock) mit zwei Schlüsseln:\n- \"en\": Englische Release Notes (max 450 Zeichen)\n- \"de\": Deutsche Release Notes (max 450 Zeichen)")
                   }
                 ]
               }')
