@@ -167,7 +167,7 @@
     <string name="task_detail_status_in_process">In progress</string>
     <string name="task_detail_status_cancelled">Cancelled</string>
     <string name="task_detail_status_completed">Completed</string>
-    <string name="task_detail_no_tags_available">No tags available. Syncing to load tags from server…</string>
+    <string name="task_detail_no_tags_available">No tags yet. Type above to create one.</string>
     <string name="task_detail_new_tag_label">New tag</string>
     <string name="task_detail_no_priority">No priority assigned</string>
     <string name="task_detail_priority_none">None</string>

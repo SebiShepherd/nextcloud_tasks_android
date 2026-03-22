@@ -269,6 +269,10 @@ class DefaultTasksRepository
 
                 database.withTransaction {
                     tasksDao.upsertTask(taskEntity)
+                    // Persist tag associations locally so they are immediately visible
+                    // in observeTags() and in the picker for other tasks.
+                    tasksDao.clearTagsForTask(task.id)
+                    syncTagsForTask(task.id, task.tags.map { it.name })
                 }
 
                 Timber.d("Task ${task.id} updated locally (optimistic)")

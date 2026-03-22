@@ -43,6 +43,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -932,6 +933,36 @@ private fun TagsRow(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                     )
 
+                    // Tags created locally that are not yet in availableTags (DB not yet updated)
+                    val newlyCreatedTags =
+                        selectedTags.filter { sel ->
+                            availableTags.none { it.name == sel.name }
+                        }
+                    if (newlyCreatedTags.isNotEmpty()) {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            newlyCreatedTags.forEach { tag ->
+                                FilterChip(
+                                    selected = true,
+                                    onClick = {
+                                        onTagsChange(selectedTags.filter { it.name != tag.name })
+                                    },
+                                    label = { Text(tag.name) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(FilterChipDefaults.IconSize),
+                                        )
+                                    },
+                                )
+                            }
+                        }
+                    }
+
                     if (availableTags.isEmpty()) {
                         Text(
                             text = stringResource(R.string.task_detail_no_tags_available),
@@ -939,30 +970,19 @@ private fun TagsRow(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
-                        availableTags.forEach { tag ->
-                            val isSelected = selectedTags.any { it.id == tag.id }
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            val newTags =
-                                                if (isSelected) {
-                                                    selectedTags.filter { it.id != tag.id }
-                                                } else {
-                                                    selectedTags + tag
-                                                }
-                                            onTagsChange(newTags)
-                                        }.padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            ) {
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            availableTags.forEach { tag ->
+                                val isSelected = selectedTags.any { it.name == tag.name }
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = {
                                         val newTags =
                                             if (isSelected) {
-                                                selectedTags.filter { it.id != tag.id }
+                                                selectedTags.filter { it.name != tag.name }
                                             } else {
                                                 selectedTags + tag
                                             }
