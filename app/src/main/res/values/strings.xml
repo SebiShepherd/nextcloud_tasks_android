@@ -3,7 +3,7 @@
     <string name="app_name">Tasks</string>
 
     <!-- Login Screen -->
-    <string name="welcome_message">Welcome to your Nextcloud Tasks</string>
+    <string name="welcome_message">This list is empty.</string>
     <string name="server_url_label">Nextcloud URL</string>
     <string name="server_url_hint">Nextcloud server https://</string>
     <string name="server_url_placeholder">cloud.example.com</string>
@@ -23,7 +23,7 @@
 
     <!-- Task List -->
     <string name="task_list_title">Tasks overview</string>
-    <string name="empty_task_hint">Add your first task to stay organized.</string>
+    <string name="empty_task_hint">Tap the + button to add a new task.</string>
     <string name="all_tasks">All Tasks</string>
     <string name="task_lists_title">Task Lists</string>
     <string name="unknown_list">Unknown List</string>
@@ -101,7 +101,7 @@
 
     <!-- No Lists Empty State -->
     <string name="no_task_lists_title">No task lists yet</string>
-    <string name="no_task_lists_hint">Create a task list to start organizing your tasks.</string>
+    <string name="no_task_lists_hint">Create a task list to start adding tasks.</string>
     <string name="create_first_list">Create your first list</string>
     <string name="create_new_list">Create new list</string>
     <string name="no_task_lists_sidebar">No lists yet</string>
