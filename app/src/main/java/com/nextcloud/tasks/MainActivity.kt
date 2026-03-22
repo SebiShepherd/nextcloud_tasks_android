@@ -2129,6 +2129,15 @@ private fun TaskCard(
     // CANCELLED tasks are treated as completed for display purposes.
     val isCancelledTask = task.status?.uppercase() == "CANCELLED"
     val localCompleted = task.completed || isCancelledTask
+    val locale = androidx.compose.ui.platform.LocalContext.current.resources.configuration.locales[0]
+    val shortDateFormatter =
+        remember(locale) {
+            val pattern =
+                android.text.format.DateFormat
+                    .getBestDateTimePattern(locale, "MMMMd")
+            java.time.format.DateTimeFormatter
+                .ofPattern(pattern, locale)
+        }
 
     Card(
         onClick = onOpenTask,
@@ -2200,9 +2209,11 @@ private fun TaskCard(
                     ) {
                         task.due?.let { due ->
                             Text(
-                                text = "Due: ${java.time.format.DateTimeFormatter.ofPattern(
-                                    "MMM dd",
-                                ).format(due.atZone(java.time.ZoneId.systemDefault()))}",
+                                text =
+                                    stringResource(
+                                        R.string.task_due_label,
+                                        shortDateFormatter.format(due.atZone(java.time.ZoneId.systemDefault())),
+                                    ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

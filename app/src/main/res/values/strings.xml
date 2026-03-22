@@ -186,4 +186,5 @@
     <string name="task_detail_clear_date">Clear date</string>
     <string name="task_detail_select_time">Select time</string>
     <string name="task_detail_back">Back</string>
+    <string name="task_due_label">Due: %1$s</string>
 </resources>

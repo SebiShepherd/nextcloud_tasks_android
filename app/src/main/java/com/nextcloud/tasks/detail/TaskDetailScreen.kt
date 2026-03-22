@@ -99,7 +99,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import android.text.format.DateFormat as AndroidDateFormat
 
-private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy")
 private val TIME_FORMATTER = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -552,6 +551,15 @@ private fun DateDetailRow(
     val localZone = ZoneId.systemDefault()
     val zonedDate = remember(date) { date?.atZone(localZone) }
 
+    val locale = LocalContext.current.resources.configuration.locales[0]
+    val dateFormatter =
+        remember(locale) {
+            val pattern =
+                android.text.format.DateFormat
+                    .getBestDateTimePattern(locale, "yMMMMd")
+            DateTimeFormatter.ofPattern(pattern, locale)
+        }
+
     val dateState =
         rememberDatePickerState(
             initialSelectedDateMillis = date?.toEpochMilli(),
@@ -584,7 +592,7 @@ private fun DateDetailRow(
         Text(
             text =
                 if (date != null) {
-                    DATE_FORMATTER.format(zonedDate)
+                    dateFormatter.format(zonedDate)
                 } else {
                     label
                 },
