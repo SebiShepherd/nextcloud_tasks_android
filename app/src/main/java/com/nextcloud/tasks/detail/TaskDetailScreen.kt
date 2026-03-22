@@ -78,6 +78,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -91,9 +92,11 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import android.text.format.DateFormat as AndroidDateFormat
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
+private val TIME_FORMATTER = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -550,12 +553,13 @@ private fun DateDetailRow(
         rememberDatePickerState(
             initialSelectedDateMillis = date?.toEpochMilli(),
         )
+    val is24Hour = AndroidDateFormat.is24HourFormat(LocalContext.current)
     val timeState =
         key(date?.atZone(localZone)?.toLocalDate()) {
             rememberTimePickerState(
                 initialHour = zonedDate?.hour ?: 0,
                 initialMinute = zonedDate?.minute ?: 0,
-                is24Hour = true,
+                is24Hour = is24Hour,
             )
         }
 
