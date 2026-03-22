@@ -49,6 +49,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -63,6 +64,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -974,34 +976,17 @@ private fun TagsRow(
             },
             title = { Text(stringResource(R.string.task_detail_tags)) },
             text = {
-                Column {
-                    // Text field to create a new tag
-                    OutlinedTextField(
-                        value = newTagText,
-                        onValueChange = { newTagText = it },
-                        label = { Text(stringResource(R.string.task_detail_new_tag_label)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions =
-                            KeyboardActions(onDone = {
-                                val trimmed = newTagText.trim()
-                                if (trimmed.isNotEmpty() && selectedTags.none { it.name == trimmed }) {
-                                    val newTag =
-                                        Tag(
-                                            id =
-                                                java.util.UUID
-                                                    .randomUUID()
-                                                    .toString(),
-                                            name = trimmed,
-                                            updatedAt = java.time.Instant.now(),
-                                        )
-                                    onTagsChange(selectedTags + newTag)
-                                }
-                                newTagText = ""
-                            }),
-                        trailingIcon = {
-                            if (newTagText.isNotBlank()) {
-                                IconButton(onClick = {
+                CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                    Column {
+                        // Text field to create a new tag
+                        OutlinedTextField(
+                            value = newTagText,
+                            onValueChange = { newTagText = it },
+                            label = { Text(stringResource(R.string.task_detail_new_tag_label)) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions =
+                                KeyboardActions(onDone = {
                                     val trimmed = newTagText.trim()
                                     if (trimmed.isNotEmpty() && selectedTags.none { it.name == trimmed }) {
                                         val newTag =
@@ -1016,71 +1001,90 @@ private fun TagsRow(
                                         onTagsChange(selectedTags + newTag)
                                     }
                                     newTagText = ""
-                                }) {
-                                    Icon(Icons.Default.Add, contentDescription = null)
+                                }),
+                            trailingIcon = {
+                                if (newTagText.isNotBlank()) {
+                                    IconButton(onClick = {
+                                        val trimmed = newTagText.trim()
+                                        if (trimmed.isNotEmpty() && selectedTags.none { it.name == trimmed }) {
+                                            val newTag =
+                                                Tag(
+                                                    id =
+                                                        java.util.UUID
+                                                            .randomUUID()
+                                                            .toString(),
+                                                    name = trimmed,
+                                                    updatedAt = java.time.Instant.now(),
+                                                )
+                                            onTagsChange(selectedTags + newTag)
+                                        }
+                                        newTagText = ""
+                                    }) {
+                                        Icon(Icons.Default.Add, contentDescription = null)
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        )
+
+                        // Tags created locally that are not yet in availableTags (DB not yet updated)
+                        val newlyCreatedTags =
+                            selectedTags.filter { sel ->
+                                availableTags.none { it.name == sel.name }
+                            }
+                        if (newlyCreatedTags.isNotEmpty()) {
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                newlyCreatedTags.forEach { tag ->
+                                    FilterChip(
+                                        selected = true,
+                                        onClick = {
+                                            onTagsChange(selectedTags.filter { it.name != tag.name })
+                                        },
+                                        label = { Text(tag.name) },
+                                        leadingIcon = {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(FilterChipDefaults.IconSize),
+                                            )
+                                        },
+                                    )
                                 }
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    )
-
-                    // Tags created locally that are not yet in availableTags (DB not yet updated)
-                    val newlyCreatedTags =
-                        selectedTags.filter { sel ->
-                            availableTags.none { it.name == sel.name }
                         }
-                    if (newlyCreatedTags.isNotEmpty()) {
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            newlyCreatedTags.forEach { tag ->
-                                FilterChip(
-                                    selected = true,
-                                    onClick = {
-                                        onTagsChange(selectedTags.filter { it.name != tag.name })
-                                    },
-                                    label = { Text(tag.name) },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(FilterChipDefaults.IconSize),
-                                        )
-                                    },
-                                )
-                            }
-                        }
-                    }
 
-                    if (availableTags.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.task_detail_no_tags_available),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    } else {
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            availableTags.forEach { tag ->
-                                val isSelected = selectedTags.any { it.name == tag.name }
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        val newTags =
-                                            if (isSelected) {
-                                                selectedTags.filter { it.name != tag.name }
-                                            } else {
-                                                selectedTags + tag
-                                            }
-                                        onTagsChange(newTags)
-                                    },
-                                    label = { Text(tag.name) },
-                                )
+                        if (availableTags.isEmpty()) {
+                            Text(
+                                text = stringResource(R.string.task_detail_no_tags_available),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                availableTags.forEach { tag ->
+                                    val isSelected = selectedTags.any { it.name == tag.name }
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            val newTags =
+                                                if (isSelected) {
+                                                    selectedTags.filter { it.name != tag.name }
+                                                } else {
+                                                    selectedTags + tag
+                                                }
+                                            onTagsChange(newTags)
+                                        },
+                                        label = { Text(tag.name) },
+                                    )
+                                }
                             }
                         }
                     }
