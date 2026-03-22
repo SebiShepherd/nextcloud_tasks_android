@@ -1009,8 +1009,8 @@ private fun TasksContent(
     // Group tasks by completion status, filtering out tasks with unknown lists
     // (can happen briefly during account switch before refresh completes)
     val knownTasks = remember(tasks, taskListMap) { tasks.filter { it.listId in taskListMap } }
-    val openTasks = knownTasks.filter { !it.completed }
-    val completedTasks = knownTasks.filter { it.completed }
+    val openTasks = knownTasks.filter { !it.completed && it.status?.uppercase() != "CANCELLED" }
+    val completedTasks = knownTasks.filter { it.completed || it.status?.uppercase() == "CANCELLED" }
 
     // Group open tasks by list
     val openTasksByList = openTasks.groupBy { it.listId }
@@ -2088,6 +2088,8 @@ private fun SimpleAnimatedTaskCard(
                             delay(250)
                             // Then trigger the data change
                             onToggleComplete()
+                            // Reset so subsequent toggles on the same card work
+                            isAnimating = false
                         }
                     }
                 },

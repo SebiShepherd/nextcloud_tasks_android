@@ -57,8 +57,10 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -86,10 +88,12 @@ import com.nextcloud.tasks.R
 import com.nextcloud.tasks.domain.model.Tag
 import com.nextcloud.tasks.domain.model.Task
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -527,6 +531,7 @@ private fun StatusRow(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateDetailRow(
     icon: ImageVector,
@@ -535,17 +540,29 @@ private fun DateDetailRow(
     enabled: Boolean = true,
     onDateSelected: (Instant?) -> Unit,
 ) {
-    var showPicker by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val localZone = ZoneId.systemDefault()
+    val zonedDate = remember(date) { date?.atZone(localZone) }
+
     val dateState =
         rememberDatePickerState(
             initialSelectedDateMillis = date?.toEpochMilli(),
         )
+    val timeState =
+        key(date?.atZone(localZone)?.toLocalDate()) {
+            rememberTimePickerState(
+                initialHour = zonedDate?.hour ?: 0,
+                initialMinute = zonedDate?.minute ?: 0,
+                is24Hour = true,
+            )
+        }
 
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .then(if (enabled) Modifier.clickable { showPicker = true } else Modifier)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -556,10 +573,11 @@ private fun DateDetailRow(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp),
         )
+        // Date label — tapping opens date picker
         Text(
             text =
                 if (date != null) {
-                    DATE_FORMATTER.format(date.atZone(ZoneId.systemDefault()))
+                    DATE_FORMATTER.format(zonedDate)
                 } else {
                     label
                 },
@@ -570,8 +588,24 @@ private fun DateDetailRow(
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
-            modifier = Modifier.weight(1f),
+            modifier =
+                Modifier
+                    .then(if (enabled) Modifier.clickable { showDatePicker = true } else Modifier)
+                    .padding(end = 4.dp),
         )
+        // Time label — only shown when a date is set; tapping opens time picker
+        if (date != null) {
+            Text(
+                text = TIME_FORMATTER.format(zonedDate),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier =
+                    Modifier
+                        .then(if (enabled) Modifier.clickable { showTimePicker = true } else Modifier)
+                        .padding(end = 4.dp),
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
         if (date != null && enabled) {
             IconButton(
                 onClick = { onDateSelected(null) },
@@ -586,15 +620,28 @@ private fun DateDetailRow(
         }
     }
 
-    if (showPicker && enabled) {
+    if (showDatePicker && enabled) {
         DatePickerDialog(
-            onDismissRequest = { showPicker = false },
+            onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showPicker = false
+                        showDatePicker = false
                         dateState.selectedDateMillis?.let { millis ->
-                            onDateSelected(Instant.ofEpochMilli(millis))
+                            // Keep the previously selected time when changing date
+                            val selectedLocalDate =
+                                Instant
+                                    .ofEpochMilli(millis)
+                                    .atZone(localZone)
+                                    .toLocalDate()
+                            val hour = zonedDate?.hour ?: 0
+                            val minute = zonedDate?.minute ?: 0
+                            val newInstant =
+                                selectedLocalDate
+                                    .atTime(hour, minute)
+                                    .atZone(localZone)
+                                    .toInstant()
+                            onDateSelected(newInstant)
                         }
                     },
                 ) {
@@ -602,13 +649,42 @@ private fun DateDetailRow(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPicker = false }) {
+                TextButton(onClick = { showDatePicker = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             },
         ) {
             DatePicker(state = dateState)
         }
+    }
+
+    if (showTimePicker && enabled && date != null) {
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text(stringResource(R.string.task_detail_select_time)) },
+            text = { TimePicker(state = timeState) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showTimePicker = false
+                        val localDate = zonedDate?.toLocalDate() ?: LocalDate.now(localZone)
+                        val newInstant =
+                            localDate
+                                .atTime(timeState.hour, timeState.minute)
+                                .atZone(localZone)
+                                .toInstant()
+                        onDateSelected(newInstant)
+                    },
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 
@@ -857,20 +933,29 @@ private fun TagsRow(
                 modifier = Modifier.weight(1f),
             )
         } else {
-            FlowRow(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Box(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .heightIn(max = 120.dp)
+                        .verticalScroll(rememberScrollState()),
             ) {
-                selectedTags.forEach { tag ->
-                    AssistChip(
-                        onClick = {
-                            onTagsChange(selectedTags.filter { it.id != tag.id })
-                        },
-                        label = { Text(tag.name) },
-                        trailingIcon = {
-                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
-                        },
-                    )
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    selectedTags.forEach { tag ->
+                        AssistChip(
+                            onClick = {
+                                onTagsChange(selectedTags.filter { it.id != tag.id })
+                            },
+                            label = { Text(tag.name) },
+                            trailingIcon = {
+                                Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                            },
+                        )
+                    }
                 }
             }
         }
