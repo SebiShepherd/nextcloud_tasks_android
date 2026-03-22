@@ -3,11 +3,10 @@
     <string name="app_name">Aufgaben</string>
 
     <!-- Login Screen -->
-    <string name="welcome_message">Willkommen zu Ihren Nextcloud Aufgaben</string>
     <string name="server_url_label">Nextcloud URL</string>
     <string name="server_url_hint">Nextcloud-Webserver https://</string>
     <string name="server_url_placeholder">cloud.beispiel.de</string>
-    <string name="server_url_description">Der Link zu Ihrer Nextcloud Webseite, wenn Sie diese im Browser öffnen</string>
+    <string name="server_url_description">Der Link zur Nextcloud-Website, wie er auch im Browser aufgerufen wird</string>
     <string name="waiting_for_login">Warte auf Anmeldung im Browser…</string>
     <string name="username_label">Benutzername</string>
     <string name="password_label">Passwort oder App-Passwort</string>
@@ -19,11 +18,12 @@
     <string name="existing_accounts">Vorhandene Konten</string>
     <string name="import_account">Ein Konto aus der App Nextcloud importieren</string>
     <string name="select_account">Konto auswählen</string>
-    <string name="no_accounts_found">Keine Nextcloud-Konten gefunden.\n\nBitte installieren Sie zunächst die Nextcloud Files-App und fügen Sie ein Konto hinzu.</string>
+    <string name="no_accounts_found">Keine Nextcloud-Konten gefunden.\n\nBitte zuerst die Nextcloud Files-App installieren und ein Konto hinzufügen.</string>
 
     <!-- Task List -->
     <string name="task_list_title">Aufgabenübersicht</string>
-    <string name="empty_task_hint">Fügen Sie Ihre erste Aufgabe hinzu, um organisiert zu bleiben.</string>
+    <string name="empty_list_title">Diese Liste enthält noch keine Aufgaben.</string>
+    <string name="empty_task_hint">Den + Button antippen, um eine neue Aufgabe hinzuzufügen.</string>
     <string name="all_tasks">Alle Aufgaben</string>
     <string name="task_lists_title">Aufgabenlisten</string>
     <string name="unknown_list">Unbekannte Liste</string>
@@ -31,7 +31,7 @@
     <!-- Search & Sort -->
     <string name="search_all_notes">In allen Notizen suchen</string>
     <string name="no_search_results_title">Keine Ergebnisse gefunden</string>
-    <string name="no_search_results_hint">Versuchen Sie, Ihre Suchanfrage anzupassen.</string>
+    <string name="no_search_results_hint">Suchbegriff anpassen oder verfeinern.</string>
     <string name="sort_dialog_title">Sortierung</string>
     <string name="sort_by_due_date">Fälligkeitsdatum</string>
     <string name="sort_by_priority">Priorität</string>
@@ -77,19 +77,19 @@
 
     <!-- Error Messages -->
     <string name="invalid_certificate">Das Zertifikat konnte nicht verifiziert werden.</string>
-    <string name="invalid_url">Bitte geben Sie eine gültige HTTPS-URL an.</string>
+    <string name="invalid_url">Bitte eine gültige HTTPS-URL angeben.</string>
     <string name="error_invalid_credentials">Benutzername, Passwort oder Code ist ungültig</string>
     <string name="error_unexpected">Unerwarteter Fehler</string>
     <string name="error_unknown">Unbekannter Fehler</string>
     <string name="error_login_flow_failed">Fehler beim Starten des Anmeldevorgangs</string>
-    <string name="error_login_timeout">Anmeldung abgelaufen. Bitte versuchen Sie es erneut.</string>
+    <string name="error_login_timeout">Anmeldung abgelaufen. Bitte erneut versuchen.</string>
     <string name="error_login_failed">Anmeldung fehlgeschlagen</string>
     <string name="error_switch_account_failed">Kontowechsel fehlgeschlagen</string>
     <string name="error_logout_failed">Abmeldung fehlgeschlagen</string>
-    <string name="error_rate_limited">Server ist ausgelastet. Bitte versuche es gleich nochmal.</string>
-    <string name="error_auth_failed_refresh">Anmeldung fehlgeschlagen. Bitte überprüfe deine Zugangsdaten.</string>
-    <string name="error_server">Serverfehler. Bitte versuche es später erneut.</string>
-    <string name="error_network">Keine Verbindung zum Server. Prüfe deine Internetverbindung.</string>
+    <string name="error_rate_limited">Server ist ausgelastet. Bitte gleich erneut versuchen.</string>
+    <string name="error_auth_failed_refresh">Anmeldung fehlgeschlagen. Bitte Zugangsdaten überprüfen.</string>
+    <string name="error_server">Serverfehler. Bitte später erneut versuchen.</string>
+    <string name="error_network">Keine Verbindung zum Server. Bitte Internetverbindung prüfen.</string>
 
     <!-- Settings -->
     <string name="settings_title">Einstellungen</string>
@@ -101,7 +101,7 @@
 
     <!-- No Lists Empty State -->
     <string name="no_task_lists_title">Noch keine Aufgabenlisten</string>
-    <string name="no_task_lists_hint">Erstellen Sie eine Aufgabenliste, um Ihre Aufgaben zu organisieren.</string>
+    <string name="no_task_lists_hint">Zuerst eine Aufgabenliste anlegen, um Aufgaben hinzuzufügen.</string>
     <string name="create_first_list">Erste Liste erstellen</string>
     <string name="create_new_list">Neue Liste erstellen</string>
     <string name="no_task_lists_sidebar">Noch keine Listen</string>
@@ -112,19 +112,19 @@
     <string name="task_list_label">Liste</string>
     <string name="list_color_label">Farbe</string>
     <string name="error_create_list_offline">Im Offline-Modus können keine Listen erstellt werden.</string>
-    <string name="error_create_list_failed">Liste konnte nicht erstellt werden. Bitte versuchen Sie es erneut.</string>
+    <string name="error_create_list_failed">Liste konnte nicht erstellt werden. Bitte erneut versuchen.</string>
 
     <!-- Edit List Dialog -->
     <string name="edit_list_dialog_title">Liste bearbeiten</string>
     <string name="error_edit_list_offline">Im Offline-Modus können keine Listen bearbeitet werden.</string>
-    <string name="error_edit_list_failed">Liste konnte nicht bearbeitet werden. Bitte versuchen Sie es erneut.</string>
+    <string name="error_edit_list_failed">Liste konnte nicht bearbeitet werden. Bitte erneut versuchen.</string>
 
     <!-- Delete List Dialog -->
     <string name="delete_list_dialog_title">Liste löschen?</string>
     <string name="delete_list_dialog_message">„%s&#x201C; und alle zugehörigen Aufgaben werden unwiderruflich gelöscht.</string>
     <string name="delete_list_confirm">Löschen</string>
     <string name="error_delete_list_offline">Im Offline-Modus können keine Listen gelöscht werden.</string>
-    <string name="error_delete_list_failed">Liste konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.</string>
+    <string name="error_delete_list_failed">Liste konnte nicht gelöscht werden. Bitte erneut versuchen.</string>
     <string name="edit_list">Bearbeiten</string>
     <string name="delete_list">Löschen</string>
     <string name="save">Speichern</string>
@@ -139,19 +139,19 @@
     <string name="share_access_edit">Bearbeiten</string>
     <string name="remove_share">Entfernen</string>
     <string name="no_sharees_found">Keine Benutzer oder Gruppen gefunden</string>
-    <string name="list_read_only_hint">Diese Liste wurde schreibgeschützt mit dir geteilt</string>
-    <string name="shared_with_you">Mit dir geteilt</string>
-    <string name="shared_by_you">Von dir geteilt</string>
+    <string name="list_read_only_hint">Diese Liste ist schreibgeschützt freigegeben</string>
+    <string name="shared_with_you">Empfangene Freigaben</string>
+    <string name="shared_by_you">Eigene Freigaben</string>
     <string name="sharee_type_group">Gruppe</string>
-    <string name="error_share_failed">Teilen fehlgeschlagen. Bitte versuche es erneut.</string>
-    <string name="error_share_forbidden">Du hast keine Berechtigung, diese Liste zu teilen.</string>
+    <string name="error_share_failed">Teilen fehlgeschlagen. Bitte erneut versuchen.</string>
+    <string name="error_share_forbidden">Keine Berechtigung, diese Liste zu teilen.</string>
     <string name="share_success">Benutzer erfolgreich hinzugefügt</string>
     <string name="error_share_offline">Teilen im Offline-Modus nicht möglich.</string>
-    <string name="error_load_sharees_failed">Geteilte Benutzer konnten nicht geladen werden. Bitte versuche es erneut.</string>
+    <string name="error_load_sharees_failed">Geteilte Benutzer konnten nicht geladen werden. Bitte erneut versuchen.</string>
     <string name="list_options">Listenoptionen</string>
 
     <!-- Offline Mode -->
-    <string name="offline_message">Du bist aktuell offline. Deine Änderungen werden synchronisiert, sobald du wieder online bist.</string>
+    <string name="offline_message">Aktuell offline. Änderungen werden synchronisiert, sobald die Verbindung wiederhergestellt ist.</string>
     <string name="syncing_pending_changes">Ausstehende Änderungen werden synchronisiert\u2026</string>
     <string name="sync_complete">Alle Änderungen synchronisiert</string>
 
