@@ -1,0 +1,194 @@
+package com.nextcloud.tasks.data.sync
+
+import com.nextcloud.tasks.data.auth.AuthTokenProvider
+import com.nextcloud.tasks.data.network.NetworkMonitor
+import com.nextcloud.tasks.data.network.NotifyPushClient
+import com.nextcloud.tasks.data.network.PushAuthException
+import com.nextcloud.tasks.data.network.PushEvent
+import com.squareup.moshi.Json
+import com.squareup.moshi.Moshi
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import timber.log.Timber
+import javax.inject.Inject
+import javax.inject.Named
+import javax.inject.Singleton
+
+/**
+ * Manages the lifecycle of the notify_push WebSocket connection.
+ *
+ * - Discovers the push WebSocket URL via Nextcloud's capabilities API on first connection
+ * - Maintains a persistent WebSocket and triggers a CalDAV sync on every received event
+ * - Reconnects automatically with exponential backoff after failures
+ * - Reacts to account changes and network recovery
+ * - Exposes [pushStatus] for observing the current connection state (used by Settings UI)
+ */
+@Suppress("LongParameterList")
+@Singleton
+class PushSyncManager
+    @Inject
+    constructor(
+        private val pushClient: NotifyPushClient,
+        private val authTokenProvider: AuthTokenProvider,
+        private val networkMonitor: NetworkMonitor,
+        private val syncManager: SyncManager,
+        @Named("authenticated") private val okHttpClient: OkHttpClient,
+        private val moshi: Moshi,
+        private val ioDispatcher: CoroutineDispatcher,
+    ) {
+        private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
+
+        private val _pushStatus = MutableStateFlow<PushStatus>(PushStatus.NoAccount)
+        val pushStatus: StateFlow<PushStatus> = _pushStatus.asStateFlow()
+
+        private var managingJob: Job? = null
+
+        /** Starts observing the active account and network state and connects to notify_push. */
+        fun start() {
+            if (managingJob?.isActive == true) return
+            managingJob = scope.launch { observeAndConnect() }
+        }
+
+        /** Cancels the current connection and stops all push activity. */
+        fun stop() {
+            managingJob?.cancel()
+            managingJob = null
+            _pushStatus.value = PushStatus.NoAccount
+        }
+
+        private suspend fun observeAndConnect() {
+            combine(
+                authTokenProvider.observeActiveAccountId(),
+                networkMonitor.isOnline,
+            ) { accountId, isOnline -> accountId to isOnline }
+                .distinctUntilChanged()
+                .collectLatest { (accountId, isOnline) ->
+                    when {
+                        accountId == null -> _pushStatus.value = PushStatus.NoAccount
+                        !isOnline -> _pushStatus.value = PushStatus.Disconnected
+                        else -> maintainConnection()
+                    }
+                }
+        }
+
+        @Suppress("LongMethod")
+        private suspend fun maintainConnection() {
+            val serverUrl = authTokenProvider.activeServerUrl() ?: return
+            _pushStatus.value = PushStatus.Checking
+            val wsUrl = fetchPushWebSocketUrl(serverUrl)
+            if (wsUrl == null) {
+                _pushStatus.value = PushStatus.Unsupported
+                Timber.i("PushSync: notify_push not available on this server, falling back to polling")
+                return
+            }
+            var retryDelayMs = INITIAL_RETRY_DELAY_MS
+            while (true) {
+                val token = authTokenProvider.activeToken() ?: break
+                _pushStatus.value = PushStatus.Connecting
+                try {
+                    pushClient.connect(wsUrl, token).collect { event ->
+                        when (event) {
+                            PushEvent.Authenticated -> {
+                                _pushStatus.value = PushStatus.Connected
+                                retryDelayMs = INITIAL_RETRY_DELAY_MS
+                                Timber.d("PushSync: authenticated, listening for changes")
+                            }
+                            PushEvent.DataChanged -> {
+                                Timber.d("PushSync: data changed event, triggering sync")
+                                syncManager.refreshNow()
+                            }
+                        }
+                    }
+                    Timber.d("PushSync: connection closed, reconnecting in %dms", retryDelayMs)
+                } catch (e: PushAuthException) {
+                    Timber.w("PushSync: authentication rejected by server, stopping push")
+                    _pushStatus.value = PushStatus.Unsupported
+                    break
+                } catch (e: Exception) {
+                    Timber.w(e, "PushSync: connection error, reconnecting in %dms", retryDelayMs)
+                }
+                _pushStatus.value = PushStatus.Disconnected
+                delay(retryDelayMs)
+                retryDelayMs = (retryDelayMs * 2).coerceAtMost(MAX_RETRY_DELAY_MS)
+            }
+        }
+
+        private suspend fun fetchPushWebSocketUrl(serverUrl: String): String? =
+            withContext(ioDispatcher) {
+                try {
+                    val url = "${serverUrl.trimEnd('/')}/ocs/v2.php/cloud/capabilities"
+                    val request =
+                        Request
+                            .Builder()
+                            .url(url)
+                            .header("OCS-APIREQUEST", "true")
+                            .header("Accept", "application/json")
+                            .build()
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) return@withContext null
+                        val body = response.body?.string() ?: return@withContext null
+                        parseWebSocketUrl(body)
+                    }
+                } catch (e: Exception) {
+                    Timber.w(e, "PushSync: failed to fetch server capabilities")
+                    null
+                }
+            }
+
+        private fun parseWebSocketUrl(json: String): String? =
+            runCatching {
+                moshi
+                    .adapter(PushCapabilitiesRoot::class.java)
+                    .fromJson(json)
+                    ?.ocs
+                    ?.data
+                    ?.capabilities
+                    ?.notifyPush
+                    ?.endpoints
+                    ?.websocket
+            }.getOrNull()
+
+        companion object {
+            private const val INITIAL_RETRY_DELAY_MS = 5_000L
+            private const val MAX_RETRY_DELAY_MS = 5L * 60L * 1_000L
+        }
+    }
+
+// Internal DTOs for parsing the /ocs/v2.php/cloud/capabilities response.
+// Only the notify_push section is mapped; all other fields are ignored.
+internal data class PushCapabilitiesRoot(
+    val ocs: PushCapabilitiesOcs?,
+)
+
+internal data class PushCapabilitiesOcs(
+    val data: PushCapabilitiesOcsData?,
+)
+
+internal data class PushCapabilitiesOcsData(
+    val capabilities: PushCapabilities?,
+)
+
+internal data class PushCapabilities(
+    @Json(name = "notify_push") val notifyPush: NotifyPushCapability?,
+)
+
+internal data class NotifyPushCapability(
+    val endpoints: NotifyPushEndpoints?,
+)
+
+internal data class NotifyPushEndpoints(
+    val websocket: String?,
+)

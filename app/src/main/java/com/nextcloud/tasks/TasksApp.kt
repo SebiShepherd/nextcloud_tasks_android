@@ -2,6 +2,8 @@ package com.nextcloud.tasks
 
 import android.app.Application
 import androidx.work.Configuration
+import com.nextcloud.tasks.data.auth.AuthTokenProvider
+import com.nextcloud.tasks.sync.PushForegroundService
 import com.nextcloud.tasks.sync.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -17,6 +19,9 @@ class TasksApp :
     @Inject
     lateinit var syncScheduler: SyncScheduler
 
+    @Inject
+    lateinit var authTokenProvider: AuthTokenProvider
+
     override fun onCreate() {
         super.onCreate()
 
@@ -24,8 +29,13 @@ class TasksApp :
             Timber.plant(Timber.DebugTree())
         }
 
-        // Schedule periodic background synchronization
+        // Schedule periodic background synchronization (always active as fallback)
         syncScheduler.schedulePeriodicSync(this)
+
+        // Start real-time push sync service if an account is already logged in
+        if (authTokenProvider.activeAccountId() != null) {
+            PushForegroundService.start(this)
+        }
 
         // Note: Locale initialization is NOT needed here.
         // AppCompatDelegate automatically persists and restores the selected

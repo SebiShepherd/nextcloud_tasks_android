@@ -108,6 +108,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -134,6 +135,7 @@ import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
 import com.nextcloud.tasks.domain.usecase.ShareListUseCase
 import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
+import com.nextcloud.tasks.sync.PushForegroundService
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -230,6 +232,7 @@ fun NextcloudTasksApp(
     // This ensures refresh happens after initial login when account becomes active
     // Using rememberSaveable to survive configuration changes (e.g. rotation)
     var lastLoadedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     // Auto-refresh when account becomes active (initial login or account switch from another source)
     LaunchedEffect(loginState.activeAccount?.id) {
@@ -237,6 +240,15 @@ fun NextcloudTasksApp(
         if (currentAccountId != null && currentAccountId != lastLoadedAccountId) {
             taskListViewModel.refresh()
             lastLoadedAccountId = currentAccountId
+        }
+    }
+
+    // Start or stop the push sync foreground service based on login state
+    LaunchedEffect(loginState.activeAccount != null) {
+        if (loginState.activeAccount != null) {
+            PushForegroundService.start(context)
+        } else {
+            PushForegroundService.stop(context)
         }
     }
 
