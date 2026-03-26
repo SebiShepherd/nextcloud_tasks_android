@@ -160,6 +160,23 @@
     <string name="push_sync_channel_name">Hintergrundsynchronisierung</string>
     <string name="push_sync_channel_description">Hält Aufgaben in Echtzeit mit dem Nextcloud-Server synchronisiert</string>
 
+    <!-- Sync Settings -->
+    <string name="settings_sync_section">Synchronisierung</string>
+    <string name="settings_sync_mode_realtime">Echtzeit (notify_push)</string>
+    <string name="settings_sync_mode_polling">Nur Polling (alle 15 Min.)</string>
+    <string name="settings_sync_status_label">Status:</string>
+    <string name="settings_sync_status_no_account">Kein Konto aktiv</string>
+    <string name="settings_sync_status_checking">Serverunterstützung wird geprüft…</string>
+    <string name="settings_sync_status_connecting">Verbinde…</string>
+    <string name="settings_sync_status_connected">Verbunden</string>
+    <string name="settings_sync_status_disconnected">Nicht verbunden (Wiederholung…)</string>
+    <string name="settings_sync_status_unsupported">Nicht unterstützt (Server ohne notify_push)</string>
+    <string name="settings_sync_status_auth_failed">Authentifizierung fehlgeschlagen</string>
+
+    <!-- Push Sync Banner -->
+    <string name="push_banner_unsupported">Echtzeit-Synchronisierung ist auf diesem Server nicht verfügbar. Aufgaben werden alle 15 Minuten synchronisiert.</string>
+    <string name="push_banner_auth_failed">Echtzeit-Synchronisierung konnte nicht authentifiziert werden. Bitte Kontodaten prüfen.</string>
+
     <!-- Task Detail View -->
     <string name="task_detail_title_hint">Aufgabentitel</string>
     <string name="task_detail_tab_details">Details</string>

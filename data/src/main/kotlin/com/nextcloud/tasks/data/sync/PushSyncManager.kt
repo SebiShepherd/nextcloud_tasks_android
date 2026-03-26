@@ -5,6 +5,10 @@ import com.nextcloud.tasks.data.network.NetworkMonitor
 import com.nextcloud.tasks.data.network.NotifyPushClient
 import com.nextcloud.tasks.data.network.PushAuthException
 import com.nextcloud.tasks.data.network.PushEvent
+import com.nextcloud.tasks.domain.model.PushStatus
+import com.nextcloud.tasks.domain.model.PushSyncMode
+import com.nextcloud.tasks.domain.repository.PushStatusRepository
+import com.nextcloud.tasks.domain.repository.SyncSettingsRepository
 import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.CoroutineDispatcher
@@ -33,8 +37,10 @@ import javax.inject.Singleton
  * - Discovers the push WebSocket URL via Nextcloud's capabilities API on first connection
  * - Maintains a persistent WebSocket and triggers a CalDAV sync on every received event
  * - Reconnects automatically with exponential backoff after failures
- * - Reacts to account changes and network recovery
+ * - Reacts to account changes, network recovery, and the user's sync mode preference
  * - Exposes [pushStatus] for observing the current connection state (used by Settings UI)
+ * - Implements [PushStatusRepository] so the domain/app layers can observe status without
+ *   depending on the data layer directly
  */
 @Suppress("LongParameterList")
 @Singleton
@@ -45,18 +51,19 @@ class PushSyncManager
         private val authTokenProvider: AuthTokenProvider,
         private val networkMonitor: NetworkMonitor,
         private val syncManager: SyncManager,
+        private val syncSettingsRepository: SyncSettingsRepository,
         @Named("authenticated") private val okHttpClient: OkHttpClient,
         private val moshi: Moshi,
         private val ioDispatcher: CoroutineDispatcher,
-    ) {
+    ) : PushStatusRepository {
         private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
         private val _pushStatus = MutableStateFlow<PushStatus>(PushStatus.NoAccount)
-        val pushStatus: StateFlow<PushStatus> = _pushStatus.asStateFlow()
+        override val pushStatus: StateFlow<PushStatus> = _pushStatus.asStateFlow()
 
         private var managingJob: Job? = null
 
-        /** Starts observing the active account and network state and connects to notify_push. */
+        /** Starts observing the active account, network state, and sync mode, then connects. */
         fun start() {
             if (managingJob?.isActive == true) return
             managingJob = scope.launch { observeAndConnect() }
@@ -73,11 +80,13 @@ class PushSyncManager
             combine(
                 authTokenProvider.observeActiveAccountId(),
                 networkMonitor.isOnline,
-            ) { accountId, isOnline -> accountId to isOnline }
+                syncSettingsRepository.observeSyncMode(),
+            ) { accountId, isOnline, syncMode -> Triple(accountId, isOnline, syncMode) }
                 .distinctUntilChanged()
-                .collectLatest { (accountId, isOnline) ->
+                .collectLatest { (accountId, isOnline, syncMode) ->
                     when {
                         accountId == null -> _pushStatus.value = PushStatus.NoAccount
+                        syncMode == PushSyncMode.POLLING_ONLY -> _pushStatus.value = PushStatus.NoAccount
                         !isOnline -> _pushStatus.value = PushStatus.Disconnected
                         else -> maintainConnection()
                     }
@@ -114,8 +123,8 @@ class PushSyncManager
                     }
                     Timber.d("PushSync: connection closed, reconnecting in %dms", retryDelayMs)
                 } catch (e: PushAuthException) {
-                    Timber.w("PushSync: authentication rejected by server, stopping push")
-                    _pushStatus.value = PushStatus.Unsupported
+                    Timber.w("PushSync: credentials rejected by server")
+                    _pushStatus.value = PushStatus.AuthFailed
                     break
                 } catch (e: Exception) {
                     Timber.w(e, "PushSync: connection error, reconnecting in %dms", retryDelayMs)

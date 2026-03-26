@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,15 +32,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nextcloud.tasks.R
+import com.nextcloud.tasks.domain.model.PushStatus
+import com.nextcloud.tasks.domain.model.PushSyncMode
 import com.nextcloud.tasks.preferences.Language
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod")
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val selectedLanguage by viewModel.selectedLanguage.collectAsState()
+    val syncMode by viewModel.syncMode.collectAsState()
+    val pushStatus by viewModel.pushStatus.collectAsState()
     var showLanguageDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -64,6 +70,53 @@ fun SettingsScreen(
                 subtitle = getLanguageDisplayName(selectedLanguage),
                 onClick = { showLanguageDialog = true },
             )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // Sync Section Header
+            Text(
+                text = stringResource(R.string.settings_sync_section),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
+            )
+
+            // Sync Mode: Real-time
+            SyncModeOption(
+                label = stringResource(R.string.settings_sync_mode_realtime),
+                isSelected = syncMode == PushSyncMode.REALTIME,
+                onClick = { viewModel.setSyncMode(PushSyncMode.REALTIME) },
+            )
+
+            // Sync Mode: Polling only
+            SyncModeOption(
+                label = stringResource(R.string.settings_sync_mode_polling),
+                isSelected = syncMode == PushSyncMode.POLLING_ONLY,
+                onClick = { viewModel.setSyncMode(PushSyncMode.POLLING_ONLY) },
+            )
+
+            // Status row (non-clickable, shown only in REALTIME mode)
+            if (syncMode == PushSyncMode.REALTIME) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_sync_status_label),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = pushStatusLabel(pushStatus),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = pushStatusColor(pushStatus),
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
         }
 
         // Language Selection Dialog
@@ -79,6 +132,53 @@ fun SettingsScreen(
         }
     }
 }
+
+@Composable
+private fun SyncModeOption(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = isSelected,
+            onClick = onClick,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 8.dp),
+        )
+    }
+}
+
+@Composable
+private fun pushStatusLabel(status: PushStatus): String =
+    when (status) {
+        PushStatus.NoAccount -> stringResource(R.string.settings_sync_status_no_account)
+        PushStatus.Checking -> stringResource(R.string.settings_sync_status_checking)
+        PushStatus.Connecting -> stringResource(R.string.settings_sync_status_connecting)
+        PushStatus.Connected -> stringResource(R.string.settings_sync_status_connected)
+        PushStatus.Disconnected -> stringResource(R.string.settings_sync_status_disconnected)
+        PushStatus.Unsupported -> stringResource(R.string.settings_sync_status_unsupported)
+        PushStatus.AuthFailed -> stringResource(R.string.settings_sync_status_auth_failed)
+    }
+
+@Composable
+private fun pushStatusColor(status: PushStatus) =
+    when (status) {
+        PushStatus.Connected -> MaterialTheme.colorScheme.primary
+        PushStatus.AuthFailed -> MaterialTheme.colorScheme.error
+        PushStatus.Unsupported -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
 @Composable
 private fun SettingsItem(

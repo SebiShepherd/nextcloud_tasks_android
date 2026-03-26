@@ -10,6 +10,7 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import timber.log.Timber
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -27,7 +28,7 @@ import javax.inject.Named
 class NotifyPushClient
     @Inject
     constructor(
-        @Named("authenticated") private val okHttpClient: OkHttpClient,
+        @Named("unauthenticated") private val okHttpClient: OkHttpClient,
     ) {
         /**
          * Opens a WebSocket to [pushWebSocketUrl] and emits [PushEvent] for each server message.
@@ -63,8 +64,14 @@ class NotifyPushClient
                                         trySend(PushEvent.Authenticated)
                                     }
                                     "err: Invalid credentials" -> {
-                                        Timber.w("NotifyPush: authentication failed")
+                                        Timber.w("NotifyPush: authentication failed – permanent error")
                                         close(PushAuthException())
+                                    }
+                                    "Authentication timeout" -> {
+                                        // Server closed after not receiving credentials in time.
+                                        // This is retriable (e.g. after fixing auth header conflicts).
+                                        Timber.w("NotifyPush: authentication timeout – will retry")
+                                        close(IOException("notify_push: Authentication timeout"))
                                     }
                                     else -> {
                                         Timber.d("NotifyPush: event received: %s", text)
