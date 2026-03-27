@@ -151,19 +151,12 @@ class PushSyncManager
          * the WebSocket connection. Falls back to username/password text-frame auth if the
          * pre-auth fetch fails or the endpoint is not available.
          */
-        private suspend fun resolveAuthMessage(
+        private fun resolveAuthMessage(
             endpoints: PushEndpoints,
             token: AuthToken,
         ): String {
-            val preAuthUrl = endpoints.preAuth ?: return buildCredentialMessage(token)
-            val preAuthToken = fetchPreAuthToken(preAuthUrl)
-            return if (preAuthToken != null) {
-                Timber.d("PushSync: using pre-auth token as text-frame auth")
-                preAuthToken
-            } else {
-                Timber.w("PushSync: pre-auth fetch failed, falling back to credential text-frame auth")
-                buildCredentialMessage(token)
-            }
+            Timber.d("PushSync: using credential text-frame auth (pre-auth not used)")
+            return buildCredentialMessage(token)
         }
 
         private fun buildCredentialMessage(token: AuthToken): String =
