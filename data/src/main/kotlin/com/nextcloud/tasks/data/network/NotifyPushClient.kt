@@ -29,7 +29,7 @@ import javax.inject.Named
 class NotifyPushClient
     @Inject
     constructor(
-        @Named("authenticated") private val okHttpClient: OkHttpClient,
+        @Named("unauthenticated") private val okHttpClient: OkHttpClient,
     ) {
         /**
          * Opens a WebSocket to [pushWebSocketUrl] and emits [PushEvent] for each server message.
