@@ -159,7 +159,8 @@ class PushSyncManager
             val preAuthToken = fetchPreAuthToken(preAuthUrl)
             return if (preAuthToken != null) {
                 Timber.d("PushSync: using pre-auth token for WebSocket connection")
-                Pair("${endpoints.websocket}?token=$preAuthToken", null)
+                val encodedToken = java.net.URLEncoder.encode(preAuthToken, "UTF-8")
+                Pair("${endpoints.websocket}?token=$encodedToken", null)
             } else {
                 Timber.w("PushSync: pre-auth fetch failed, falling back to text-frame auth")
                 Pair(endpoints.websocket, token)
