@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Named
@@ -172,6 +173,7 @@ class PushSyncManager
                         Request
                             .Builder()
                             .url(preAuthUrl)
+                            .post(ByteArray(0).toRequestBody())
                             .build()
                     okHttpClient.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) {
