@@ -5,6 +5,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import okhttp3.OkHttpClient
+import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
@@ -41,8 +42,19 @@ class NotifyPushClient
                 val request = Request.Builder().url(pushWebSocketUrl).build()
                 val authMessage = buildAuthMessage(authToken)
 
+                // Force HTTP/1.1 to prevent ALPN h2 negotiation.
+                // Standard WebSocket (RFC 6455) requires HTTP/1.1 Upgrade; if OkHttp
+                // negotiates HTTP/2 via ALPN, Caddy accepts the extended-CONNECT tunnel
+                // (RFC 8441) but notify_push only speaks HTTP/1.1 WebSocket and never
+                // receives the authentication frame, causing "Authentication timeout".
+                val wsClient =
+                    okHttpClient
+                        .newBuilder()
+                        .protocols(listOf(Protocol.HTTP_1_1))
+                        .build()
+
                 val webSocket =
-                    okHttpClient.newWebSocket(
+                    wsClient.newWebSocket(
                         request,
                         object : WebSocketListener() {
                             override fun onOpen(
