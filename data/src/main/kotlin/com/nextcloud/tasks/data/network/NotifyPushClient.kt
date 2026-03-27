@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.data.network
 
+import com.nextcloud.tasks.data.auth.AuthToken
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -9,7 +10,6 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import timber.log.Timber
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -18,9 +18,7 @@ import javax.inject.Named
  *
  * Protocol:
  * 1. Connect to the push WebSocket URL discovered via server capabilities
- * 2. Send an authentication message as a text frame:
- *    - Regular auth: "username\npassword" (or "\nbearerToken" for OAuth)
- *    - Pre-auth: the short-lived token returned by the /pre_auth endpoint (bare string)
+ * 2. Send "username\npassword" (or "\nbearerToken" for OAuth) to authenticate
  * 3. Receive "authenticated" confirmation
  * 4. Receive event strings (e.g. "notify_file") whenever server-side data changes
  *
@@ -29,22 +27,19 @@ import javax.inject.Named
 class NotifyPushClient
     @Inject
     constructor(
-        @Named("unauthenticated") private val okHttpClient: OkHttpClient,
+        @Named("authenticated") private val okHttpClient: OkHttpClient,
     ) {
         /**
          * Opens a WebSocket to [pushWebSocketUrl] and emits [PushEvent] for each server message.
          * The Flow completes when the connection closes or fails.
-         *
-         * @param authMessage The authentication text frame to send immediately after the WebSocket
-         *                    opens. This can be "username\npassword", "\nbearerToken", or a
-         *                    short-lived pre-auth token (bare string from the /pre_auth endpoint).
          */
         fun connect(
             pushWebSocketUrl: String,
-            authMessage: String,
+            authToken: AuthToken,
         ): Flow<PushEvent> =
             callbackFlow {
                 val request = Request.Builder().url(pushWebSocketUrl).build()
+                val authMessage = buildAuthMessage(authToken)
 
                 val webSocket =
                     okHttpClient.newWebSocket(
@@ -54,11 +49,8 @@ class NotifyPushClient
                                 webSocket: WebSocket,
                                 response: Response,
                             ) {
-                                val sent = webSocket.send(authMessage)
-                                Timber.d(
-                                    "NotifyPush: WebSocket opened, sent auth text-frame (enqueued=%b)",
-                                    sent,
-                                )
+                                Timber.d("NotifyPush: WebSocket opened, authenticating")
+                                webSocket.send(authMessage)
                             }
 
                             override fun onMessage(
@@ -71,14 +63,8 @@ class NotifyPushClient
                                         trySend(PushEvent.Authenticated)
                                     }
                                     "err: Invalid credentials" -> {
-                                        Timber.w("NotifyPush: authentication failed – permanent error")
+                                        Timber.w("NotifyPush: authentication failed")
                                         close(PushAuthException())
-                                    }
-                                    "Authentication timeout" -> {
-                                        // Server closed after not receiving credentials in time.
-                                        // This is retriable (e.g. after fixing auth header conflicts).
-                                        Timber.w("NotifyPush: authentication timeout – will retry")
-                                        close(IOException("notify_push: Authentication timeout"))
                                     }
                                     else -> {
                                         Timber.d("NotifyPush: event received: %s", text)
@@ -110,6 +96,15 @@ class NotifyPushClient
                 awaitClose {
                     Timber.d("NotifyPush: closing WebSocket")
                     webSocket.close(NORMAL_CLOSURE_CODE, null)
+                }
+            }
+
+        private fun buildAuthMessage(authToken: AuthToken): String =
+            when (authToken) {
+                is AuthToken.Password -> "${authToken.username}\n${authToken.appPassword}"
+                is AuthToken.OAuth -> {
+                    Timber.w("NotifyPush: OAuth push authentication is experimental")
+                    "\n${authToken.accessToken}"
                 }
             }
 

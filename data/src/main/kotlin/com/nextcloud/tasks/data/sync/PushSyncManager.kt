@@ -1,15 +1,10 @@
 package com.nextcloud.tasks.data.sync
 
-import com.nextcloud.tasks.data.auth.AuthToken
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.network.NetworkMonitor
 import com.nextcloud.tasks.data.network.NotifyPushClient
 import com.nextcloud.tasks.data.network.PushAuthException
 import com.nextcloud.tasks.data.network.PushEvent
-import com.nextcloud.tasks.domain.model.PushStatus
-import com.nextcloud.tasks.domain.model.PushSyncMode
-import com.nextcloud.tasks.domain.repository.PushStatusRepository
-import com.nextcloud.tasks.domain.repository.SyncSettingsRepository
 import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.CoroutineDispatcher
@@ -27,7 +22,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Named
@@ -39,10 +33,8 @@ import javax.inject.Singleton
  * - Discovers the push WebSocket URL via Nextcloud's capabilities API on first connection
  * - Maintains a persistent WebSocket and triggers a CalDAV sync on every received event
  * - Reconnects automatically with exponential backoff after failures
- * - Reacts to account changes, network recovery, and the user's sync mode preference
+ * - Reacts to account changes and network recovery
  * - Exposes [pushStatus] for observing the current connection state (used by Settings UI)
- * - Implements [PushStatusRepository] so the domain/app layers can observe status without
- *   depending on the data layer directly
  */
 @Suppress("LongParameterList")
 @Singleton
@@ -53,19 +45,18 @@ class PushSyncManager
         private val authTokenProvider: AuthTokenProvider,
         private val networkMonitor: NetworkMonitor,
         private val syncManager: SyncManager,
-        private val syncSettingsRepository: SyncSettingsRepository,
         @Named("authenticated") private val okHttpClient: OkHttpClient,
         private val moshi: Moshi,
         private val ioDispatcher: CoroutineDispatcher,
-    ) : PushStatusRepository {
+    ) {
         private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
         private val _pushStatus = MutableStateFlow<PushStatus>(PushStatus.NoAccount)
-        override val pushStatus: StateFlow<PushStatus> = _pushStatus.asStateFlow()
+        val pushStatus: StateFlow<PushStatus> = _pushStatus.asStateFlow()
 
         private var managingJob: Job? = null
 
-        /** Starts observing the active account, network state, and sync mode, then connects. */
+        /** Starts observing the active account and network state and connects to notify_push. */
         fun start() {
             if (managingJob?.isActive == true) return
             managingJob = scope.launch { observeAndConnect() }
@@ -82,13 +73,11 @@ class PushSyncManager
             combine(
                 authTokenProvider.observeActiveAccountId(),
                 networkMonitor.isOnline,
-                syncSettingsRepository.observeSyncMode(),
-            ) { accountId, isOnline, syncMode -> Triple(accountId, isOnline, syncMode) }
+            ) { accountId, isOnline -> accountId to isOnline }
                 .distinctUntilChanged()
-                .collectLatest { (accountId, isOnline, syncMode) ->
+                .collectLatest { (accountId, isOnline) ->
                     when {
                         accountId == null -> _pushStatus.value = PushStatus.NoAccount
-                        syncMode == PushSyncMode.POLLING_ONLY -> _pushStatus.value = PushStatus.NoAccount
                         !isOnline -> _pushStatus.value = PushStatus.Disconnected
                         else -> maintainConnection()
                     }
@@ -99,24 +88,18 @@ class PushSyncManager
         private suspend fun maintainConnection() {
             val serverUrl = authTokenProvider.activeServerUrl() ?: return
             _pushStatus.value = PushStatus.Checking
-            val endpoints = fetchPushEndpoints(serverUrl)
-            if (endpoints == null) {
+            val wsUrl = fetchPushWebSocketUrl(serverUrl)
+            if (wsUrl == null) {
                 _pushStatus.value = PushStatus.Unsupported
                 Timber.i("PushSync: notify_push not available on this server, falling back to polling")
                 return
             }
-            Timber.d(
-                "PushSync: endpoints resolved – ws=%s preAuth=%s",
-                endpoints.websocket,
-                if (endpoints.preAuth != null) "(present)" else "(absent)",
-            )
             var retryDelayMs = INITIAL_RETRY_DELAY_MS
             while (true) {
                 val token = authTokenProvider.activeToken() ?: break
                 _pushStatus.value = PushStatus.Connecting
-                val authMessage = resolveAuthMessage(endpoints, token)
                 try {
-                    pushClient.connect(endpoints.websocket, authMessage).collect { event ->
+                    pushClient.connect(wsUrl, token).collect { event ->
                         when (event) {
                             PushEvent.Authenticated -> {
                                 _pushStatus.value = PushStatus.Connected
@@ -131,8 +114,8 @@ class PushSyncManager
                     }
                     Timber.d("PushSync: connection closed, reconnecting in %dms", retryDelayMs)
                 } catch (e: PushAuthException) {
-                    Timber.w("PushSync: credentials rejected by server")
-                    _pushStatus.value = PushStatus.AuthFailed
+                    Timber.w("PushSync: authentication rejected by server, stopping push")
+                    _pushStatus.value = PushStatus.Unsupported
                     break
                 } catch (e: Exception) {
                     Timber.w(e, "PushSync: connection error, reconnecting in %dms", retryDelayMs)
@@ -143,57 +126,7 @@ class PushSyncManager
             }
         }
 
-        /**
-         * Returns the text-frame authentication message to send after the WebSocket opens.
-         *
-         * Prefers pre-auth: POSTs to the /pre_auth endpoint to obtain a short-lived token and
-         * sends it as a bare text frame. This avoids transmitting long-lived credentials over
-         * the WebSocket connection. Falls back to username/password text-frame auth if the
-         * pre-auth fetch fails or the endpoint is not available.
-         */
-        private fun resolveAuthMessage(
-            endpoints: PushEndpoints,
-            token: AuthToken,
-        ): String {
-            Timber.d("PushSync: using credential text-frame auth (pre-auth not used)")
-            return buildCredentialMessage(token)
-        }
-
-        private fun buildCredentialMessage(token: AuthToken): String =
-            when (token) {
-                is AuthToken.Password -> "${token.username}\n${token.appPassword}"
-                is AuthToken.OAuth -> {
-                    Timber.w("PushSync: OAuth push authentication is experimental")
-                    "\n${token.accessToken}"
-                }
-            }
-
-        private suspend fun fetchPreAuthToken(preAuthUrl: String): String? =
-            withContext(ioDispatcher) {
-                try {
-                    val request =
-                        Request
-                            .Builder()
-                            .url(preAuthUrl)
-                            .post(ByteArray(0).toRequestBody())
-                            .build()
-                    okHttpClient.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            Timber.w("PushSync: pre-auth request failed with HTTP %d", response.code)
-                            return@withContext null
-                        }
-                        response.body
-                            ?.string()
-                            ?.trim()
-                            ?.takeIf { it.isNotEmpty() }
-                    }
-                } catch (e: Exception) {
-                    Timber.w(e, "PushSync: pre-auth request threw an exception")
-                    null
-                }
-            }
-
-        private suspend fun fetchPushEndpoints(serverUrl: String): PushEndpoints? =
+        private suspend fun fetchPushWebSocketUrl(serverUrl: String): String? =
             withContext(ioDispatcher) {
                 try {
                     val url = "${serverUrl.trimEnd('/')}/ocs/v2.php/cloud/capabilities"
@@ -207,7 +140,7 @@ class PushSyncManager
                     okHttpClient.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) return@withContext null
                         val body = response.body?.string() ?: return@withContext null
-                        parseEndpoints(body)
+                        parseWebSocketUrl(body)
                     }
                 } catch (e: Exception) {
                     Timber.w(e, "PushSync: failed to fetch server capabilities")
@@ -215,19 +148,17 @@ class PushSyncManager
                 }
             }
 
-        private fun parseEndpoints(json: String): PushEndpoints? =
+        private fun parseWebSocketUrl(json: String): String? =
             runCatching {
-                val raw =
-                    moshi
-                        .adapter(PushCapabilitiesRoot::class.java)
-                        .fromJson(json)
-                        ?.ocs
-                        ?.data
-                        ?.capabilities
-                        ?.notifyPush
-                        ?.endpoints
-                val wsUrl = raw?.websocket ?: return@runCatching null
-                PushEndpoints(websocket = wsUrl, preAuth = raw.preAuth)
+                moshi
+                    .adapter(PushCapabilitiesRoot::class.java)
+                    .fromJson(json)
+                    ?.ocs
+                    ?.data
+                    ?.capabilities
+                    ?.notifyPush
+                    ?.endpoints
+                    ?.websocket
             }.getOrNull()
 
         companion object {
@@ -260,11 +191,4 @@ internal data class NotifyPushCapability(
 
 internal data class NotifyPushEndpoints(
     val websocket: String?,
-    @Json(name = "pre_auth") val preAuth: String?,
-)
-
-/** Resolved notify_push URLs. */
-internal data class PushEndpoints(
-    val websocket: String,
-    val preAuth: String?,
 )

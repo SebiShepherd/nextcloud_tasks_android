@@ -3,8 +3,6 @@ package com.nextcloud.tasks
 import com.nextcloud.tasks.data.caldav.service.CalDavHttpException
 import com.nextcloud.tasks.domain.model.AuthType
 import com.nextcloud.tasks.domain.model.NextcloudAccount
-import com.nextcloud.tasks.domain.model.PushStatus
-import com.nextcloud.tasks.domain.model.PushSyncMode
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.model.TaskFilter
 import com.nextcloud.tasks.domain.model.TaskSort
@@ -12,10 +10,7 @@ import com.nextcloud.tasks.domain.repository.TasksRepository
 import com.nextcloud.tasks.domain.usecase.GetShareesUseCase
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
 import com.nextcloud.tasks.domain.usecase.ObserveActiveAccountUseCase
-import com.nextcloud.tasks.domain.usecase.ObservePushStatusUseCase
-import com.nextcloud.tasks.domain.usecase.ObservePushSyncModeUseCase
 import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
-import com.nextcloud.tasks.domain.usecase.SetPushSyncModeUseCase
 import com.nextcloud.tasks.domain.usecase.ShareListUseCase
 import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
 import io.mockk.coEvery
@@ -25,7 +20,6 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -88,17 +82,12 @@ class TaskListViewModelTest {
         val shareListUseCase = mockk<ShareListUseCase>(relaxed = true)
         val unshareListUseCase = mockk<UnshareListUseCase>(relaxed = true)
         val searchShareesUseCase = mockk<SearchShareesUseCase>(relaxed = true)
-        val observePushSyncModeUseCase = mockk<ObservePushSyncModeUseCase>()
-        val setPushSyncModeUseCase = mockk<SetPushSyncModeUseCase>(relaxed = true)
-        val observePushStatusUseCase = mockk<ObservePushStatusUseCase>()
 
         every { loadTasksUseCase() } returns flowOf(tasks)
         every { tasksRepository.observeLists() } returns flowOf(emptyList())
         every { tasksRepository.observeIsOnline() } returns flowOf(true)
         every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
         every { observeActiveAccountUseCase() } returns accountFlow
-        every { observePushSyncModeUseCase() } returns flowOf(PushSyncMode.REALTIME)
-        every { observePushStatusUseCase() } returns MutableStateFlow(PushStatus.NoAccount)
 
         val vm =
             TaskListViewModel(
@@ -109,9 +98,6 @@ class TaskListViewModelTest {
                 shareListUseCase = shareListUseCase,
                 unshareListUseCase = unshareListUseCase,
                 searchShareesUseCase = searchShareesUseCase,
-                observePushSyncModeUseCase = observePushSyncModeUseCase,
-                setPushSyncModeUseCase = setPushSyncModeUseCase,
-                observePushStatusUseCase = observePushStatusUseCase,
             )
         block(vm)
     }
@@ -128,17 +114,12 @@ class TaskListViewModelTest {
         val shareListUseCase = mockk<ShareListUseCase>(relaxed = true)
         val unshareListUseCase = mockk<UnshareListUseCase>(relaxed = true)
         val searchShareesUseCase = mockk<SearchShareesUseCase>(relaxed = true)
-        val observePushSyncModeUseCase = mockk<ObservePushSyncModeUseCase>()
-        val setPushSyncModeUseCase = mockk<SetPushSyncModeUseCase>(relaxed = true)
-        val observePushStatusUseCase = mockk<ObservePushStatusUseCase>()
 
         every { loadTasksUseCase() } returns flowOf(tasks)
         every { tasksRepository.observeLists() } returns flowOf(emptyList())
         every { tasksRepository.observeIsOnline() } returns flowOf(true)
         every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
         every { observeActiveAccountUseCase() } returns flowOf(null)
-        every { observePushSyncModeUseCase() } returns flowOf(PushSyncMode.REALTIME)
-        every { observePushStatusUseCase() } returns MutableStateFlow(PushStatus.NoAccount)
 
         val vm =
             TaskListViewModel(
@@ -149,9 +130,6 @@ class TaskListViewModelTest {
                 shareListUseCase = shareListUseCase,
                 unshareListUseCase = unshareListUseCase,
                 searchShareesUseCase = searchShareesUseCase,
-                observePushSyncModeUseCase = observePushSyncModeUseCase,
-                setPushSyncModeUseCase = setPushSyncModeUseCase,
-                observePushStatusUseCase = observePushStatusUseCase,
             )
         block(vm, tasksRepository)
     }

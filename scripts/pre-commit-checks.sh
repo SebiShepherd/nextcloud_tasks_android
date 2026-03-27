@@ -13,25 +13,23 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-# Detect if Gradle can actually resolve and run project tasks.
-# "./gradlew --version" always succeeds (it doesn't load the project),
-# so we use "tasks" which requires downloading/resolving all plugins.
-# A 90-second timeout prevents hanging in network-restricted environments.
+# Detect if we're in a sandboxed environment (Gradle might not work)
 GRADLE_WORKS=false
 
-if timeout 90 ./gradlew tasks --quiet 2>/dev/null; then
+# Test if Gradle can run
+if ./gradlew --version &>/dev/null; then
     GRADLE_WORKS=true
     echo "Using Gradle for checks (local/CI environment)"
 else
-    echo "Gradle project setup failed (network or plugin issue), using standalone tools"
+    echo "Gradle unavailable, using standalone tools (sandboxed environment)"
 fi
 
 echo ""
 
-# Run checks with Gradle (preferred for local dev and CI)
+# Run checks with Gradle (preferred for local dev)
 if [ "$GRADLE_WORKS" = true ]; then
     echo "1/2 Running ktlintCheck..."
-    if ./gradlew ktlintCheck; then
+    if ./gradlew ktlintCheck --quiet; then
         echo -e "${GREEN}ktlint passed${NC}"
     else
         echo -e "${RED}ktlint failed - please fix formatting issues${NC}"
@@ -42,7 +40,7 @@ if [ "$GRADLE_WORKS" = true ]; then
 
     echo ""
     echo "2/2 Running detekt..."
-    if ./gradlew detekt; then
+    if ./gradlew detekt --quiet; then
         echo -e "${GREEN}detekt passed${NC}"
     else
         echo -e "${RED}detekt failed - code quality issues found${NC}"

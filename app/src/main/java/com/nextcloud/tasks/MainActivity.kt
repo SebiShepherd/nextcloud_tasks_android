@@ -2,14 +2,10 @@
 
 package com.nextcloud.tasks
 
-import android.Manifest
 import android.content.res.Configuration
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -108,11 +104,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -129,8 +125,6 @@ import com.nextcloud.tasks.auth.ServerInputScreen
 import com.nextcloud.tasks.data.caldav.service.CalDavHttpException
 import com.nextcloud.tasks.detail.TaskDetailScreen
 import com.nextcloud.tasks.domain.model.NextcloudAccount
-import com.nextcloud.tasks.domain.model.PushStatus
-import com.nextcloud.tasks.domain.model.PushSyncMode
 import com.nextcloud.tasks.domain.model.ShareAccess
 import com.nextcloud.tasks.domain.model.Sharee
 import com.nextcloud.tasks.domain.model.ShareeSearchResult
@@ -138,10 +132,7 @@ import com.nextcloud.tasks.domain.model.ShareeType
 import com.nextcloud.tasks.domain.model.Task
 import com.nextcloud.tasks.domain.usecase.GetShareesUseCase
 import com.nextcloud.tasks.domain.usecase.LoadTasksUseCase
-import com.nextcloud.tasks.domain.usecase.ObservePushStatusUseCase
-import com.nextcloud.tasks.domain.usecase.ObservePushSyncModeUseCase
 import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
-import com.nextcloud.tasks.domain.usecase.SetPushSyncModeUseCase
 import com.nextcloud.tasks.domain.usecase.ShareListUseCase
 import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
 import com.nextcloud.tasks.sync.PushForegroundService
@@ -219,9 +210,6 @@ fun NextcloudTasksApp(
     val createListError by taskListViewModel.createListError.collectAsState()
     val editListError by taskListViewModel.editListError.collectAsState()
     val deleteListError by taskListViewModel.deleteListError.collectAsState()
-    val syncMode by taskListViewModel.syncMode.collectAsState()
-    val pushStatus by taskListViewModel.pushStatus.collectAsState()
-    val showPushBanner by taskListViewModel.showPushBanner.collectAsState()
 
     // Sharing state
     val sharingListId by taskListViewModel.sharingListId.collectAsState()
@@ -246,26 +234,18 @@ fun NextcloudTasksApp(
     var lastLoadedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
-    // POST_NOTIFICATIONS permission launcher (Android 13+)
-    val notificationPermissionLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { /* result ignored */ }
-
     // Auto-refresh when account becomes active (initial login or account switch from another source)
     LaunchedEffect(loginState.activeAccount?.id) {
         val currentAccountId = loginState.activeAccount?.id
         if (currentAccountId != null && currentAccountId != lastLoadedAccountId) {
-            // Request POST_NOTIFICATIONS the first time a user logs in (Android 13+)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
             taskListViewModel.refresh()
             lastLoadedAccountId = currentAccountId
         }
     }
 
-    // Start or stop the push sync foreground service based on login state and sync mode
-    LaunchedEffect(loginState.activeAccount != null, syncMode) {
-        if (loginState.activeAccount != null && syncMode == PushSyncMode.REALTIME) {
+    // Start or stop the push sync foreground service based on login state
+    LaunchedEffect(loginState.activeAccount != null) {
+        if (loginState.activeAccount != null) {
             PushForegroundService.start(context)
         } else {
             PushForegroundService.stop(context)
@@ -375,9 +355,6 @@ fun NextcloudTasksApp(
             shareActionInProgress = shareActionInProgress,
             onClearShareError = taskListViewModel::clearShareError,
             onClearShareSuccess = taskListViewModel::clearShareSuccess,
-            showPushBanner = showPushBanner,
-            pushStatus = pushStatus,
-            onDismissPushBanner = taskListViewModel::dismissPushBanner,
         )
     }
 }
@@ -451,10 +428,6 @@ fun AuthenticatedHome(
     shareActionInProgress: String? = null,
     onClearShareError: () -> Unit = {},
     onClearShareSuccess: () -> Unit = {},
-    // Push sync banner
-    showPushBanner: Boolean = false,
-    pushStatus: PushStatus = PushStatus.NoAccount,
-    onDismissPushBanner: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -521,14 +494,6 @@ fun AuthenticatedHome(
                             onSetSort = onSetSort,
                             onAddAccount = onAddAccount,
                         )
-
-                        AnimatedVisibility(
-                            visible = showPushBanner,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut(),
-                        ) {
-                            PushStatusBanner(pushStatus = pushStatus, onDismiss = onDismissPushBanner)
-                        }
 
                         PullToRefreshBox(
                             isRefreshing = isRefreshing,
@@ -2708,41 +2673,6 @@ fun NoSearchResultsState(
     }
 }
 
-@Composable
-private fun PushStatusBanner(
-    pushStatus: PushStatus,
-    onDismiss: () -> Unit,
-) {
-    val bannerText =
-        when (pushStatus) {
-            PushStatus.Unsupported -> stringResource(R.string.push_banner_unsupported)
-            PushStatus.AuthFailed -> stringResource(R.string.push_banner_auth_failed)
-            else -> return
-        }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.errorContainer)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = bannerText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.weight(1f),
-        )
-        IconButton(onClick = onDismiss) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = stringResource(R.string.close),
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-            )
-        }
-    }
-}
-
 enum class RefreshError {
     RATE_LIMITED,
     AUTH_FAILED,
@@ -2781,9 +2711,6 @@ class TaskListViewModel
         private val shareListUseCase: ShareListUseCase,
         private val unshareListUseCase: UnshareListUseCase,
         private val searchShareesUseCase: SearchShareesUseCase,
-        private val observePushSyncModeUseCase: ObservePushSyncModeUseCase,
-        private val setPushSyncModeUseCase: SetPushSyncModeUseCase,
-        private val observePushStatusUseCase: ObservePushStatusUseCase,
     ) : ViewModel() {
         // Raw tasks from repository
         private val allTasks =
@@ -3289,33 +3216,5 @@ class TaskListViewModel
 
         fun clearShareError() {
             _shareError.value = null
-        }
-
-        // Push sync state
-        val syncMode: kotlinx.coroutines.flow.StateFlow<PushSyncMode> =
-            observePushSyncModeUseCase()
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PushSyncMode.REALTIME)
-
-        val pushStatus: kotlinx.coroutines.flow.StateFlow<PushStatus> =
-            observePushStatusUseCase()
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PushStatus.NoAccount)
-
-        private val pushBannerDismissed = MutableStateFlow(false)
-
-        val showPushBanner: kotlinx.coroutines.flow.StateFlow<Boolean> =
-            combine(syncMode, pushStatus, pushBannerDismissed) { mode, status, dismissed ->
-                !dismissed &&
-                    mode == PushSyncMode.REALTIME &&
-                    (status == PushStatus.Unsupported || status == PushStatus.AuthFailed)
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
-        fun dismissPushBanner() {
-            pushBannerDismissed.value = true
-        }
-
-        fun setSyncMode(mode: PushSyncMode) {
-            viewModelScope.launch {
-                setPushSyncModeUseCase(mode)
-            }
         }
     }

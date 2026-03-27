@@ -14,9 +14,7 @@ import com.nextcloud.tasks.data.database.NextcloudTasksDatabase
 import com.nextcloud.tasks.data.database.migrations.DatabaseMigrations
 import com.nextcloud.tasks.data.repository.DefaultAuthRepository
 import com.nextcloud.tasks.data.repository.DefaultTasksRepository
-import com.nextcloud.tasks.data.sync.PushSyncManager
 import com.nextcloud.tasks.domain.repository.AuthRepository
-import com.nextcloud.tasks.domain.repository.PushStatusRepository
 import com.nextcloud.tasks.domain.repository.TasksRepository
 import dagger.Binds
 import dagger.Module
@@ -46,10 +44,6 @@ interface RepositoryBindings {
     @Binds
     @Singleton
     fun bindAuthTokenProvider(implementation: PersistentAuthTokenProvider): AuthTokenProvider
-
-    @Binds
-    @Singleton
-    fun bindPushStatusRepository(implementation: PushSyncManager): PushStatusRepository
 }
 
 @Module

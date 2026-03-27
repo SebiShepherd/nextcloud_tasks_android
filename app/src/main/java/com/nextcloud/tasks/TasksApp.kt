@@ -3,7 +3,7 @@ package com.nextcloud.tasks
 import android.app.Application
 import androidx.work.Configuration
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
-import com.nextcloud.tasks.data.sync.PushSyncManager
+import com.nextcloud.tasks.sync.PushForegroundService
 import com.nextcloud.tasks.sync.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -22,9 +22,6 @@ class TasksApp :
     @Inject
     lateinit var authTokenProvider: AuthTokenProvider
 
-    @Inject
-    lateinit var pushSyncManager: PushSyncManager
-
     override fun onCreate() {
         super.onCreate()
 
@@ -35,11 +32,9 @@ class TasksApp :
         // Schedule periodic background synchronization (always active as fallback)
         syncScheduler.schedulePeriodicSync(this)
 
-        // Start real-time push sync manager directly (avoids ForegroundServiceStartNotAllowedException
-        // when the app is started in the background on Android 12+). The foreground service with its
-        // persistent notification is started separately by MainActivity when the UI is visible.
+        // Start real-time push sync service if an account is already logged in
         if (authTokenProvider.activeAccountId() != null) {
-            pushSyncManager.start()
+            PushForegroundService.start(this)
         }
 
         // Note: Locale initialization is NOT needed here.
