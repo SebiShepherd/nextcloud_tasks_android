@@ -21,7 +21,6 @@ subprojects {
     apply(plugin = "org.jetbrains.kotlinx.kover")
 
     extensions.configure<KtlintExtension> {
-        android.set(true)
         filter {
             exclude("**/generated/**")
         }
