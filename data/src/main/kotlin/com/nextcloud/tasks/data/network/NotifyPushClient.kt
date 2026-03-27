@@ -33,14 +33,19 @@ class NotifyPushClient
         /**
          * Opens a WebSocket to [pushWebSocketUrl] and emits [PushEvent] for each server message.
          * The Flow completes when the connection closes or fails.
+         *
+         * @param authToken Credentials to send as a text frame after the connection opens.
+         *                  Pass `null` when using pre-auth (token embedded in the URL) – the
+         *                  server will authenticate the connection at the HTTP-upgrade level and
+         *                  respond with `"authenticated"` without any text-frame exchange.
          */
         fun connect(
             pushWebSocketUrl: String,
-            authToken: AuthToken,
+            authToken: AuthToken?,
         ): Flow<PushEvent> =
             callbackFlow {
                 val request = Request.Builder().url(pushWebSocketUrl).build()
-                val authMessage = buildAuthMessage(authToken)
+                val authMessage = authToken?.let { buildAuthMessage(it) }
 
                 val webSocket =
                     okHttpClient.newWebSocket(
@@ -50,8 +55,15 @@ class NotifyPushClient
                                 webSocket: WebSocket,
                                 response: Response,
                             ) {
-                                Timber.d("NotifyPush: WebSocket opened, authenticating")
-                                webSocket.send(authMessage)
+                                if (authMessage != null) {
+                                    val sent = webSocket.send(authMessage)
+                                    Timber.d(
+                                        "NotifyPush: WebSocket opened, sent text-frame auth (enqueued=%b)",
+                                        sent,
+                                    )
+                                } else {
+                                    Timber.d("NotifyPush: WebSocket opened, awaiting pre-auth confirmation")
+                                }
                             }
 
                             override fun onMessage(

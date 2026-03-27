@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.data.sync
 
+import com.nextcloud.tasks.data.auth.AuthToken
 import com.nextcloud.tasks.data.auth.AuthTokenProvider
 import com.nextcloud.tasks.data.network.NetworkMonitor
 import com.nextcloud.tasks.data.network.NotifyPushClient
@@ -97,18 +98,28 @@ class PushSyncManager
         private suspend fun maintainConnection() {
             val serverUrl = authTokenProvider.activeServerUrl() ?: return
             _pushStatus.value = PushStatus.Checking
-            val wsUrl = fetchPushWebSocketUrl(serverUrl)
-            if (wsUrl == null) {
+            val endpoints = fetchPushEndpoints(serverUrl)
+            if (endpoints == null) {
                 _pushStatus.value = PushStatus.Unsupported
                 Timber.i("PushSync: notify_push not available on this server, falling back to polling")
                 return
             }
+            Timber.d(
+                "PushSync: endpoints resolved – ws=%s preAuth=%s",
+                endpoints.websocket,
+                if (endpoints.preAuth != null) "(present)" else "(absent)",
+            )
             var retryDelayMs = INITIAL_RETRY_DELAY_MS
             while (true) {
                 val token = authTokenProvider.activeToken() ?: break
                 _pushStatus.value = PushStatus.Connecting
+                // Prefer pre-auth (token in URL) over text-frame auth.
+                // Pre-auth avoids the 15-second server-side timeout that occurs when the
+                // text-frame message isn't accepted (e.g. newer notify_push versions or
+                // proxy configurations).
+                val (connectUrl, frameToken) = resolveAuthMethod(endpoints, token)
                 try {
-                    pushClient.connect(wsUrl, token).collect { event ->
+                    pushClient.connect(connectUrl, frameToken).collect { event ->
                         when (event) {
                             PushEvent.Authenticated -> {
                                 _pushStatus.value = PushStatus.Connected
@@ -135,7 +146,50 @@ class PushSyncManager
             }
         }
 
-        private suspend fun fetchPushWebSocketUrl(serverUrl: String): String? =
+        /**
+         * Returns the WebSocket URL to connect to and the auth token to send as a text frame
+         * (null = pre-auth token was embedded in the URL, no text frame needed).
+         */
+        private suspend fun resolveAuthMethod(
+            endpoints: PushEndpoints,
+            token: AuthToken,
+        ): Pair<String, AuthToken?> {
+            val preAuthUrl = endpoints.preAuth ?: return Pair(endpoints.websocket, token)
+            val preAuthToken = fetchPreAuthToken(preAuthUrl)
+            return if (preAuthToken != null) {
+                Timber.d("PushSync: using pre-auth token for WebSocket connection")
+                Pair("${endpoints.websocket}?token=$preAuthToken", null)
+            } else {
+                Timber.w("PushSync: pre-auth fetch failed, falling back to text-frame auth")
+                Pair(endpoints.websocket, token)
+            }
+        }
+
+        private suspend fun fetchPreAuthToken(preAuthUrl: String): String? =
+            withContext(ioDispatcher) {
+                try {
+                    val request =
+                        Request
+                            .Builder()
+                            .url(preAuthUrl)
+                            .build()
+                    okHttpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            Timber.w("PushSync: pre-auth request failed with HTTP %d", response.code)
+                            return@withContext null
+                        }
+                        response.body
+                            ?.string()
+                            ?.trim()
+                            ?.takeIf { it.isNotEmpty() }
+                    }
+                } catch (e: Exception) {
+                    Timber.w(e, "PushSync: pre-auth request threw an exception")
+                    null
+                }
+            }
+
+        private suspend fun fetchPushEndpoints(serverUrl: String): PushEndpoints? =
             withContext(ioDispatcher) {
                 try {
                     val url = "${serverUrl.trimEnd('/')}/ocs/v2.php/cloud/capabilities"
@@ -149,7 +203,7 @@ class PushSyncManager
                     okHttpClient.newCall(request).execute().use { response ->
                         if (!response.isSuccessful) return@withContext null
                         val body = response.body?.string() ?: return@withContext null
-                        parseWebSocketUrl(body)
+                        parseEndpoints(body)
                     }
                 } catch (e: Exception) {
                     Timber.w(e, "PushSync: failed to fetch server capabilities")
@@ -157,17 +211,19 @@ class PushSyncManager
                 }
             }
 
-        private fun parseWebSocketUrl(json: String): String? =
+        private fun parseEndpoints(json: String): PushEndpoints? =
             runCatching {
-                moshi
-                    .adapter(PushCapabilitiesRoot::class.java)
-                    .fromJson(json)
-                    ?.ocs
-                    ?.data
-                    ?.capabilities
-                    ?.notifyPush
-                    ?.endpoints
-                    ?.websocket
+                val raw =
+                    moshi
+                        .adapter(PushCapabilitiesRoot::class.java)
+                        .fromJson(json)
+                        ?.ocs
+                        ?.data
+                        ?.capabilities
+                        ?.notifyPush
+                        ?.endpoints
+                val wsUrl = raw?.websocket ?: return@runCatching null
+                PushEndpoints(websocket = wsUrl, preAuth = raw.preAuth)
             }.getOrNull()
 
         companion object {
@@ -200,4 +256,11 @@ internal data class NotifyPushCapability(
 
 internal data class NotifyPushEndpoints(
     val websocket: String?,
+    @Json(name = "pre_auth") val preAuth: String?,
+)
+
+/** Resolved notify_push URLs. */
+internal data class PushEndpoints(
+    val websocket: String,
+    val preAuth: String?,
 )
