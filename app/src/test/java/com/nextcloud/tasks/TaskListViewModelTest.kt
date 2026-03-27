@@ -25,6 +25,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -97,7 +98,7 @@ class TaskListViewModelTest {
         every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
         every { observeActiveAccountUseCase() } returns accountFlow
         every { observePushSyncModeUseCase() } returns flowOf(PushSyncMode.REALTIME)
-        every { observePushStatusUseCase() } returns kotlinx.coroutines.flow.MutableStateFlow(PushStatus.NoAccount)
+        every { observePushStatusUseCase() } returns MutableStateFlow(PushStatus.NoAccount)
 
         val vm =
             TaskListViewModel(
@@ -137,7 +138,7 @@ class TaskListViewModelTest {
         every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
         every { observeActiveAccountUseCase() } returns flowOf(null)
         every { observePushSyncModeUseCase() } returns flowOf(PushSyncMode.REALTIME)
-        every { observePushStatusUseCase() } returns kotlinx.coroutines.flow.MutableStateFlow(PushStatus.NoAccount)
+        every { observePushStatusUseCase() } returns MutableStateFlow(PushStatus.NoAccount)
 
         val vm =
             TaskListViewModel(
