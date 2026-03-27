@@ -114,13 +114,9 @@ class PushSyncManager
             while (true) {
                 val token = authTokenProvider.activeToken() ?: break
                 _pushStatus.value = PushStatus.Connecting
-                // Prefer pre-auth (token in URL) over text-frame auth.
-                // Pre-auth avoids the 15-second server-side timeout that occurs when the
-                // text-frame message isn't accepted (e.g. newer notify_push versions or
-                // proxy configurations).
-                val (connectUrl, frameToken) = resolveAuthMethod(endpoints, token)
+                val authMessage = resolveAuthMessage(endpoints, token)
                 try {
-                    pushClient.connect(connectUrl, frameToken).collect { event ->
+                    pushClient.connect(endpoints.websocket, authMessage).collect { event ->
                         when (event) {
                             PushEvent.Authenticated -> {
                                 _pushStatus.value = PushStatus.Connected
@@ -148,24 +144,36 @@ class PushSyncManager
         }
 
         /**
-         * Returns the WebSocket URL to connect to and the auth token to send as a text frame
-         * (null = pre-auth token was embedded in the URL, no text frame needed).
+         * Returns the text-frame authentication message to send after the WebSocket opens.
+         *
+         * Prefers pre-auth: POSTs to the /pre_auth endpoint to obtain a short-lived token and
+         * sends it as a bare text frame. This avoids transmitting long-lived credentials over
+         * the WebSocket connection. Falls back to username/password text-frame auth if the
+         * pre-auth fetch fails or the endpoint is not available.
          */
-        private suspend fun resolveAuthMethod(
+        private suspend fun resolveAuthMessage(
             endpoints: PushEndpoints,
             token: AuthToken,
-        ): Pair<String, AuthToken?> {
-            val preAuthUrl = endpoints.preAuth ?: return Pair(endpoints.websocket, token)
+        ): String {
+            val preAuthUrl = endpoints.preAuth ?: return buildCredentialMessage(token)
             val preAuthToken = fetchPreAuthToken(preAuthUrl)
             return if (preAuthToken != null) {
-                Timber.d("PushSync: using pre-auth token for WebSocket connection")
-                val encodedToken = java.net.URLEncoder.encode(preAuthToken, "UTF-8")
-                Pair("${endpoints.websocket}?token=$encodedToken", null)
+                Timber.d("PushSync: using pre-auth token as text-frame auth")
+                preAuthToken
             } else {
-                Timber.w("PushSync: pre-auth fetch failed, falling back to text-frame auth")
-                Pair(endpoints.websocket, token)
+                Timber.w("PushSync: pre-auth fetch failed, falling back to credential text-frame auth")
+                buildCredentialMessage(token)
             }
         }
+
+        private fun buildCredentialMessage(token: AuthToken): String =
+            when (token) {
+                is AuthToken.Password -> "${token.username}\n${token.appPassword}"
+                is AuthToken.OAuth -> {
+                    Timber.w("PushSync: OAuth push authentication is experimental")
+                    "\n${token.accessToken}"
+                }
+            }
 
         private suspend fun fetchPreAuthToken(preAuthUrl: String): String? =
             withContext(ioDispatcher) {
