@@ -1,6 +1,6 @@
 build:
   maxIssues: 0
-  excludeCorrectable: false
+  excludeCorrectable: true
 config:
   validation: true
 style:
