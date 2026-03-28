@@ -42,15 +42,31 @@ class NotifyPushClient
                 val request = Request.Builder().url(pushWebSocketUrl).build()
                 val authMessage = buildAuthMessage(authToken)
 
-                // Force HTTP/1.1 to prevent ALPN h2 negotiation.
-                // Standard WebSocket (RFC 6455) requires HTTP/1.1 Upgrade; if OkHttp
-                // negotiates HTTP/2 via ALPN, Caddy accepts the extended-CONNECT tunnel
-                // (RFC 8441) but notify_push only speaks HTTP/1.1 WebSocket and never
-                // receives the authentication frame, causing "Authentication timeout".
+                // Force HTTP/1.1 and disable permessage-deflate WebSocket compression.
+                //
+                // HTTP/2: OkHttp negotiates h2 via ALPN; Caddy accepts RFC 8441 extended-CONNECT
+                // but tunnels to notify_push which only speaks HTTP/1.1 WebSocket.
+                //
+                // permessage-deflate: OkHttp unconditionally requests this extension. If
+                // notify_push accepts it in the 101 handshake but has a bug processing
+                // compressed frames, the auth frame silently fails and notify_push times
+                // out after 15 s ("Authentication timeout") instead of responding
+                // immediately with "err: Invalid credentials" — as confirmed by server
+                // logs (no "Invalid credentials" entry for Android connections, only for
+                // websocat which does not request the extension).
                 val wsClient =
                     okHttpClient
                         .newBuilder()
                         .protocols(listOf(Protocol.HTTP_1_1))
+                        .addNetworkInterceptor { chain ->
+                            val req =
+                                chain
+                                    .request()
+                                    .newBuilder()
+                                    .removeHeader("Sec-WebSocket-Extensions")
+                                    .build()
+                            chain.proceed(req)
+                        }
                         .build()
 
                 val webSocket =
