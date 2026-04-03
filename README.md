@@ -1,5 +1,7 @@
 # Nextcloud Tasks Android
 
+[![Keep Android Open](https://keepandroidopen.org/img/lockdowns/android_lockdown_banner0.png)](https://keepandroidopen.org)
+
 [![Android CI](https://github.com/SebiShepherd/nextcloud_tasks_android/actions/workflows/ci.yml/badge.svg)](https://github.com/SebiShepherd/nextcloud_tasks_android/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/SebiShepherd/nextcloud_tasks_android/branch/main/graph/badge.svg)](https://codecov.io/gh/SebiShepherd/nextcloud_tasks_android)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
