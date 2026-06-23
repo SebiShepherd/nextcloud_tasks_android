@@ -179,7 +179,9 @@ play {
     val serviceAccountPath = System.getenv("PLAY_SERVICE_ACCOUNT_JSON")
     if (!serviceAccountPath.isNullOrBlank() && file(serviceAccountPath).exists()) {
         serviceAccountCredentials.set(file(serviceAccountPath))
-        track.set("production")
+        // Track is configurable so the same pipeline can target internal / alpha
+        // (closed testing) / beta / production. Defaults to production.
+        track.set(System.getenv("PLAY_TRACK") ?: "production")
         defaultToAppBundles.set(true)
         resolutionStrategy.set(com.github.triplet.gradle.androidpublisher.ResolutionStrategy.AUTO)
     } else {
