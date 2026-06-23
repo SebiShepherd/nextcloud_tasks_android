@@ -26,6 +26,7 @@ serialization = "1.7.1"
 ksp = "2.1.10-1.0.29"
 ical4j = "3.2.18"
 nextcloudAndroidLibrary = "2.22.2"
+cert4android = "670095eced"
 nextcloudAndroidCommon = "1.0.0"
 coil = "2.7.0"
 datastore = "1.1.1"
@@ -42,6 +43,7 @@ kover = "0.9.5"
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidxAppCompat" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
+androidx-lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "androidxLifecycle" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version = "1.9.3" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
@@ -73,6 +75,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 ical4j-core = { module = "org.mnode.ical4j:ical4j", version.ref = "ical4j" }
 nextcloud-android-library = { module = "com.github.nextcloud:android-library", version.ref = "nextcloudAndroidLibrary" }
+cert4android = { module = "com.github.bitfireAT:cert4android", version.ref = "cert4android" }
 nextcloud-android-common-ui = { module = "com.github.nextcloud.android-common:ui", version.ref = "nextcloudAndroidCommon" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
