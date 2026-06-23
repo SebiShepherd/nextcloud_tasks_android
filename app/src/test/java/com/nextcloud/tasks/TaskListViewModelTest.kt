@@ -441,6 +441,55 @@ class TaskListViewModelTest {
             }
         }
 
+    @Test
+    fun `refresh exposes HTTP status code as refreshErrorDetail`() =
+        runTest(testDispatcher) {
+            withViewModelAndRepo { vm, repo ->
+                coEvery { repo.refresh() } throws CalDavHttpException(405, "Method Not Allowed")
+                vm.refresh()
+                assertEquals(RefreshError.SERVER_ERROR, vm.refreshError.value)
+                assertEquals("HTTP 405", vm.refreshErrorDetail.value)
+            }
+        }
+
+    @Test
+    fun `clearRefreshError also clears refreshErrorDetail`() =
+        runTest(testDispatcher) {
+            withViewModelAndRepo { vm, repo ->
+                coEvery { repo.refresh() } throws CalDavHttpException(500, "Internal Server Error")
+                vm.refresh()
+                assertEquals("HTTP 500", vm.refreshErrorDetail.value)
+                vm.clearRefreshError()
+                assertNull(vm.refreshErrorDetail.value)
+            }
+        }
+
+    // --- createTaskList error surfacing ---
+
+    @Test
+    fun `createTaskList surfaces HTTP status when online`() =
+        runTest(testDispatcher) {
+            withViewModelAndRepo { vm, repo ->
+                coEvery { repo.isCurrentlyOnline() } returns true
+                coEvery { repo.createTaskList(any(), any()) } throws
+                    CalDavHttpException(405, "Method Not Allowed")
+                vm.createTaskList("Work")
+                assertEquals(CreateListError.Failed("HTTP 405"), vm.createListError.value)
+            }
+        }
+
+    @Test
+    fun `createTaskList reports Offline without detail when offline`() =
+        runTest(testDispatcher) {
+            withViewModelAndRepo { vm, repo ->
+                coEvery { repo.isCurrentlyOnline() } returns false
+                coEvery { repo.createTaskList(any(), any()) } throws
+                    CalDavHttpException(405, "Method Not Allowed")
+                vm.createTaskList("Work")
+                assertEquals(CreateListError.Offline, vm.createListError.value)
+            }
+        }
+
     // --- createTask ---
 
     @Test
