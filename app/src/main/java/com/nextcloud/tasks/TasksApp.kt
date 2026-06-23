@@ -2,6 +2,7 @@ package com.nextcloud.tasks
 
 import android.app.Application
 import androidx.work.Configuration
+import com.nextcloud.tasks.data.network.AppForegroundMonitor
 import com.nextcloud.tasks.sync.SyncScheduler
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -17,12 +18,19 @@ class TasksApp :
     @Inject
     lateinit var syncScheduler: SyncScheduler
 
+    @Inject
+    lateinit var appForegroundMonitor: AppForegroundMonitor
+
     override fun onCreate() {
         super.onCreate()
 
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+
+        // Track app foreground state so cert4android only prompts for untrusted
+        // certificates while the app is interactive (must run on the main thread).
+        appForegroundMonitor.start()
 
         // Schedule periodic background synchronization
         syncScheduler.schedulePeriodicSync(this)
