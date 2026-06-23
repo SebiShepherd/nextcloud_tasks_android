@@ -1,6 +1,6 @@
 # AI Agent Guide - Nextcloud Tasks Android
 
-**Last Updated**: 2026-02-27
+**Last Updated**: 2026-06-24
 **Project Version**: 1.0.0
 **Target Audience**: Claude Code, AI assistants, and automated agents working on this codebase
 
@@ -142,7 +142,7 @@ The project follows Clean Architecture with strict dependency rules:
 | **Jetpack Compose** | BOM 2025.12.00 | UI framework |
 | **Material 3** | 1.4.0 | Design system |
 | **Hilt** | 2.57.2 | Dependency injection |
-| **Room** | 2.7.0-alpha04 | Local database |
+| **Room** | 2.7.2 | Local database |
 | **Retrofit** | 2.11.0 | REST API client |
 | **OkHttp** | 4.12.0 | HTTP client |
 | **Coroutines** | 1.10.2 | Async programming |
@@ -152,11 +152,17 @@ The project follows Clean Architecture with strict dependency rules:
 
 ### Build Tools
 
-- **Gradle**: 8.13.2 (Android Gradle Plugin)
+- **Android Gradle Plugin**: 9.0.0
+- **Gradle**: 9.1.0 (wrapper)
 - **KSP**: 2.1.10-1.0.29 (for Room)
 - **Kapt**: Used for Hilt
 - **ktlint**: 14.0.1 (code formatting)
 - **detekt**: 1.23.8 (static analysis)
+
+> **Daemon JVM**: The Gradle daemon is pinned to **JDK 17** via `gradle/gradle-daemon-jvm.properties`.
+> This is required because detekt 1.23.x bundles an older IntelliJ/Kotlin compiler that crashes when it
+> runs on newer JDKs (e.g. Java 25). If no JDK 17 is installed locally, Gradle auto-provisions one via the
+> foojay toolchain resolver. Do not remove this file unless detekt is upgraded to a JDK-25-compatible release.
 
 ### CalDAV Integration
 
