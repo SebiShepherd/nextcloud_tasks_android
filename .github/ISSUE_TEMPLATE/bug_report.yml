@@ -1,0 +1,80 @@
+name: Bug report
+description: Report a problem with the Nextcloud Tasks Android app
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! The details below help a lot —
+        most "it doesn't work" reports can't be acted on without the server and app versions.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the problem, and what you expected instead.
+      placeholder: After logging in, syncing fails with "Server error. Please try again later."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Log in to my server
+        2. Pull to refresh
+        3. See the error
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: See the app's About screen or the Play Store listing.
+      placeholder: e.g. 1.2.0
+    validations:
+      required: true
+  - type: input
+    id: nextcloud-version
+    attributes:
+      label: Nextcloud server version
+      placeholder: e.g. 33.0.5
+    validations:
+      required: true
+  - type: input
+    id: tasks-app-version
+    attributes:
+      label: Nextcloud Tasks (server app) version
+      description: The Tasks app version installed on your Nextcloud server (Apps → Tasks).
+      placeholder: e.g. 0.18.0
+    validations:
+      required: true
+  - type: dropdown
+    id: tls
+    attributes:
+      label: How is your server's HTTPS certificate issued?
+      description: Certificate problems are a common cause of login/sync failures.
+      options:
+        - "Public CA (e.g. Let's Encrypt) — works in a browser without warnings"
+        - "Self-signed certificate"
+        - "Private / enterprise CA"
+        - "Not sure"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and Android version
+      placeholder: e.g. Pixel 7, Android 15
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error message
+      description: |
+        Any exact error text shown, and if possible a logcat capture
+        (`adb logcat | grep com.nextcloud.tasks`). This will be rendered as code.
+      render: shell
+    validations:
+      required: false

@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an idea or improvement for the app
+title: "[FR]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the use case or the pain point, not just the solution.
+      placeholder: I sync a Nextcloud Deck board and want to see sub-tasks nested like on the web.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you imagine it working. Screenshots/mockups welcome.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

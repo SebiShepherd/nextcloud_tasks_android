@@ -1,9 +1,32 @@
 default_platform(:android)
 
 platform :android do
-  desc "Build and upload an internal release via Gradle Play Publisher"
-  lane :internal do
+  # Builds a signed release bundle and uploads it to the given Play track.
+  # The track is passed to Gradle Play Publisher via the PLAY_TRACK env var
+  # (see app/build.gradle.kts). The track must already exist in the Play Console.
+  def publish(track)
+    ENV["PLAY_TRACK"] = track
     gradle(task: "bundle", build_type: "Release")
     gradle(task: "publishReleaseBundle")
+  end
+
+  desc "Build and upload to the internal testing track"
+  lane :internal do
+    publish("internal")
+  end
+
+  desc "Build and upload to the alpha (closed testing) track"
+  lane :alpha do
+    publish("alpha")
+  end
+
+  desc "Build and upload to the beta (open testing) track"
+  lane :beta do
+    publish("beta")
+  end
+
+  desc "Build and upload to the production track"
+  lane :production do
+    publish("production")
   end
 end
