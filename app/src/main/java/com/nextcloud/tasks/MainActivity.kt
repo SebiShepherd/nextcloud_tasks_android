@@ -204,6 +204,7 @@ fun NextcloudTasksApp(
     val isOnline by taskListViewModel.isOnline.collectAsState()
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
     val refreshError by taskListViewModel.refreshError.collectAsState()
+    val refreshErrorDetail by taskListViewModel.refreshErrorDetail.collectAsState()
     val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
     val createListError by taskListViewModel.createListError.collectAsState()
     val editListError by taskListViewModel.editListError.collectAsState()
@@ -299,6 +300,7 @@ fun NextcloudTasksApp(
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
             refreshError = refreshError,
+            refreshErrorDetail = refreshErrorDetail,
             onClearRefreshError = taskListViewModel::clearRefreshError,
             showCreateListDialog = showCreateListDialog,
             onShowCreateListDialog = { showCreateListDialog = true },
@@ -380,6 +382,7 @@ fun AuthenticatedHome(
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
     refreshError: RefreshError? = null,
+    refreshErrorDetail: String? = null,
     onClearRefreshError: () -> Unit = {},
     showCreateListDialog: Boolean = false,
     onShowCreateListDialog: () -> Unit = {},
@@ -434,7 +437,7 @@ fun AuthenticatedHome(
         }
     }
 
-    RefreshErrorEffect(refreshError, snackbarHostState, onClearRefreshError)
+    RefreshErrorEffect(refreshError, refreshErrorDetail, snackbarHostState, onClearRefreshError)
     CreateListErrorEffect(createListError, snackbarHostState, onClearCreateListError)
     EditListErrorEffect(editListError, snackbarHostState, onClearEditListError)
     DeleteListErrorEffect(deleteListError, snackbarHostState, onClearDeleteListError)
@@ -654,6 +657,7 @@ fun AuthenticatedHome(
 @Composable
 private fun RefreshErrorEffect(
     refreshError: RefreshError?,
+    refreshErrorDetail: String?,
     snackbarHostState: SnackbarHostState,
     onClearRefreshError: () -> Unit,
 ) {
@@ -668,9 +672,9 @@ private fun RefreshErrorEffect(
             when (refreshError) {
                 RefreshError.RATE_LIMITED -> rateLimitedMsg
                 RefreshError.AUTH_FAILED -> authFailedMsg
-                RefreshError.SERVER_ERROR -> serverErrorMsg
+                RefreshError.SERVER_ERROR -> withErrorDetail(serverErrorMsg, refreshErrorDetail)
                 RefreshError.NETWORK_ERROR -> networkErrorMsg
-                RefreshError.UNKNOWN -> unknownErrorMsg
+                RefreshError.UNKNOWN -> withErrorDetail(unknownErrorMsg, refreshErrorDetail)
                 null -> null
             }
         if (message != null) {
@@ -694,7 +698,7 @@ private fun CreateListErrorEffect(
             val message =
                 when (error) {
                     is CreateListError.Offline -> offlineMsg
-                    is CreateListError.Failed -> failedMsg
+                    is CreateListError.Failed -> withErrorDetail(failedMsg, error.detail)
                 }
             snackbarHostState.showSnackbar(message)
             onClearError()
@@ -716,7 +720,7 @@ private fun EditListErrorEffect(
             val message =
                 when (error) {
                     is EditListError.Offline -> offlineMsg
-                    is EditListError.Failed -> failedMsg
+                    is EditListError.Failed -> withErrorDetail(failedMsg, error.detail)
                 }
             snackbarHostState.showSnackbar(message)
             onClearError()
@@ -738,7 +742,7 @@ private fun DeleteListErrorEffect(
             val message =
                 when (error) {
                     is DeleteListError.Offline -> offlineMsg
-                    is DeleteListError.Failed -> failedMsg
+                    is DeleteListError.Failed -> withErrorDetail(failedMsg, error.detail)
                 }
             snackbarHostState.showSnackbar(message)
             onClearError()
@@ -2672,20 +2676,52 @@ enum class RefreshError {
 sealed class CreateListError {
     data object Offline : CreateListError()
 
-    data object Failed : CreateListError()
+    data class Failed(
+        val detail: String? = null,
+    ) : CreateListError()
 }
 
 sealed class EditListError {
     data object Offline : EditListError()
 
-    data object Failed : EditListError()
+    data class Failed(
+        val detail: String? = null,
+    ) : EditListError()
 }
 
 sealed class DeleteListError {
     data object Offline : DeleteListError()
 
-    data object Failed : DeleteListError()
+    data class Failed(
+        val detail: String? = null,
+    ) : DeleteListError()
 }
+
+/**
+ * Extracts a short, user-presentable technical detail from a failure so the UI can
+ * append it to an otherwise-generic error message (e.g. "HTTP 405"). This turns
+ * opaque "please try again" snackbars into something a self-hoster can act on and
+ * report back. Returns null when there is nothing useful to add.
+ */
+internal fun throwableDetail(t: Throwable): String? =
+    when (t) {
+        is CalDavHttpException -> "HTTP ${t.statusCode}"
+        else ->
+            t.message
+                ?.lineSequence()
+                ?.firstOrNull()
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?.take(MAX_ERROR_DETAIL_LENGTH)
+    }
+
+internal const val MAX_ERROR_DETAIL_LENGTH = 140
+
+/** Appends a technical detail in parentheses to a generic error message, if present. */
+internal fun withErrorDetail(
+    base: String,
+    detail: String?,
+): String = if (detail.isNullOrBlank()) base else "$base ($detail)"
 
 @HiltViewModel
 @Suppress("LongParameterList")
@@ -2752,8 +2788,13 @@ class TaskListViewModel
         private val _refreshError = MutableStateFlow<RefreshError?>(null)
         val refreshError = _refreshError.asStateFlow()
 
+        // Technical detail (e.g. "HTTP 405") accompanying the current refresh error, if any.
+        private val _refreshErrorDetail = MutableStateFlow<String?>(null)
+        val refreshErrorDetail = _refreshErrorDetail.asStateFlow()
+
         fun clearRefreshError() {
             _refreshError.value = null
+            _refreshErrorDetail.value = null
         }
 
         private val _createListError = MutableStateFlow<CreateListError?>(null)
@@ -2779,7 +2820,7 @@ class TaskListViewModel
                         if (!tasksRepository.isCurrentlyOnline()) {
                             CreateListError.Offline
                         } else {
-                            CreateListError.Failed
+                            CreateListError.Failed(throwableDetail(e))
                         }
                 }
             }
@@ -2808,7 +2849,7 @@ class TaskListViewModel
                         if (!tasksRepository.isCurrentlyOnline()) {
                             EditListError.Offline
                         } else {
-                            EditListError.Failed
+                            EditListError.Failed(throwableDetail(e))
                         }
                 }
             }
@@ -2836,7 +2877,7 @@ class TaskListViewModel
                         if (!tasksRepository.isCurrentlyOnline()) {
                             DeleteListError.Offline
                         } else {
-                            DeleteListError.Failed
+                            DeleteListError.Failed(throwableDetail(e))
                         }
                 }
             }
@@ -2939,10 +2980,12 @@ class TaskListViewModel
                 frozenTasksForSync.value = tasks.value
                 _isRefreshing.value = true
                 _refreshError.value = null
+                _refreshErrorDetail.value = null
                 try {
                     tasksRepository.refresh()
                 } catch (e: com.nextcloud.tasks.data.caldav.service.CalDavHttpException) {
                     timber.log.Timber.e(e, "Failed to refresh tasks (HTTP ${e.statusCode})")
+                    _refreshErrorDetail.value = throwableDetail(e)
                     _refreshError.value =
                         when (e.statusCode) {
                             429 -> RefreshError.RATE_LIMITED
@@ -2963,6 +3006,7 @@ class TaskListViewModel
                     @Suppress("TooGenericExceptionCaught") e: Exception,
                 ) {
                     timber.log.Timber.e(e, "Failed to refresh tasks")
+                    _refreshErrorDetail.value = throwableDetail(e)
                     _refreshError.value = RefreshError.UNKNOWN
                 } finally {
                     _isRefreshing.value = false
