@@ -40,14 +40,33 @@ jobs:
         run: |
           if [ "${GITHUB_REF_TYPE}" == "tag" ]; then
             VERSION=${GITHUB_REF_NAME#v}
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "tag=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
           else
             VERSION="dev-$(git rev-parse --short HEAD)"
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "tag=dev" >> $GITHUB_OUTPUT
           fi
-          echo "Building version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Route the Play track from the version suffix:
+          #   1.2.3        -> production
+          #   1.2.3-alpha* -> alpha   (closed testing)
+          #   1.2.3-beta*  -> beta
+          #   1.2.3-<x>    -> internal (rc, etc.)
+          case "$VERSION" in
+            *-alpha*) TRACK=alpha ;;
+            *-beta*)  TRACK=beta ;;
+            *-*)      TRACK=internal ;;
+            *)        TRACK=production ;;
+          esac
+          echo "track=$TRACK" >> $GITHUB_OUTPUT
+
+          # Globally monotonic versionCode. Play requires it to strictly increase across
+          # ALL tracks, so derive it from the run number rather than the semantic version
+          # (two 1.2.3-alpha.N builds would otherwise share one code). Offset clears the
+          # legacy computed codes (<= 19999 for 1.x.x).
+          VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION (track=$TRACK, code=$VERSION_CODE)"
 
       - name: Run quality checks
         run: ./gradlew ktlintCheck detekt :app:lintRelease
@@ -62,6 +81,7 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           VERSION_NAME: ${{ steps.version.outputs.version }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
         run: ./gradlew assembleRelease
 
       - name: Build signed Release AAB
@@ -71,6 +91,7 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           VERSION_NAME: ${{ steps.version.outputs.version }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
         run: ./gradlew bundleRelease
 
       - name: Rename APK with version
@@ -132,7 +153,7 @@ jobs:
 
       - name: Generate Play Store release notes
         continue-on-error: true
-        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && env.HAS_PLAY_SECRET == 'true'
+        if: github.ref_type == 'tag' && env.HAS_PLAY_SECRET == 'true'
         env:
           HAS_PLAY_SECRET: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
@@ -201,7 +222,7 @@ jobs:
 
       - name: Publish to Google Play
         continue-on-error: true
-        if: github.ref_type == 'tag' && !contains(steps.version.outputs.version, '-') && env.HAS_PLAY_SECRET == 'true'
+        if: github.ref_type == 'tag' && env.HAS_PLAY_SECRET == 'true'
         env:
           HAS_PLAY_SECRET: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
@@ -209,9 +230,13 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           VERSION_NAME: ${{ steps.version.outputs.version }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
+          # Track derived from the tag: production for v1.2.3, alpha/beta/internal for pre-releases.
+          PLAY_TRACK: ${{ steps.version.outputs.track }}
           PLAY_SERVICE_ACCOUNT_JSON: ${{ runner.temp }}/play-service-account.json
         run: |
           printf '%s' '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > "$PLAY_SERVICE_ACCOUNT_JSON"
+          echo "Publishing to Play track: $PLAY_TRACK"
           ./gradlew publishReleaseBundle
           rm -f "$PLAY_SERVICE_ACCOUNT_JSON"
 

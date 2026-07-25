@@ -50,6 +50,11 @@ fun getVersionName(): String {
  * Example: 1.2.3 -> 10203
  */
 fun getVersionCode(): Int {
+    // CI provides a globally monotonic code (run-number based, see release.yml) so that
+    // multiple pre-release builds of the same version don't collide on Play, which requires
+    // versionCode to strictly increase across ALL tracks.
+    System.getenv("VERSION_CODE")?.toIntOrNull()?.let { return it }
+
     val versionName = getVersionName()
 
     // Parse version string (e.g., "1.2.3" or "1.2.3-beta")
