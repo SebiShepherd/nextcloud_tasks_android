@@ -1,7 +1,7 @@
 package com.nextcloud.tasks.ui.theme
 
-import android.app.Activity
 import android.os.Build
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -81,7 +81,7 @@ fun NextcloudTasksTheme(
             else -> LightColorScheme
         }
 
-    val activity = LocalContext.current as? Activity
+    val activity = LocalActivity.current
     activity?.window?.let { window ->
         val decorView = window.decorView
         WindowCompat.getInsetsController(window, decorView).apply {
