@@ -79,8 +79,8 @@ Download the latest APK directly from the [Releases page](https://github.com/Seb
 3. Enable "Install from Unknown Sources" in Android settings
 4. Open the downloaded APK to install
 
-#### 2. **Google Play Store** (Coming Soon)
-The app will be available on Google Play Store soon.
+#### 2. **Google Play Store**
+Available on Google Play: [Nextcloud Tasks](https://play.google.com/store/apps/details?id=com.nextcloud.tasks)
 
 #### 3. **Build from Source**
 See the [CONTRIBUTING.md](CONTRIBUTING.md) guide for instructions on building the app yourself.
