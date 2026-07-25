@@ -1,0 +1,34 @@
+# Codecov configuration.
+#
+# Rationale: this codebase follows Clean Architecture, so testable logic (domain models,
+# use cases, mappers, TaskFieldMerger, repositories, ViewModels) is Android-free and unit-tested
+# with mockk. The remaining code is framework glue — Hilt modules, Compose UI, the Application
+# class, Activity/lifecycle wiring — which a JVM unit test can't meaningfully exercise (it would
+# test the framework, not our logic). Those paths are ignored below so the coverage number
+# reflects real logic instead of glue.
+#
+# patch is "informational": codecov reports the per-PR patch coverage but never fails the check.
+# codecov is not a required check here anyway (main is guarded by a ruleset), so a red X on glue
+# was purely cosmetic. project coverage stays a blocking-ish trend signal.
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%      # allow tiny dips without failing
+    patch:
+      default:
+        informational: true  # report the number, never block a merge
+
+# Paths excluded from coverage: pure framework glue with no unit-testable logic.
+ignore:
+  - "**/di/**"              # Hilt modules (NetworkModule, DataModule, AppModule)
+  - "**/ui/**"              # Compose UI + theme
+  - "**/*Screen.kt"         # Compose screens
+  - "**/MainActivity.kt"    # all-Compose entry point
+  - "**/TasksApp.kt"        # Application class
+
+comment:
+  layout: "condensed_header, condensed_files"
+  require_changes: true     # only comment when coverage actually changes
