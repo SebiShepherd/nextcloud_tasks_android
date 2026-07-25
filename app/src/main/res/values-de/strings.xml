@@ -187,4 +187,20 @@
     <string name="task_detail_select_time">Uhrzeit auswählen</string>
     <string name="task_detail_back">Zurück</string>
     <string name="task_due_label">Fällig: %1$s</string>
+
+    <!-- Zertifikats-Vertrauensdialog -->
+    <string name="cert_trust_title">Nicht vertrauenswürdiges Zertifikat</string>
+    <string name="cert_trust_message">Der Server hat ein Zertifikat gesendet, das nicht überprüft werden konnte. Vertraue ihm nur, wenn du den Fingerabdruck unten wiedererkennst.</string>
+    <string name="cert_trust_issued_for">Ausgestellt für</string>
+    <string name="cert_trust_issued_by">Ausgestellt von</string>
+    <string name="cert_trust_validity">Gültigkeit</string>
+    <string name="cert_trust_validity_value">%1$s – %2$s</string>
+    <string name="cert_trust_sha256">SHA-256</string>
+    <string name="cert_trust_sha1">SHA-1</string>
+    <string name="cert_trust_confirm_checkbox">Ich habe den Fingerabdruck überprüft</string>
+    <string name="cert_trust_accept">Vertrauen</string>
+    <string name="cert_trust_reject">Ablehnen</string>
+    <string name="settings_reset_trusted_certs">Vertraute Zertifikate zurücksetzen</string>
+    <string name="settings_reset_trusted_certs_summary">Alle manuell vertrauten Zertifikate vergessen</string>
+    <string name="settings_reset_trusted_certs_done">Vertraute Zertifikate gelöscht</string>
 </resources>

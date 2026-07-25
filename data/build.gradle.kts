@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.ical4j.core)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.lifecycle.process)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
     testImplementation(kotlin("test"))

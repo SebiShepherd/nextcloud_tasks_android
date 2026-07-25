@@ -175,6 +175,9 @@ class MainActivity : AppCompatActivity() {
                         isExpandedScreen = isExpandedScreen,
                     )
                 }
+                // Overlays any screen: prompts to trust an untrusted server certificate.
+                com.nextcloud.tasks.cert
+                    .CertTrustDialog()
             }
         }
     }
