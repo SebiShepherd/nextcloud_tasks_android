@@ -184,12 +184,12 @@ jobs:
                   },
                   {
                     role: "user",
-                    content: ("Commits für diesen Release:\n" + $commits + "\n\nErstelle nutzerfreundliche Release Notes. Technische Details (CI, Refactoring, Code-Cleanup) weglassen. Nur nutzerrelevante Features und Bugfixes. Aufzählungsliste mit - (Bindestrich). Kein Markdown.\n\nAntworte ausschließlich mit einem validen JSON-Objekt (kein Markdown, kein Codeblock) mit zwei Schlüsseln:\n- \"en\": Englische Release Notes (max 450 Zeichen)\n- \"de\": Deutsche Release Notes (max 450 Zeichen)")
+                    content: ("Commits für diesen Release:\n" + $commits + "\n\nErstelle nutzerfreundliche Release Notes. Technische Details (CI, Refactoring, Code-Cleanup) weglassen. Nur nutzerrelevante Features und Bugfixes. Aufzählungsliste mit - (Bindestrich). Kein Markdown.\n\nAntworte ausschließlich mit einem validen JSON-Objekt (kein Markdown, kein Codeblock). Jeder Wert sind die Release Notes in der jeweiligen Sprache (max 450 Zeichen), mit genau diesen Schlüsseln: en, de, fr, es, it, nl, pt-BR, ru, pl, cs, zh-CN, ja.")
                   }
                 ]
               }')
 
-            RESPONSE=$(curl -sf --max-time 30 \
+            RESPONSE=$(curl -sf --max-time 60 \
               -X POST "https://api.x.ai/v1/chat/completions" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $XAI_API_KEY" \
@@ -198,26 +198,35 @@ jobs:
             if [ -n "$RESPONSE" ]; then
               CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
               EN_NOTES=$(echo "$CONTENT" | jq -r '.en // empty' 2>/dev/null || echo "")
-              DE_NOTES=$(echo "$CONTENT" | jq -r '.de // empty' 2>/dev/null || echo "")
 
-              if [ -n "$EN_NOTES" ] && [ -n "$DE_NOTES" ]; then
-                printf '%s' "${EN_NOTES:0:450}" > "${NOTES_DIR}/en-US/default.txt"
-                printf '%s' "${DE_NOTES:0:450}" > "${NOTES_DIR}/de-DE/default.txt"
+              # JSON key -> Play release-notes folder. Missing languages fall back to English.
+              if [ -n "$EN_NOTES" ]; then
+                for pair in en:en-US de:de-DE fr:fr-FR es:es-ES it:it-IT nl:nl-NL pt-BR:pt-BR ru:ru-RU pl:pl-PL cs:cs-CZ zh-CN:zh-CN ja:ja-JP; do
+                  KEY="${pair%%:*}"
+                  FOLDER="${pair##*:}"
+                  VAL=$(echo "$CONTENT" | jq -r --arg k "$KEY" '.[$k] // empty' 2>/dev/null || echo "")
+                  [ -z "$VAL" ] && VAL="$EN_NOTES"
+                  mkdir -p "${NOTES_DIR}/${FOLDER}"
+                  printf '%s' "${VAL:0:450}" > "${NOTES_DIR}/${FOLDER}/default.txt"
+                done
                 GROK_SUCCESS=true
-                echo "✓ Release notes generated via Grok API"
+                echo "✓ Release notes generated via Grok API (12 locales)"
               fi
             fi
           fi
 
-          # Fallback: raw commit messages
+          # Fallback: raw commit messages, written to every locale
           if [ "$GROK_SUCCESS" = false ]; then
             echo "→ Using fallback: raw commit messages"
             if [ -n "$PREV_TAG" ]; then
-              git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | head -c 500 > "${NOTES_DIR}/en-US/default.txt"
+              NOTE=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | head -c 500)
             else
-              echo "Initial release." > "${NOTES_DIR}/en-US/default.txt"
+              NOTE="Initial release."
             fi
-            cp "${NOTES_DIR}/en-US/default.txt" "${NOTES_DIR}/de-DE/default.txt"
+            for FOLDER in en-US de-DE fr-FR es-ES it-IT nl-NL pt-BR ru-RU pl-PL cs-CZ zh-CN ja-JP; do
+              mkdir -p "${NOTES_DIR}/${FOLDER}"
+              printf '%s' "$NOTE" > "${NOTES_DIR}/${FOLDER}/default.txt"
+            done
           fi
 
       - name: Publish to Google Play

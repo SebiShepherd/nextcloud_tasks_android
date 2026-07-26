@@ -1,0 +1,13 @@
+O Nextcloud Tasks permite gerenciar suas tarefas e listas de afazeres diretamente do seu dispositivo Android, sincronizadas com o seu servidor Nextcloud.
+
+Recursos:
+- Visualize e gerencie todas as suas listas de tarefas do Nextcloud
+- Crie, edite e conclua tarefas
+- Organize tarefas com prioridades e datas de vencimento
+- Sincronização automática com o seu servidor Nextcloud
+- Interface Material Design 3
+- Suporte ao modo escuro
+
+Requisitos:
+- Um servidor Nextcloud com o aplicativo Tasks instalado
+- Android 8.0 ou superior

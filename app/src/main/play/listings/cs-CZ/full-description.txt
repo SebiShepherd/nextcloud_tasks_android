@@ -1,0 +1,13 @@
+Nextcloud Tasks umožňuje spravovat úkoly a seznamy úkolů přímo z vašeho zařízení Android, synchronizované s vaším serverem Nextcloud.
+
+Funkce:
+- Zobrazujte a spravujte všechny své seznamy úkolů Nextcloud
+- Vytvářejte, upravujte a dokončujte úkoly
+- Organizujte úkoly podle priorit a termínů
+- Automatická synchronizace s vaším serverem Nextcloud
+- Rozhraní Material Design 3
+- Podpora tmavého režimu
+
+Požadavky:
+- Server Nextcloud s nainstalovanou aplikací Tasks
+- Android 8.0 nebo novější

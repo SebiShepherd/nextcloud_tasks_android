@@ -1,0 +1,13 @@
+Nextcloud Tasks 让你直接在 Android 设备上管理任务和待办事项列表，并与你的 Nextcloud 服务器同步。
+
+功能：
+- 查看和管理所有 Nextcloud 任务列表
+- 创建、编辑和完成任务
+- 使用优先级和截止日期整理任务
+- 与 Nextcloud 服务器自动同步
+- Material Design 3 界面
+- 支持深色模式
+
+要求：
+- 已安装 Tasks 应用的 Nextcloud 服务器
+- Android 8.0 或更高版本
