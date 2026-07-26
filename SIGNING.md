@@ -85,9 +85,8 @@ The base64 string is now in your clipboard (or in `keystore-base64.txt`).
 
 ## 🔒 Step 3: Add Secrets to GitHub
 
-1. Go to your repository on GitHub
-2. Click **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret** for each of the following:
+The release workflow reads the signing material from GitHub Actions repository secrets
+(**Settings → Secrets and variables → Actions**). Add the following:
 
 ### Required Secrets:
 
@@ -97,13 +96,6 @@ The base64 string is now in your clipboard (or in `keystore-base64.txt`).
 | `SIGNING_KEYSTORE_PASSWORD` | Password you set for the keystore | `MySecurePassword123!` |
 | `SIGNING_KEY_ALIAS` | Alias you set when creating keystore | `nextcloud-tasks` |
 | `SIGNING_KEY_PASSWORD` | Password you set for the key | `MySecurePassword123!` (can be same) |
-
-**Steps to add each secret:**
-1. Click **New repository secret**
-2. Enter the **Name** (e.g., `SIGNING_KEYSTORE_BASE64`)
-3. Paste the **Secret** value
-4. Click **Add secret**
-5. Repeat for all 4 secrets
 
 ---
 
@@ -146,8 +138,7 @@ git tag -d v0.0.1-test
 # Delete remote tag
 git push --delete origin v0.0.1-test
 
-# Delete the GitHub Release (via GitHub UI)
-# Go to Releases → Click on v0.0.1-test → Delete
+# Delete the matching GitHub Release via the GitHub UI as well
 ```
 
 ---
@@ -193,10 +184,8 @@ If you plan to publish on Google Play Store, consider using **Play App Signing**
 3. Google re-signs with their production key before distribution
 4. You can reset your upload key if needed
 
-**To enable:**
-1. Go to Play Console → Your App → Setup → App integrity
-2. Follow instructions to enroll in Play App Signing
-3. Upload your upload key (the one from this guide)
+**To enable:** enrol in Play App Signing under the app's **App integrity** settings in the
+Play Console, using the upload key created in this guide.
 
 ---
 
