@@ -187,4 +187,20 @@
     <string name="task_detail_select_time">Select time</string>
     <string name="task_detail_back">Back</string>
     <string name="task_due_label">Due: %1$s</string>
+
+    <!-- Certificate trust dialog -->
+    <string name="cert_trust_title">Untrusted certificate</string>
+    <string name="cert_trust_message">The server presented a certificate that could not be verified. Only trust it if you recognise the fingerprint below.</string>
+    <string name="cert_trust_issued_for">Issued for</string>
+    <string name="cert_trust_issued_by">Issued by</string>
+    <string name="cert_trust_validity">Validity</string>
+    <string name="cert_trust_validity_value">%1$s – %2$s</string>
+    <string name="cert_trust_sha256">SHA-256</string>
+    <string name="cert_trust_sha1">SHA-1</string>
+    <string name="cert_trust_confirm_checkbox">I have verified the fingerprint</string>
+    <string name="cert_trust_accept">Trust</string>
+    <string name="cert_trust_reject">Reject</string>
+    <string name="settings_reset_trusted_certs">Reset trusted certificates</string>
+    <string name="settings_reset_trusted_certs_summary">Forget all certificates you have manually trusted</string>
+    <string name="settings_reset_trusted_certs_done">Trusted certificates cleared</string>
 </resources>
