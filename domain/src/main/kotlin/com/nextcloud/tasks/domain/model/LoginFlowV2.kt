@@ -37,9 +37,8 @@ sealed class LoginFlowV2PollResult {
     ) : LoginFlowV2PollResult()
 
     /**
-     * An error occurred during polling or authentication.
+     * An unexpected server response occurred during polling. Details are logged; the UI
+     * shows a generic localized login-flow error.
      */
-    data class Error(
-        val message: String,
-    ) : LoginFlowV2PollResult()
+    data object Error : LoginFlowV2PollResult()
 }

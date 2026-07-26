@@ -1,0 +1,205 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Tasks</string>
+
+    <!-- Login Screen -->
+    <string name="server_url_label">URL Nextcloud</string>
+    <string name="server_url_hint">Сервер Nextcloud https://</string>
+    <string name="server_url_placeholder">cloud.example.com</string>
+    <string name="server_url_description">Ссылка на ваш сайт Nextcloud, которую вы открываете в браузере</string>
+    <string name="waiting_for_login">Ожидание входа в браузере…</string>
+    <string name="username_label">Имя пользователя</string>
+    <string name="password_label">Пароль или пароль приложения</string>
+    <string name="authorization_code_label">Код OAuth2 / OCS</string>
+    <string name="redirect_uri_label">URI перенаправления</string>
+    <string name="login_method_password">Вход по паролю</string>
+    <string name="login_method_oauth">OAuth2 / OCS</string>
+    <string name="login_action">Войти</string>
+    <string name="existing_accounts">Существующие учётные записи</string>
+    <string name="import_account">Импортировать учётную запись из приложения Nextcloud</string>
+    <string name="select_account">Выбрать учётную запись</string>
+    <string name="no_accounts_found">Учётные записи Nextcloud не найдены.\n\nУстановите приложение Nextcloud Files и сначала добавьте учётную запись.</string>
+
+    <!-- Task List -->
+    <string name="task_list_title">Обзор задач</string>
+    <string name="empty_list_title">Этот список пуст.</string>
+    <string name="empty_task_hint">Нажмите кнопку +, чтобы добавить новую задачу.</string>
+    <string name="all_tasks">Все задачи</string>
+    <string name="task_lists_title">Списки задач</string>
+    <string name="unknown_list">Неизвестный список</string>
+
+    <!-- Search & Sort -->
+    <string name="search_all_notes">Поиск по всем заметкам</string>
+    <string name="no_search_results_title">Ничего не найдено</string>
+    <string name="no_search_results_hint">Попробуйте изменить запрос.</string>
+    <string name="sort_dialog_title">Сортировать по</string>
+    <string name="sort_by_due_date">Сроку выполнения</string>
+    <string name="sort_by_priority">Приоритету</string>
+    <string name="sort_by_title">Названию</string>
+    <string name="sort_by_updated">Последнему изменению</string>
+
+    <!-- Completed Tasks -->
+    <string name="hide_completed_tasks">Скрыть завершённые задачи (%1$d)</string>
+    <string name="show_completed_tasks">Показать завершённые задачи (%1$d)</string>
+
+    <!-- Create Task Dialog -->
+    <string name="create_task_dialog_title">Создать новую задачу</string>
+    <string name="task_title_label">Название</string>
+    <string name="task_description_label">Описание (необязательно)</string>
+    <string name="create">Создать</string>
+
+    <!-- Account Management -->
+    <string name="active_account">Активная учётная запись</string>
+    <string name="add_account">Добавить учётную запись</string>
+    <string name="manage_accounts">Управление учётными записями</string>
+    <string name="manage_accounts_title">Управление учётными записями</string>
+    <string name="account_info">Учётная запись: %1$s</string>
+    <string name="server_info">Сервер: %1$s</string>
+    <string name="logout">Выйти</string>
+    <string name="logout_button">Выйти</string>
+    <string name="switch_account">Сменить учётную запись</string>
+    <string name="account_connection_success">Соединение установлено</string>
+
+    <!-- Common Actions -->
+    <string name="cancel">Отмена</string>
+    <string name="close">Закрыть</string>
+    <string name="delete">Удалить</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="menu_description">Меню</string>
+    <string name="sort_description">Сортировка</string>
+    <string name="add_account_description">Добавить учётную запись</string>
+    <string name="manage_accounts_description">Управление учётными записями</string>
+    <string name="profile_picture_description">Фото профиля</string>
+    <string name="create_task_description">Создать задачу</string>
+    <string name="delete_description">Удалить</string>
+    <string name="active_account_description">Активная учётная запись</string>
+
+    <!-- Error Messages -->
+    <string name="invalid_certificate">Не удалось проверить сертификат.</string>
+    <string name="invalid_url">Укажите действительный URL с HTTPS.</string>
+    <string name="error_invalid_credentials">Имя пользователя, пароль или код недействительны</string>
+    <string name="error_unexpected">Непредвиденная ошибка</string>
+    <string name="error_unknown">Неизвестная ошибка</string>
+    <string name="error_login_flow_failed">Не удалось начать вход</string>
+    <string name="error_login_timeout">Время ожидания входа истекло. Попробуйте снова.</string>
+    <string name="error_login_failed">Ошибка входа</string>
+    <string name="error_server_url_empty">Введите URL сервера</string>
+    <string name="error_server_url_invalid">URL сервера недействителен</string>
+    <string name="error_server_url_insecure">Для безопасного соединения требуется HTTPS</string>
+    <string name="error_import_not_supported">Импорт учётной записи из приложения Nextcloud Files пока не поддерживается. Используйте вход через браузер.</string>
+    <string name="error_switch_account_failed">Не удалось сменить учётную запись</string>
+    <string name="error_logout_failed">Не удалось выйти</string>
+    <string name="error_rate_limited">Сервер занят. Попробуйте через мгновение.</string>
+    <string name="error_auth_failed_refresh">Ошибка аутентификации. Проверьте свои учётные данные.</string>
+    <string name="error_server">Ошибка сервера. Попробуйте позже.</string>
+    <string name="error_network">Не удалось подключиться к серверу. Проверьте интернет-соединение.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+
+    <!-- No Lists Empty State -->
+    <string name="no_task_lists_title">Пока нет списков задач</string>
+    <string name="no_task_lists_hint">Создайте список задач, чтобы начать добавлять задачи.</string>
+    <string name="create_first_list">Создать первый список</string>
+    <string name="create_new_list">Создать новый список</string>
+    <string name="no_task_lists_sidebar">Пока нет списков</string>
+
+    <!-- Create List Dialog -->
+    <string name="create_list_dialog_title">Создать новый список</string>
+    <string name="list_name_label">Название списка</string>
+    <string name="task_list_label">Список</string>
+    <string name="list_color_label">Цвет</string>
+    <string name="error_create_list_offline">Нельзя создать список без подключения к сети.</string>
+    <string name="error_create_list_failed">Не удалось создать список. Попробуйте снова.</string>
+
+    <!-- Edit List Dialog -->
+    <string name="edit_list_dialog_title">Изменить список</string>
+    <string name="error_edit_list_offline">Нельзя изменить список без подключения к сети.</string>
+    <string name="error_edit_list_failed">Не удалось изменить список. Попробуйте снова.</string>
+
+    <!-- Delete List Dialog -->
+    <string name="delete_list_dialog_title">Удалить список?</string>
+    <string name="delete_list_dialog_message">«%s» и все его задачи будут удалены безвозвратно.</string>
+    <string name="delete_list_confirm">Удалить</string>
+    <string name="error_delete_list_offline">Нельзя удалить список без подключения к сети.</string>
+    <string name="error_delete_list_failed">Не удалось удалить список. Попробуйте снова.</string>
+
+    <!-- Sharing -->
+    <string name="share_list">Поделиться</string>
+    <string name="share_list_title">Поделиться списком</string>
+    <string name="share_with_user_or_group">Поделиться с пользователем или группой…</string>
+    <string name="can_edit">Может редактировать</string>
+    <string name="read_only">Только чтение</string>
+    <string name="share_access_read_only">Только чтение</string>
+    <string name="share_access_edit">Может редактировать</string>
+    <string name="remove_share">Убрать</string>
+    <string name="no_sharees_found">Пользователи или группы не найдены</string>
+    <string name="list_read_only_hint">Этот список доступен вам только для чтения</string>
+    <string name="shared_with_you">Доступно вам</string>
+    <string name="shared_by_you">Вы поделились</string>
+    <string name="sharee_type_group">Группа</string>
+    <string name="error_share_failed">Не удалось поделиться списком. Попробуйте снова.</string>
+    <string name="error_share_forbidden">У вас нет прав, чтобы поделиться этим списком.</string>
+    <string name="share_success">Пользователь успешно добавлен</string>
+    <string name="error_share_offline">Нельзя поделиться без подключения к сети.</string>
+    <string name="error_load_sharees_failed">Не удалось загрузить список пользователей. Попробуйте снова.</string>
+    <string name="list_options">Параметры списка</string>
+    <string name="edit_list">Изменить</string>
+    <string name="delete_list">Удалить</string>
+    <string name="save">Сохранить</string>
+
+    <!-- Offline Mode -->
+    <string name="offline_message">Сейчас вы не в сети. Ваши изменения будут синхронизированы, когда вы снова подключитесь.</string>
+    <string name="syncing_pending_changes">Синхронизация ожидающих изменений…</string>
+    <string name="sync_complete">Все изменения синхронизированы</string>
+
+    <!-- Task Detail View -->
+    <string name="task_detail_title_hint">Название задачи</string>
+    <string name="task_detail_tab_details">Сведения</string>
+    <string name="task_detail_tab_notes">Заметки</string>
+    <string name="task_detail_start_date">Указать дату начала</string>
+    <string name="task_detail_due_date">Указать срок выполнения</string>
+    <string name="task_detail_action_section">Приоритет</string>
+    <string name="task_detail_status">Статус</string>
+    <string name="task_detail_status_needs_action">Требует действия</string>
+    <string name="task_detail_status_in_process">В процессе</string>
+    <string name="task_detail_status_cancelled">Отменено</string>
+    <string name="task_detail_status_completed">Завершено</string>
+    <string name="task_detail_no_tags_available">Пока нет меток. Введите текст выше, чтобы создать метку.</string>
+    <string name="task_detail_new_tag_label">Новая метка</string>
+    <string name="task_detail_no_priority">Приоритет не назначен</string>
+    <string name="task_detail_priority_none">Нет</string>
+    <string name="task_detail_priority_low">Низкий</string>
+    <string name="task_detail_priority_medium">Средний</string>
+    <string name="task_detail_priority_high">Высокий</string>
+    <string name="task_detail_percent_complete">Выполнено на %1$d%%</string>
+    <string name="task_detail_location">Указать местоположение</string>
+    <string name="task_detail_url">Указать URL</string>
+    <string name="task_detail_tags">Выбрать метки</string>
+    <string name="task_detail_no_tags">Нет меток</string>
+    <string name="task_detail_delete">Удалить задачу</string>
+    <string name="task_detail_delete_confirm_title">Удалить задачу?</string>
+    <string name="task_detail_delete_confirm_body">Это действие нельзя отменить.</string>
+    <string name="task_detail_notes_hint">Добавить заметки…</string>
+    <string name="task_detail_clear_date">Очистить дату</string>
+    <string name="task_detail_select_time">Выбрать время</string>
+    <string name="task_detail_back">Назад</string>
+    <string name="task_due_label">Срок: %1$s</string>
+
+    <!-- Certificate trust dialog -->
+    <string name="cert_trust_title">Недоверенный сертификат</string>
+    <string name="cert_trust_message">Сервер предъявил сертификат, который не удалось проверить. Доверяйте ему, только если вы узнаёте отпечаток ниже.</string>
+    <string name="cert_trust_issued_for">Кому выдан</string>
+    <string name="cert_trust_issued_by">Кем выдан</string>
+    <string name="cert_trust_validity">Срок действия</string>
+    <string name="cert_trust_validity_value">%1$s – %2$s</string>
+    <string name="cert_trust_sha256">SHA-256</string>
+    <string name="cert_trust_sha1">SHA-1</string>
+    <string name="cert_trust_confirm_checkbox">Я проверил отпечаток</string>
+    <string name="cert_trust_accept">Доверять</string>
+    <string name="cert_trust_reject">Отклонить</string>
+    <string name="settings_reset_trusted_certs">Сбросить доверенные сертификаты</string>
+    <string name="settings_reset_trusted_certs_summary">Забыть все сертификаты, которым вы доверились вручную</string>
+    <string name="settings_reset_trusted_certs_done">Доверенные сертификаты очищены</string>
+</resources>

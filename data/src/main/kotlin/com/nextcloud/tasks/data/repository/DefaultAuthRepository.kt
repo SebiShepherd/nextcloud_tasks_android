@@ -125,9 +125,8 @@ class DefaultAuthRepository
                 }
 
             if (!response.isSuccessful || response.body() == null) {
-                val errorMsg = "Failed to initiate login flow: HTTP ${response.code()}"
-                Timber.e(errorMsg)
-                throw AuthFailure.Network(errorMsg)
+                Timber.e("Failed to initiate login flow: HTTP %d", response.code())
+                throw AuthFailure.Network(response.code())
             }
 
             val body = response.body()!!
@@ -168,9 +167,8 @@ class DefaultAuthRepository
                 200 -> {
                     val body = response.body()
                     if (body == null) {
-                        val errorMsg = "Login Flow v2 poll: success but empty response"
-                        Timber.e(errorMsg)
-                        return LoginFlowV2PollResult.Error(errorMsg)
+                        Timber.e("Login Flow v2 poll: success but empty response")
+                        return LoginFlowV2PollResult.Error
                     }
 
                     Timber.i("Login Flow v2 poll: authentication successful for %s", body.loginName)
@@ -184,9 +182,8 @@ class DefaultAuthRepository
                 }
 
                 else -> {
-                    val errorMsg = "Login Flow v2 poll: unexpected HTTP ${response.code()}"
-                    Timber.e(errorMsg)
-                    LoginFlowV2PollResult.Error(errorMsg)
+                    Timber.e("Login Flow v2 poll: unexpected HTTP %d", response.code())
+                    LoginFlowV2PollResult.Error
                 }
             }
         }
@@ -251,10 +248,7 @@ class DefaultAuthRepository
             // 4. Store in SecureAuthStorage
             // 5. Set as active account
 
-            throw AuthFailure.Unexpected(
-                "Account import from Nextcloud Files app is not yet fully implemented. " +
-                    "Please use the browser-based login flow instead.",
-            )
+            throw AuthFailure.ImportNotSupported
         }
 
         override fun observeAccounts(): Flow<List<NextcloudAccount>> =
@@ -270,7 +264,7 @@ class DefaultAuthRepository
 
         override suspend fun switchAccount(accountId: String) {
             if (secureAuthStorage.findAccount(accountId) == null) {
-                throw AuthFailure.Unexpected("Account not found")
+                throw AuthFailure.Unknown
             }
             secureAuthStorage.setActiveAccount(accountId)
         }
@@ -284,7 +278,7 @@ class DefaultAuthRepository
 
         private fun normalizeOrThrow(serverUrl: String): String =
             when (val validation = validateServerUrlUseCase(serverUrl)) {
-                is ValidationResult.Invalid -> throw AuthFailure.InvalidServerUrl(validation.reason)
+                is ValidationResult.Invalid -> throw AuthFailure.InvalidServerUrl(validation.error)
                 is ValidationResult.Valid -> validation.normalizedUrl
             }
 
@@ -294,16 +288,15 @@ class DefaultAuthRepository
                     if (throwable.code() == 401) {
                         AuthFailure.InvalidCredentials
                     } else {
-                        AuthFailure.Network("Server error (${throwable.code()})")
+                        AuthFailure.Network(throwable.code())
                     }
 
-                is SecurityException ->
-                    AuthFailure.Network("Network access denied (missing INTERNET permission?)")
-
-                is UnknownHostException -> AuthFailure.Network("Server unreachable. Please check the URL")
-                is SSLPeerUnverifiedException, is SSLHandshakeException ->
-                    AuthFailure.Certificate("Certificate could not be verified")
-                else -> AuthFailure.Unexpected(throwable.message ?: "Unknown error")
+                is SecurityException, is UnknownHostException -> AuthFailure.Network()
+                is SSLPeerUnverifiedException, is SSLHandshakeException -> AuthFailure.Certificate
+                else -> {
+                    Timber.w(throwable, "Unmapped auth error")
+                    AuthFailure.Unknown
+                }
             }
 
         /**

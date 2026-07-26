@@ -93,7 +93,12 @@ class LoginFlowViewModel
                 val normalized =
                     when (val result = validateServerUrl(uiState.value.serverUrl)) {
                         is ValidationResult.Invalid -> {
-                            _uiState.update { it.copy(isLoading = false, error = result.reason) }
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = context.getString(serverUrlErrorMessageRes(result.error)),
+                                )
+                            }
                             return@launch
                         }
 
@@ -109,7 +114,7 @@ class LoginFlowViewModel
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                error = throwable.message ?: context.getString(R.string.error_login_flow_failed),
+                                error = context.getString(authErrorMessageRes(throwable)),
                             )
                         }
                         return@launch
@@ -201,11 +206,11 @@ class LoginFlowViewModel
                             }
 
                             is LoginFlowV2PollResult.Error -> {
-                                Timber.e("Login Flow v2 polling error: %s", result.message)
+                                Timber.e("Login Flow v2 polling error")
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
-                                        error = result.message,
+                                        error = context.getString(R.string.error_login_flow_failed),
                                     )
                                 }
                                 break
@@ -241,7 +246,7 @@ class LoginFlowViewModel
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = throwable.message ?: context.getString(R.string.error_login_failed),
+                        error = context.getString(authErrorMessageRes(throwable)),
                     )
                 }
             }

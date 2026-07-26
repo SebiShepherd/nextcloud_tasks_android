@@ -1,0 +1,205 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Tasks</string>
+
+    <!-- Login Screen -->
+    <string name="server_url_label">URL Nextcloud</string>
+    <string name="server_url_hint">Serveur Nextcloud https://</string>
+    <string name="server_url_placeholder">cloud.example.com</string>
+    <string name="server_url_description">Le lien vers votre site Nextcloud lorsque vous l\'ouvrez dans un navigateur</string>
+    <string name="waiting_for_login">En attente de la connexion dans le navigateur…</string>
+    <string name="username_label">Nom d\'utilisateur</string>
+    <string name="password_label">Mot de passe ou mot de passe d\'application</string>
+    <string name="authorization_code_label">Code OAuth2 / OCS</string>
+    <string name="redirect_uri_label">URI de redirection</string>
+    <string name="login_method_password">Connexion par mot de passe</string>
+    <string name="login_method_oauth">OAuth2 / OCS</string>
+    <string name="login_action">Se connecter maintenant</string>
+    <string name="existing_accounts">Comptes existants</string>
+    <string name="import_account">Importer un compte depuis l\'application Nextcloud</string>
+    <string name="select_account">Sélectionner un compte</string>
+    <string name="no_accounts_found">Aucun compte Nextcloud trouvé.\n\nVeuillez installer l\'application Nextcloud Files et ajouter d\'abord un compte.</string>
+
+    <!-- Task List -->
+    <string name="task_list_title">Vue d\'ensemble des tâches</string>
+    <string name="empty_list_title">Cette liste est vide.</string>
+    <string name="empty_task_hint">Appuyez sur le bouton + pour ajouter une nouvelle tâche.</string>
+    <string name="all_tasks">Toutes les tâches</string>
+    <string name="task_lists_title">Listes de tâches</string>
+    <string name="unknown_list">Liste inconnue</string>
+
+    <!-- Search & Sort -->
+    <string name="search_all_notes">Rechercher dans toutes les notes</string>
+    <string name="no_search_results_title">Aucun résultat trouvé</string>
+    <string name="no_search_results_hint">Essayez de modifier votre recherche.</string>
+    <string name="sort_dialog_title">Trier par</string>
+    <string name="sort_by_due_date">Date d\'échéance</string>
+    <string name="sort_by_priority">Priorité</string>
+    <string name="sort_by_title">Titre</string>
+    <string name="sort_by_updated">Dernière mise à jour</string>
+
+    <!-- Completed Tasks -->
+    <string name="hide_completed_tasks">Masquer les tâches terminées (%1$d)</string>
+    <string name="show_completed_tasks">Afficher les tâches terminées (%1$d)</string>
+
+    <!-- Create Task Dialog -->
+    <string name="create_task_dialog_title">Créer une nouvelle tâche</string>
+    <string name="task_title_label">Titre</string>
+    <string name="task_description_label">Description (facultatif)</string>
+    <string name="create">Créer</string>
+
+    <!-- Account Management -->
+    <string name="active_account">Compte actif</string>
+    <string name="add_account">Ajouter un compte</string>
+    <string name="manage_accounts">Gérer les comptes</string>
+    <string name="manage_accounts_title">Gérer les comptes</string>
+    <string name="account_info">Compte : %1$s</string>
+    <string name="server_info">Serveur : %1$s</string>
+    <string name="logout">Se déconnecter</string>
+    <string name="logout_button">Se déconnecter</string>
+    <string name="switch_account">Changer de compte</string>
+    <string name="account_connection_success">Connexion établie</string>
+
+    <!-- Common Actions -->
+    <string name="cancel">Annuler</string>
+    <string name="close">Fermer</string>
+    <string name="delete">Supprimer</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="menu_description">Menu</string>
+    <string name="sort_description">Trier</string>
+    <string name="add_account_description">Ajouter un compte</string>
+    <string name="manage_accounts_description">Gérer les comptes</string>
+    <string name="profile_picture_description">Photo de profil</string>
+    <string name="create_task_description">Créer une tâche</string>
+    <string name="delete_description">Supprimer</string>
+    <string name="active_account_description">Compte actif</string>
+
+    <!-- Error Messages -->
+    <string name="invalid_certificate">Le certificat n\'a pas pu être vérifié.</string>
+    <string name="invalid_url">Veuillez fournir une URL HTTPS valide.</string>
+    <string name="error_invalid_credentials">Le nom d\'utilisateur, le mot de passe ou le code n\'est pas valide</string>
+    <string name="error_unexpected">Erreur inattendue</string>
+    <string name="error_unknown">Erreur inconnue</string>
+    <string name="error_login_flow_failed">Échec du démarrage de la procédure de connexion</string>
+    <string name="error_login_timeout">Délai de connexion dépassé. Veuillez réessayer.</string>
+    <string name="error_login_failed">Échec de la connexion</string>
+    <string name="error_server_url_empty">Veuillez saisir une URL de serveur</string>
+    <string name="error_server_url_invalid">L\'URL du serveur n\'est pas valide</string>
+    <string name="error_server_url_insecure">HTTPS est requis pour une connexion sécurisée</string>
+    <string name="error_import_not_supported">L\'importation de compte depuis l\'application Nextcloud Files n\'est pas encore prise en charge. Veuillez utiliser la connexion par navigateur.</string>
+    <string name="error_switch_account_failed">Échec du changement de compte</string>
+    <string name="error_logout_failed">Échec de la déconnexion</string>
+    <string name="error_rate_limited">Le serveur est occupé. Veuillez réessayer dans un instant.</string>
+    <string name="error_auth_failed_refresh">Échec de l\'authentification. Veuillez vérifier vos identifiants.</string>
+    <string name="error_server">Erreur du serveur. Veuillez réessayer plus tard.</string>
+    <string name="error_network">Impossible de se connecter au serveur. Vérifiez votre connexion Internet.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Paramètres</string>
+
+    <!-- No Lists Empty State -->
+    <string name="no_task_lists_title">Aucune liste de tâches pour le moment</string>
+    <string name="no_task_lists_hint">Créez une liste de tâches pour commencer à ajouter des tâches.</string>
+    <string name="create_first_list">Créer votre première liste</string>
+    <string name="create_new_list">Créer une nouvelle liste</string>
+    <string name="no_task_lists_sidebar">Aucune liste pour le moment</string>
+
+    <!-- Create List Dialog -->
+    <string name="create_list_dialog_title">Créer une nouvelle liste</string>
+    <string name="list_name_label">Nom de la liste</string>
+    <string name="task_list_label">Liste</string>
+    <string name="list_color_label">Couleur</string>
+    <string name="error_create_list_offline">Impossible de créer une liste en mode hors ligne.</string>
+    <string name="error_create_list_failed">Échec de la création de la liste. Veuillez réessayer.</string>
+
+    <!-- Edit List Dialog -->
+    <string name="edit_list_dialog_title">Modifier la liste</string>
+    <string name="error_edit_list_offline">Impossible de modifier une liste en mode hors ligne.</string>
+    <string name="error_edit_list_failed">Échec de la modification de la liste. Veuillez réessayer.</string>
+
+    <!-- Delete List Dialog -->
+    <string name="delete_list_dialog_title">Supprimer la liste ?</string>
+    <string name="delete_list_dialog_message">« %s » et toutes ses tâches seront définitivement supprimées.</string>
+    <string name="delete_list_confirm">Supprimer</string>
+    <string name="error_delete_list_offline">Impossible de supprimer une liste en mode hors ligne.</string>
+    <string name="error_delete_list_failed">Échec de la suppression de la liste. Veuillez réessayer.</string>
+
+    <!-- Sharing -->
+    <string name="share_list">Partager</string>
+    <string name="share_list_title">Partager la liste</string>
+    <string name="share_with_user_or_group">Partager avec un utilisateur ou un groupe…</string>
+    <string name="can_edit">Peut modifier</string>
+    <string name="read_only">Lecture seule</string>
+    <string name="share_access_read_only">Lecture seule</string>
+    <string name="share_access_edit">Peut modifier</string>
+    <string name="remove_share">Supprimer</string>
+    <string name="no_sharees_found">Aucun utilisateur ou groupe trouvé</string>
+    <string name="list_read_only_hint">Cette liste est partagée avec vous en lecture seule</string>
+    <string name="shared_with_you">Partagée avec vous</string>
+    <string name="shared_by_you">Partagée par vous</string>
+    <string name="sharee_type_group">Groupe</string>
+    <string name="error_share_failed">Échec du partage de la liste. Veuillez réessayer.</string>
+    <string name="error_share_forbidden">Vous n\'avez pas la permission de partager cette liste.</string>
+    <string name="share_success">Utilisateur ajouté avec succès</string>
+    <string name="error_share_offline">Impossible de partager en mode hors ligne.</string>
+    <string name="error_load_sharees_failed">Échec du chargement des utilisateurs partagés. Veuillez réessayer.</string>
+    <string name="list_options">Options de la liste</string>
+    <string name="edit_list">Modifier</string>
+    <string name="delete_list">Supprimer</string>
+    <string name="save">Enregistrer</string>
+
+    <!-- Offline Mode -->
+    <string name="offline_message">Vous êtes actuellement hors ligne. Vos modifications seront synchronisées lorsque vous serez de nouveau en ligne.</string>
+    <string name="syncing_pending_changes">Synchronisation des modifications en attente…</string>
+    <string name="sync_complete">Toutes les modifications ont été synchronisées</string>
+
+    <!-- Task Detail View -->
+    <string name="task_detail_title_hint">Titre de la tâche</string>
+    <string name="task_detail_tab_details">Détails</string>
+    <string name="task_detail_tab_notes">Notes</string>
+    <string name="task_detail_start_date">Définir la date de début</string>
+    <string name="task_detail_due_date">Définir la date d\'échéance</string>
+    <string name="task_detail_action_section">Priorité</string>
+    <string name="task_detail_status">Statut</string>
+    <string name="task_detail_status_needs_action">À faire</string>
+    <string name="task_detail_status_in_process">En cours</string>
+    <string name="task_detail_status_cancelled">Annulée</string>
+    <string name="task_detail_status_completed">Terminée</string>
+    <string name="task_detail_no_tags_available">Aucune étiquette pour le moment. Saisissez ci-dessus pour en créer une.</string>
+    <string name="task_detail_new_tag_label">Nouvelle étiquette</string>
+    <string name="task_detail_no_priority">Aucune priorité attribuée</string>
+    <string name="task_detail_priority_none">Aucune</string>
+    <string name="task_detail_priority_low">Basse</string>
+    <string name="task_detail_priority_medium">Moyenne</string>
+    <string name="task_detail_priority_high">Haute</string>
+    <string name="task_detail_percent_complete">%1$d%% terminé</string>
+    <string name="task_detail_location">Définir un lieu</string>
+    <string name="task_detail_url">Définir une URL</string>
+    <string name="task_detail_tags">Sélectionner les étiquettes</string>
+    <string name="task_detail_no_tags">Aucune étiquette</string>
+    <string name="task_detail_delete">Supprimer la tâche</string>
+    <string name="task_detail_delete_confirm_title">Supprimer la tâche ?</string>
+    <string name="task_detail_delete_confirm_body">Cette action est irréversible.</string>
+    <string name="task_detail_notes_hint">Ajouter des notes…</string>
+    <string name="task_detail_clear_date">Effacer la date</string>
+    <string name="task_detail_select_time">Sélectionner l\'heure</string>
+    <string name="task_detail_back">Retour</string>
+    <string name="task_due_label">Échéance : %1$s</string>
+
+    <!-- Certificate trust dialog -->
+    <string name="cert_trust_title">Certificat non approuvé</string>
+    <string name="cert_trust_message">Le serveur a présenté un certificat qui n\'a pas pu être vérifié. Ne l\'approuvez que si vous reconnaissez l\'empreinte ci-dessous.</string>
+    <string name="cert_trust_issued_for">Délivré pour</string>
+    <string name="cert_trust_issued_by">Délivré par</string>
+    <string name="cert_trust_validity">Validité</string>
+    <string name="cert_trust_validity_value">%1$s – %2$s</string>
+    <string name="cert_trust_sha256">SHA-256</string>
+    <string name="cert_trust_sha1">SHA-1</string>
+    <string name="cert_trust_confirm_checkbox">J\'ai vérifié l\'empreinte</string>
+    <string name="cert_trust_accept">Approuver</string>
+    <string name="cert_trust_reject">Rejeter</string>
+    <string name="settings_reset_trusted_certs">Réinitialiser les certificats approuvés</string>
+    <string name="settings_reset_trusted_certs_summary">Oublier tous les certificats que vous avez approuvés manuellement</string>
+    <string name="settings_reset_trusted_certs_done">Certificats approuvés effacés</string>
+</resources>

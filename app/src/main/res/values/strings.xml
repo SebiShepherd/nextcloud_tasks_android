@@ -84,6 +84,10 @@
     <string name="error_login_flow_failed">Failed to start login flow</string>
     <string name="error_login_timeout">Login timeout. Please try again.</string>
     <string name="error_login_failed">Login failed</string>
+    <string name="error_server_url_empty">Please enter a server URL</string>
+    <string name="error_server_url_invalid">The server URL is not valid</string>
+    <string name="error_server_url_insecure">HTTPS is required for a secure connection</string>
+    <string name="error_import_not_supported">Account import from the Nextcloud Files app isn\'t supported yet. Please use the browser login.</string>
     <string name="error_switch_account_failed">Failed to switch account</string>
     <string name="error_logout_failed">Failed to logout</string>
     <string name="error_rate_limited">Server is busy. Please try again in a moment.</string>
@@ -93,11 +97,6 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
-    <string name="settings_language">Language</string>
-    <string name="language_system_default">System default</string>
-    <string name="language_english">English</string>
-    <string name="language_german">Deutsch</string>
-    <string name="language_dialog_title">Select language</string>
 
     <!-- No Lists Empty State -->
     <string name="no_task_lists_title">No task lists yet</string>

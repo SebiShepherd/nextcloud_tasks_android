@@ -1,0 +1,205 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Tasks</string>
+
+    <!-- Login Screen -->
+    <string name="server_url_label">URL Nextcloudu</string>
+    <string name="server_url_hint">Server Nextcloud https://</string>
+    <string name="server_url_placeholder">cloud.example.com</string>
+    <string name="server_url_description">Odkaz na váš web Nextcloud, který otevřete v prohlížeči</string>
+    <string name="waiting_for_login">Čekání na přihlášení v prohlížeči…</string>
+    <string name="username_label">Uživatelské jméno</string>
+    <string name="password_label">Heslo nebo heslo aplikace</string>
+    <string name="authorization_code_label">Kód OAuth2 / OCS</string>
+    <string name="redirect_uri_label">Přesměrovací URI</string>
+    <string name="login_method_password">Přihlášení heslem</string>
+    <string name="login_method_oauth">OAuth2 / OCS</string>
+    <string name="login_action">Přihlásit se nyní</string>
+    <string name="existing_accounts">Stávající účty</string>
+    <string name="import_account">Importovat účet z aplikace Nextcloud</string>
+    <string name="select_account">Vybrat účet</string>
+    <string name="no_accounts_found">Nebyly nalezeny žádné účty Nextcloud.\n\nNainstalujte prosím aplikaci Nextcloud Files a nejprve přidejte účet.</string>
+
+    <!-- Task List -->
+    <string name="task_list_title">Přehled úkolů</string>
+    <string name="empty_list_title">Tento seznam je prázdný.</string>
+    <string name="empty_task_hint">Klepnutím na tlačítko + přidáte nový úkol.</string>
+    <string name="all_tasks">Všechny úkoly</string>
+    <string name="task_lists_title">Seznamy úkolů</string>
+    <string name="unknown_list">Neznámý seznam</string>
+
+    <!-- Search & Sort -->
+    <string name="search_all_notes">Hledat ve všech poznámkách</string>
+    <string name="no_search_results_title">Nebyly nalezeny žádné výsledky</string>
+    <string name="no_search_results_hint">Zkuste upravit svůj dotaz.</string>
+    <string name="sort_dialog_title">Seřadit podle</string>
+    <string name="sort_by_due_date">Termín splnění</string>
+    <string name="sort_by_priority">Priorita</string>
+    <string name="sort_by_title">Název</string>
+    <string name="sort_by_updated">Naposledy aktualizováno</string>
+
+    <!-- Completed Tasks -->
+    <string name="hide_completed_tasks">Skrýt dokončené úkoly (%1$d)</string>
+    <string name="show_completed_tasks">Zobrazit dokončené úkoly (%1$d)</string>
+
+    <!-- Create Task Dialog -->
+    <string name="create_task_dialog_title">Vytvořit nový úkol</string>
+    <string name="task_title_label">Název</string>
+    <string name="task_description_label">Popis (nepovinné)</string>
+    <string name="create">Vytvořit</string>
+
+    <!-- Account Management -->
+    <string name="active_account">Aktivní účet</string>
+    <string name="add_account">Přidat účet</string>
+    <string name="manage_accounts">Spravovat účty</string>
+    <string name="manage_accounts_title">Spravovat účty</string>
+    <string name="account_info">Účet: %1$s</string>
+    <string name="server_info">Server: %1$s</string>
+    <string name="logout">Odhlásit se</string>
+    <string name="logout_button">Odhlásit se</string>
+    <string name="switch_account">Přepnout účet</string>
+    <string name="account_connection_success">Připojení navázáno</string>
+
+    <!-- Common Actions -->
+    <string name="cancel">Zrušit</string>
+    <string name="close">Zavřít</string>
+    <string name="delete">Smazat</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="menu_description">Nabídka</string>
+    <string name="sort_description">Seřadit</string>
+    <string name="add_account_description">Přidat účet</string>
+    <string name="manage_accounts_description">Spravovat účty</string>
+    <string name="profile_picture_description">Profilový obrázek</string>
+    <string name="create_task_description">Vytvořit úkol</string>
+    <string name="delete_description">Smazat</string>
+    <string name="active_account_description">Aktivní účet</string>
+
+    <!-- Error Messages -->
+    <string name="invalid_certificate">Certifikát se nepodařilo ověřit.</string>
+    <string name="invalid_url">Zadejte prosím platnou URL adresu HTTPS.</string>
+    <string name="error_invalid_credentials">Uživatelské jméno, heslo nebo kód není platný</string>
+    <string name="error_unexpected">Neočekávaná chyba</string>
+    <string name="error_unknown">Neznámá chyba</string>
+    <string name="error_login_flow_failed">Nepodařilo se zahájit přihlašování</string>
+    <string name="error_login_timeout">Vypršel časový limit přihlášení. Zkuste to prosím znovu.</string>
+    <string name="error_login_failed">Přihlášení se nezdařilo</string>
+    <string name="error_server_url_empty">Zadejte prosím URL serveru</string>
+    <string name="error_server_url_invalid">URL serveru není platná</string>
+    <string name="error_server_url_insecure">Pro zabezpečené připojení je vyžadováno HTTPS</string>
+    <string name="error_import_not_supported">Import účtu z aplikace Nextcloud Files zatím není podporován. Použijte prosím přihlášení přes prohlížeč.</string>
+    <string name="error_switch_account_failed">Nepodařilo se přepnout účet</string>
+    <string name="error_logout_failed">Nepodařilo se odhlásit</string>
+    <string name="error_rate_limited">Server je zaneprázdněn. Zkuste to prosím za chvíli znovu.</string>
+    <string name="error_auth_failed_refresh">Ověření se nezdařilo. Zkontrolujte prosím své přihlašovací údaje.</string>
+    <string name="error_server">Chyba serveru. Zkuste to prosím později.</string>
+    <string name="error_network">Nepodařilo se připojit k serveru. Zkontrolujte připojení k internetu.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Nastavení</string>
+
+    <!-- No Lists Empty State -->
+    <string name="no_task_lists_title">Zatím žádné seznamy úkolů</string>
+    <string name="no_task_lists_hint">Vytvořte seznam úkolů a začněte přidávat úkoly.</string>
+    <string name="create_first_list">Vytvořte svůj první seznam</string>
+    <string name="create_new_list">Vytvořit nový seznam</string>
+    <string name="no_task_lists_sidebar">Zatím žádné seznamy</string>
+
+    <!-- Create List Dialog -->
+    <string name="create_list_dialog_title">Vytvořit nový seznam</string>
+    <string name="list_name_label">Název seznamu</string>
+    <string name="task_list_label">Seznam</string>
+    <string name="list_color_label">Barva</string>
+    <string name="error_create_list_offline">V režimu offline nelze vytvořit seznam.</string>
+    <string name="error_create_list_failed">Nepodařilo se vytvořit seznam. Zkuste to prosím znovu.</string>
+
+    <!-- Edit List Dialog -->
+    <string name="edit_list_dialog_title">Upravit seznam</string>
+    <string name="error_edit_list_offline">V režimu offline nelze upravit seznam.</string>
+    <string name="error_edit_list_failed">Nepodařilo se upravit seznam. Zkuste to prosím znovu.</string>
+
+    <!-- Delete List Dialog -->
+    <string name="delete_list_dialog_title">Smazat seznam?</string>
+    <string name="delete_list_dialog_message">„%s“ a všechny jeho úkoly budou trvale smazány.</string>
+    <string name="delete_list_confirm">Smazat</string>
+    <string name="error_delete_list_offline">V režimu offline nelze smazat seznam.</string>
+    <string name="error_delete_list_failed">Nepodařilo se smazat seznam. Zkuste to prosím znovu.</string>
+
+    <!-- Sharing -->
+    <string name="share_list">Sdílet</string>
+    <string name="share_list_title">Sdílet seznam</string>
+    <string name="share_with_user_or_group">Sdílet s uživatelem nebo skupinou…</string>
+    <string name="can_edit">Může upravovat</string>
+    <string name="read_only">Pouze pro čtení</string>
+    <string name="share_access_read_only">Pouze pro čtení</string>
+    <string name="share_access_edit">Může upravovat</string>
+    <string name="remove_share">Odebrat</string>
+    <string name="no_sharees_found">Nebyli nalezeni žádní uživatelé ani skupiny</string>
+    <string name="list_read_only_hint">Tento seznam je s vámi sdílen pouze pro čtení</string>
+    <string name="shared_with_you">Sdíleno s vámi</string>
+    <string name="shared_by_you">Sdíleno vámi</string>
+    <string name="sharee_type_group">Skupina</string>
+    <string name="error_share_failed">Nepodařilo se sdílet seznam. Zkuste to prosím znovu.</string>
+    <string name="error_share_forbidden">Nemáte oprávnění tento seznam sdílet.</string>
+    <string name="share_success">Uživatel byl úspěšně přidán</string>
+    <string name="error_share_offline">V režimu offline nelze sdílet.</string>
+    <string name="error_load_sharees_failed">Nepodařilo se načíst sdílené uživatele. Zkuste to prosím znovu.</string>
+    <string name="list_options">Možnosti seznamu</string>
+    <string name="edit_list">Upravit</string>
+    <string name="delete_list">Smazat</string>
+    <string name="save">Uložit</string>
+
+    <!-- Offline Mode -->
+    <string name="offline_message">Momentálně jste offline. Vaše změny budou synchronizovány, až budete zase online.</string>
+    <string name="syncing_pending_changes">Synchronizace nevyřízených změn…</string>
+    <string name="sync_complete">Všechny změny synchronizovány</string>
+
+    <!-- Task Detail View -->
+    <string name="task_detail_title_hint">Název úkolu</string>
+    <string name="task_detail_tab_details">Podrobnosti</string>
+    <string name="task_detail_tab_notes">Poznámky</string>
+    <string name="task_detail_start_date">Nastavit datum zahájení</string>
+    <string name="task_detail_due_date">Nastavit termín splnění</string>
+    <string name="task_detail_action_section">Priorita</string>
+    <string name="task_detail_status">Stav</string>
+    <string name="task_detail_status_needs_action">Vyžaduje akci</string>
+    <string name="task_detail_status_in_process">Probíhá</string>
+    <string name="task_detail_status_cancelled">Zrušeno</string>
+    <string name="task_detail_status_completed">Dokončeno</string>
+    <string name="task_detail_no_tags_available">Zatím žádné štítky. Napište výše nový štítek a vytvořte jej.</string>
+    <string name="task_detail_new_tag_label">Nový štítek</string>
+    <string name="task_detail_no_priority">Nepřiřazena žádná priorita</string>
+    <string name="task_detail_priority_none">Žádná</string>
+    <string name="task_detail_priority_low">Nízká</string>
+    <string name="task_detail_priority_medium">Střední</string>
+    <string name="task_detail_priority_high">Vysoká</string>
+    <string name="task_detail_percent_complete">%1$d%% dokončeno</string>
+    <string name="task_detail_location">Nastavit místo</string>
+    <string name="task_detail_url">Nastavit URL</string>
+    <string name="task_detail_tags">Vybrat štítky</string>
+    <string name="task_detail_no_tags">Žádné štítky</string>
+    <string name="task_detail_delete">Smazat úkol</string>
+    <string name="task_detail_delete_confirm_title">Smazat úkol?</string>
+    <string name="task_detail_delete_confirm_body">Tuto akci nelze vzít zpět.</string>
+    <string name="task_detail_notes_hint">Přidat poznámky…</string>
+    <string name="task_detail_clear_date">Vymazat datum</string>
+    <string name="task_detail_select_time">Vybrat čas</string>
+    <string name="task_detail_back">Zpět</string>
+    <string name="task_due_label">Termín: %1$s</string>
+
+    <!-- Certificate trust dialog -->
+    <string name="cert_trust_title">Nedůvěryhodný certifikát</string>
+    <string name="cert_trust_message">Server předložil certifikát, který se nepodařilo ověřit. Důvěřujte mu pouze, pokud poznáte otisk níže.</string>
+    <string name="cert_trust_issued_for">Vydáno pro</string>
+    <string name="cert_trust_issued_by">Vydal</string>
+    <string name="cert_trust_validity">Platnost</string>
+    <string name="cert_trust_validity_value">%1$s – %2$s</string>
+    <string name="cert_trust_sha256">SHA-256</string>
+    <string name="cert_trust_sha1">SHA-1</string>
+    <string name="cert_trust_confirm_checkbox">Ověřil jsem otisk</string>
+    <string name="cert_trust_accept">Důvěřovat</string>
+    <string name="cert_trust_reject">Odmítnout</string>
+    <string name="settings_reset_trusted_certs">Obnovit důvěryhodné certifikáty</string>
+    <string name="settings_reset_trusted_certs_summary">Zapomenout všechny certifikáty, kterým jste ručně důvěřovali</string>
+    <string name="settings_reset_trusted_certs_done">Důvěryhodné certifikáty vymazány</string>
+</resources>
