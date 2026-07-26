@@ -33,9 +33,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -1168,7 +1170,12 @@ private fun TaskListsDrawer(
     onEditList: (com.nextcloud.tasks.domain.model.TaskList) -> Unit = {},
     onDeleteList: (com.nextcloud.tasks.domain.model.TaskList) -> Unit = {},
 ) {
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier =
+            Modifier
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
