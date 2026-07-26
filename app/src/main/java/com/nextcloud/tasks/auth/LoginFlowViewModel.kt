@@ -5,10 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextcloud.tasks.R
 import com.nextcloud.tasks.browser.CustomTabsHelper
-import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.LoginFlowV2PollResult
 import com.nextcloud.tasks.domain.model.NextcloudAccount
-import com.nextcloud.tasks.domain.model.ServerUrlError
 import com.nextcloud.tasks.domain.usecase.InitiateLoginFlowV2UseCase
 import com.nextcloud.tasks.domain.usecase.LoginWithAppPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
@@ -95,7 +93,12 @@ class LoginFlowViewModel
                 val normalized =
                     when (val result = validateServerUrl(uiState.value.serverUrl)) {
                         is ValidationResult.Invalid -> {
-                            _uiState.update { it.copy(isLoading = false, error = serverUrlErrorMessage(result.error)) }
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = context.getString(serverUrlErrorMessageRes(result.error)),
+                                )
+                            }
                             return@launch
                         }
 
@@ -111,7 +114,7 @@ class LoginFlowViewModel
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                error = authErrorMessage(throwable),
+                                error = context.getString(authErrorMessageRes(throwable)),
                             )
                         }
                         return@launch
@@ -243,39 +246,11 @@ class LoginFlowViewModel
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = authErrorMessage(throwable),
+                        error = context.getString(authErrorMessageRes(throwable)),
                     )
                 }
             }
         }
-
-        /**
-         * Maps a typed [AuthFailure] (or any other throwable) to a localized user-facing message.
-         */
-        private fun authErrorMessage(throwable: Throwable): String =
-            when (throwable) {
-                is AuthFailure.InvalidServerUrl -> serverUrlErrorMessage(throwable.error)
-                is AuthFailure.InvalidCredentials -> context.getString(R.string.error_invalid_credentials)
-                is AuthFailure.Network ->
-                    if (throwable.statusCode != null) {
-                        context.getString(R.string.error_server)
-                    } else {
-                        context.getString(R.string.error_network)
-                    }
-
-                is AuthFailure.Certificate -> context.getString(R.string.invalid_certificate)
-                is AuthFailure.ImportNotSupported -> context.getString(R.string.error_import_not_supported)
-                else -> context.getString(R.string.error_login_failed)
-            }
-
-        private fun serverUrlErrorMessage(error: ServerUrlError): String =
-            context.getString(
-                when (error) {
-                    ServerUrlError.EMPTY -> R.string.error_server_url_empty
-                    ServerUrlError.INVALID -> R.string.error_server_url_invalid
-                    ServerUrlError.INSECURE_HTTP -> R.string.error_server_url_insecure
-                },
-            )
 
         override fun onCleared() {
             super.onCleared()
