@@ -138,9 +138,9 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) guide for instructions on building th
 
 For detailed information about the project, development, and contributing, please refer to:
 
-- **[RELEASE.md](RELEASE.md)** - Release process and versioning
+- **[RELEASING.md](RELEASING.md)** - Release process (tags → Play tracks)
 - **[SIGNING.md](SIGNING.md)** - Android app signing setup guide
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines (coming soon)
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
 - **[AGENTS.md](AGENTS.md)** - Comprehensive documentation for AI assistants and developers
 
 ---

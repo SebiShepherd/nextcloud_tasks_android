@@ -44,18 +44,10 @@ Play requires versionCode to strictly increase across *all* tracks, so two `-alp
 the same version must not share a code. Local `bundleRelease` (no `VERSION_CODE` env) still uses
 the computed `MAJOR*10000+MINOR*100+PATCH` for dev builds — those are never published.
 
-## Setting up the alpha (closed testing) track — one-time
+## Play tracks
 
-The closed testing (**alpha**) track is set up in the Play Console (track name `alpha`,
-testers added). For reference, the one-time steps were:
-
-1. Play Console → your app → **Test and release → Testing → Closed testing**.
-2. Create a closed testing track (or use the default "Alpha"). The track's internal
-   name must be `alpha` to match the tag routing and Fastlane lane (or adjust `PLAY_TRACK`).
-3. Under **Testers**, create an email list (or Google Group) and add the testers — e.g.
-   the users who reported certificate/sync issues, so they can validate fixes against
-   their real servers.
-4. Save and copy the **opt-in URL**; share it with testers so they can join.
-
-Day-to-day alpha releases are then just a tag push (`v1.2.3-alpha.N`) or `fastlane alpha`.
-The first build on a new track may need a one-time promote/review in the Console.
+The `internal`, `alpha` (closed testing), `beta` (open testing) and `production` tracks are
+configured in the Play Console; their internal names match the tag routing and Fastlane lanes
+above. Releasing to any track is a tag push (`v1.2.3-alpha.N`, `v1.2.3-beta.N`, …) or the
+matching `fastlane` lane. The first build on a newly created track may require a one-time
+review in the Console.
