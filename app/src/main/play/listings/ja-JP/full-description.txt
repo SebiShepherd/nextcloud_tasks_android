@@ -1,0 +1,13 @@
+Nextcloud Tasks を使えば、Android デバイスから直接タスクや ToDo リストを管理し、Nextcloud サーバーと同期できます。
+
+機能：
+- すべての Nextcloud タスクリストを表示・管理
+- タスクの作成、編集、完了
+- 優先度と期限でタスクを整理
+- Nextcloud サーバーと自動同期
+- Material Design 3 のインターフェース
+- ダークモード対応
+
+必要な環境：
+- Tasks アプリがインストールされた Nextcloud サーバー
+- Android 8.0 以降

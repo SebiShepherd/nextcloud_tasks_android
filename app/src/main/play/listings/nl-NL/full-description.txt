@@ -1,0 +1,13 @@
+Met Nextcloud Tasks beheer je je taken en to-dolijsten rechtstreeks vanaf je Android-apparaat, gesynchroniseerd met je Nextcloud-server.
+
+Functies:
+- Bekijk en beheer al je Nextcloud-takenlijsten
+- Maak, bewerk en voltooi taken
+- Orden taken met prioriteiten en vervaldatums
+- Automatische synchronisatie met je Nextcloud-server
+- Material Design 3-interface
+- Ondersteuning voor donkere modus
+
+Vereisten:
+- Een Nextcloud-server met de Tasks-app geïnstalleerd
+- Android 8.0 of hoger
