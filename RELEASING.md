@@ -59,3 +59,20 @@ testers added). For reference, the one-time steps were:
 
 Day-to-day alpha releases are then just a tag push (`v1.2.3-alpha.N`) or `fastlane alpha`.
 The first build on a new track may need a one-time promote/review in the Console.
+
+## Setting up the beta (open testing) track — one-time
+
+Unlike the **alpha** (closed) track, which only invited testers can join, the **beta**
+(open testing) track lets anyone **self-enrol** from the Play Store via an opt-in link — no
+email list to maintain. This is the sensible public test channel once there is a real tester
+community; until then a closed alpha (or just production with a staged rollout) is enough.
+
+1. Play Console → your app → **Test and release → Testing → Open testing**.
+2. Create the open testing track. Its internal name must be `beta` to match the tag routing
+   (`v*-beta.N`) and the Fastlane `beta` lane (or adjust `PLAY_TRACK`).
+3. Fill in the testing feedback details and countries/regions, then roll out a first build
+   (a `v1.2.3-beta.1` tag push). The first open-testing build goes through a one-time review.
+4. Copy the **opt-in URL** and share it (README, repo, issues) so users can join themselves.
+   Open testing can also surface a "Join the beta" section on the public store listing.
+
+Day-to-day beta releases are then a tag push (`v1.2.3-beta.N`) or `fastlane beta`.
