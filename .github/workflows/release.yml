@@ -123,8 +123,14 @@ jobs:
             echo "### Changes" >> release_notes.md
             echo "" >> release_notes.md
 
-            # Get previous tag
-            PREV_TAG=$(git describe --tags --abbrev=0 ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
+            # Previous tag. For a stable release, diff against the last STABLE tag
+            # (skip -alpha/-beta) so notes cover everything new since the last prod
+            # release, not just the delta to the most recent pre-release.
+            if echo "${GITHUB_REF_NAME}" | grep -q -- '-'; then
+              PREV_TAG=$(git describe --tags --abbrev=0 ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
+            else
+              PREV_TAG=$(git describe --tags --abbrev=0 --exclude='*-*' ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
+            fi
 
             if [ -n "$PREV_TAG" ]; then
               echo "Changes since ${PREV_TAG}:" >> release_notes.md
@@ -159,7 +165,13 @@ jobs:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
           NOTES_DIR="app/src/main/play/release-notes"
-          PREV_TAG=$(git describe --tags --abbrev=0 ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
+          # Stable release: diff against last STABLE tag so Play notes cover every
+          # change since the last prod release (Play only shows the latest note per track).
+          if echo "${GITHUB_REF_NAME}" | grep -q -- '-'; then
+            PREV_TAG=$(git describe --tags --abbrev=0 ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
+          else
+            PREV_TAG=$(git describe --tags --abbrev=0 --exclude='*-*' ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
+          fi
 
           # Collect commits (capped at 3000 chars to keep the API payload manageable)
           if [ -n "$PREV_TAG" ]; then
