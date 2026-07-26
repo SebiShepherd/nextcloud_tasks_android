@@ -861,6 +861,18 @@ If you need to run manually:
    - ❌ Force push to main/master
    - ❌ Skip hooks (pre-commit, etc.)
 
+7. **Public Repository Hygiene** (this repo is PUBLIC)
+   - ❌ Commit personal, operator-specific instructions or step-by-step walkthroughs
+     addressed to the maintainer (e.g. "Play Console → your app → click …", account
+     setup click-paths, "share the opt-in URL with your testers"). Docs are for the
+     public, not a private runbook.
+   - ✅ State facts and project realities instead ("The app has a public beta on Play"),
+     not how the maintainer personally sets them up.
+   - ✅ Committed docs describe the code, the build, and the automated pipeline — things
+     every contributor needs — not one person's console/dashboard chores.
+   - ✅ Prefer REMOVING this kind of leftover artifact over adding more; if a chore needs
+     tracking, open a GitHub issue stating the goal (again: no personal how-to inside it).
+
 ### When Making Changes
 
 1. **Read files first**: Always read relevant files before editing
