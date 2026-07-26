@@ -508,4 +508,71 @@ class VTodoParserTest {
         assertEquals("parent-task-789", result.entity.parentUid)
         assertEquals(false, result.entity.completed) // IN-PROCESS is not COMPLETED
     }
+
+    // --- Repro for #60 (notes cut off) and #70 (tasks disappear on folded line with colon) ---
+    // These feed real RFC 5545 line folding (CRLF + single leading space on the continuation
+    // line) into the parser. If folding/unfolding is broken, the continuation is lost:
+    //   - #60: the description truncates at the first physical line.
+    //   - #70: a colon in the continuation is read as a new property, the VTODO fails to parse
+    //          and the task is dropped (parseVTodo returns null).
+    // Assertions use `contains` on continuation-only text so they do not depend on the exact
+    // whitespace iCal4j produces at the fold boundary, only on the continuation surviving.
+
+    @Test
+    fun `parseVTodo keeps the full folded description across continuation lines (issue #60)`() {
+        val icalData =
+            buildString {
+                append("BEGIN:VCALENDAR\r\n")
+                append("VERSION:2.0\r\n")
+                append("PRODID:-//BugRepro//EN\r\n")
+                append("BEGIN:VTODO\r\n")
+                append("UID:folded-no-colon\r\n")
+                append("DTSTAMP:20260712T080000Z\r\n")
+                append("SUMMARY:Folded note without colon\r\n")
+                append("DESCRIPTION:First part of the text with an escaped semicolon here \\; and\r\n")
+                append(" then it continues on a folded second physical line to finish the note.\r\n")
+                append("STATUS:NEEDS-ACTION\r\n")
+                append("END:VTODO\r\n")
+                append("END:VCALENDAR\r\n")
+            }
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result, "A VTODO with a folded description must parse")
+        val description = result.entity.description
+        assertNotNull(description, "Description must not be null")
+        assertTrue(
+            description.contains("finish the note"),
+            "Continuation line was lost; description truncated at the fold. Got: $description",
+        )
+    }
+
+    @Test
+    fun `parseVTodo does not drop a VTODO whose folded continuation contains a colon (issue #70)`() {
+        val icalData =
+            buildString {
+                append("BEGIN:VCALENDAR\r\n")
+                append("VERSION:2.0\r\n")
+                append("PRODID:-//BugRepro//EN\r\n")
+                append("BEGIN:VTODO\r\n")
+                append("UID:folded-with-colon\r\n")
+                append("DTSTAMP:20260712T080000Z\r\n")
+                append("SUMMARY:Folded note with colon\r\n")
+                append("DESCRIPTION:This first line of text ends here and the second line says\r\n")
+                append(" download: example.com which puts a colon inside the folded value part.\r\n")
+                append("STATUS:NEEDS-ACTION\r\n")
+                append("END:VTODO\r\n")
+                append("END:VCALENDAR\r\n")
+            }
+
+        val result = parser.parseVTodo(icalData, accountId, listId, href, etag)
+
+        assertNotNull(result, "VTODO with a colon in a folded continuation line must not be dropped")
+        val description = result.entity.description
+        assertNotNull(description, "Description must not be null")
+        assertTrue(
+            description.contains("example.com"),
+            "Folded continuation with a colon was lost. Got: $description",
+        )
+    }
 }
