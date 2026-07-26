@@ -64,29 +64,27 @@ enum class Language(
     val code: String,
     val displayName: String,
 ) {
-    SYSTEM(
-        code = "",
-        displayName = "System Default",
-    ),
-    ENGLISH(
-        code = "en",
-        displayName = "English",
-    ),
-    GERMAN(
-        code = "de",
-        displayName = "Deutsch",
-    ),
+    SYSTEM("", "System Default"),
+    ENGLISH("en", "English"),
+    GERMAN("de", "Deutsch"),
+    FRENCH("fr", "Français"),
+    SPANISH("es", "Español"),
+    ITALIAN("it", "Italiano"),
+    DUTCH("nl", "Nederlands"),
+    PORTUGUESE_BR("pt-BR", "Português (Brasil)"),
+    RUSSIAN("ru", "Русский"),
+    POLISH("pl", "Polski"),
+    CZECH("cs", "Čeština"),
+    CHINESE_SIMPLIFIED("zh-CN", "简体中文"),
+    JAPANESE("ja", "日本語"),
     ;
 
     companion object {
-        fun fromCode(code: String?): Language =
-            when (code) {
-                null, "" -> SYSTEM
-                "en" -> ENGLISH
-                "de" -> GERMAN
-                else -> SYSTEM
-            }
+        fun fromCode(code: String?): Language {
+            if (code.isNullOrEmpty()) return SYSTEM
+            return entries.firstOrNull { it.code == code } ?: SYSTEM
+        }
 
-        fun all(): List<Language> = listOf(SYSTEM, ENGLISH, GERMAN)
+        fun all(): List<Language> = entries.toList()
     }
 }

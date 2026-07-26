@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.domain.usecase
 
+import com.nextcloud.tasks.domain.model.ServerUrlError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -12,7 +13,7 @@ class ValidateServerUrlUseCaseTest {
         val result = useCase("")
 
         assertIs<ValidationResult.Invalid>(result)
-        assertEquals("Please enter a server URL", result.reason)
+        assertEquals(ServerUrlError.EMPTY, result.error)
     }
 
     @Test
@@ -20,7 +21,7 @@ class ValidateServerUrlUseCaseTest {
         val result = useCase("   ")
 
         assertIs<ValidationResult.Invalid>(result)
-        assertEquals("Please enter a server URL", result.reason)
+        assertEquals(ServerUrlError.EMPTY, result.error)
     }
 
     @Test
@@ -36,7 +37,7 @@ class ValidateServerUrlUseCaseTest {
         val result = useCase("http://cloud.example.com")
 
         assertIs<ValidationResult.Invalid>(result)
-        assertEquals("HTTPS is required for a secure connection", result.reason)
+        assertEquals(ServerUrlError.INSECURE_HTTP, result.error)
     }
 
     @Test
@@ -84,7 +85,7 @@ class ValidateServerUrlUseCaseTest {
         val result = useCase("not a url at all")
 
         assertIs<ValidationResult.Invalid>(result)
-        assertEquals("The server URL is not valid", result.reason)
+        assertEquals(ServerUrlError.INVALID, result.error)
     }
 
     @Test
@@ -92,7 +93,7 @@ class ValidateServerUrlUseCaseTest {
         val result = useCase("https://")
 
         assertIs<ValidationResult.Invalid>(result)
-        assertEquals("The server URL is not valid", result.reason)
+        assertEquals(ServerUrlError.INVALID, result.error)
     }
 
     @Test

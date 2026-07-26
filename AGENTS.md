@@ -836,6 +836,11 @@ If you need to run manually:
    - ❌ Commit without running quality checks
    - ❌ Skip linting/static analysis
    - ❌ Hardcode strings (use `strings.xml`)
+   - ❌ Add a user-facing string to `values/strings.xml` without also translating it into
+     **every** `values-<lang>/` locale in the same change. Lint `MissingTranslation` is an
+     **error** (`app/build.gradle.kts` → `lint { error += "MissingTranslation" }`) and CI
+     (`:app:lintDebug`) will fail on any untranslated string. Domain/data modules have no
+     `R.string`; surface their errors as typed results/enums and map them to `R.string` in `:app`.
 
 3. **Compose Anti-Patterns**
    - ❌ Use Views/XML layouts (this is a Compose-only app)

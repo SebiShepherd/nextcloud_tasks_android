@@ -1,24 +1,27 @@
 package com.nextcloud.tasks.domain.model
 
-sealed class AuthFailure(
-    message: String? = null,
-    cause: Throwable? = null,
-) : Exception(message, cause) {
+/**
+ * Typed authentication failure. Carries only stable, non-localizable data; the `:app` layer
+ * maps each case to a user-facing string resource so all wording lives in the resource files.
+ */
+sealed class AuthFailure : Exception() {
     data class InvalidServerUrl(
-        val reason: String,
-    ) : AuthFailure(reason)
+        val error: ServerUrlError,
+    ) : AuthFailure()
 
-    object InvalidCredentials : AuthFailure("Invalid credentials")
+    object InvalidCredentials : AuthFailure()
 
+    /**
+     * A network / server problem. [statusCode] is the HTTP status when the server responded
+     * with an error, or null when the server could not be reached at all.
+     */
     data class Network(
-        val reason: String,
-    ) : AuthFailure(reason)
+        val statusCode: Int? = null,
+    ) : AuthFailure()
 
-    data class Certificate(
-        val reason: String,
-    ) : AuthFailure(reason)
+    object Certificate : AuthFailure()
 
-    data class Unexpected(
-        val reason: String,
-    ) : AuthFailure(reason)
+    object ImportNotSupported : AuthFailure()
+
+    object Unknown : AuthFailure()
 }

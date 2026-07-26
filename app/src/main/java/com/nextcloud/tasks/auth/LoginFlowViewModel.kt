@@ -5,8 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextcloud.tasks.R
 import com.nextcloud.tasks.browser.CustomTabsHelper
+import com.nextcloud.tasks.domain.model.AuthFailure
 import com.nextcloud.tasks.domain.model.LoginFlowV2PollResult
 import com.nextcloud.tasks.domain.model.NextcloudAccount
+import com.nextcloud.tasks.domain.model.ServerUrlError
 import com.nextcloud.tasks.domain.usecase.InitiateLoginFlowV2UseCase
 import com.nextcloud.tasks.domain.usecase.LoginWithAppPasswordUseCase
 import com.nextcloud.tasks.domain.usecase.LogoutUseCase
@@ -93,7 +95,7 @@ class LoginFlowViewModel
                 val normalized =
                     when (val result = validateServerUrl(uiState.value.serverUrl)) {
                         is ValidationResult.Invalid -> {
-                            _uiState.update { it.copy(isLoading = false, error = result.reason) }
+                            _uiState.update { it.copy(isLoading = false, error = serverUrlErrorMessage(result.error)) }
                             return@launch
                         }
 
@@ -109,7 +111,7 @@ class LoginFlowViewModel
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                error = throwable.message ?: context.getString(R.string.error_login_flow_failed),
+                                error = authErrorMessage(throwable),
                             )
                         }
                         return@launch
@@ -201,11 +203,11 @@ class LoginFlowViewModel
                             }
 
                             is LoginFlowV2PollResult.Error -> {
-                                Timber.e("Login Flow v2 polling error: %s", result.message)
+                                Timber.e("Login Flow v2 polling error")
                                 _uiState.update {
                                     it.copy(
                                         isLoading = false,
-                                        error = result.message,
+                                        error = context.getString(R.string.error_login_flow_failed),
                                     )
                                 }
                                 break
@@ -241,11 +243,39 @@ class LoginFlowViewModel
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = throwable.message ?: context.getString(R.string.error_login_failed),
+                        error = authErrorMessage(throwable),
                     )
                 }
             }
         }
+
+        /**
+         * Maps a typed [AuthFailure] (or any other throwable) to a localized user-facing message.
+         */
+        private fun authErrorMessage(throwable: Throwable): String =
+            when (throwable) {
+                is AuthFailure.InvalidServerUrl -> serverUrlErrorMessage(throwable.error)
+                is AuthFailure.InvalidCredentials -> context.getString(R.string.error_invalid_credentials)
+                is AuthFailure.Network ->
+                    if (throwable.statusCode != null) {
+                        context.getString(R.string.error_server)
+                    } else {
+                        context.getString(R.string.error_network)
+                    }
+
+                is AuthFailure.Certificate -> context.getString(R.string.invalid_certificate)
+                is AuthFailure.ImportNotSupported -> context.getString(R.string.error_import_not_supported)
+                else -> context.getString(R.string.error_login_failed)
+            }
+
+        private fun serverUrlErrorMessage(error: ServerUrlError): String =
+            context.getString(
+                when (error) {
+                    ServerUrlError.EMPTY -> R.string.error_server_url_empty
+                    ServerUrlError.INVALID -> R.string.error_server_url_invalid
+                    ServerUrlError.INSECURE_HTTP -> R.string.error_server_url_insecure
+                },
+            )
 
         override fun onCleared() {
             super.onCleared()

@@ -88,7 +88,8 @@ android {
 
     androidResources {
         // Supported languages for resource filtering
-        localeFilters += listOf("en", "de")
+        // Resource-qualifier form (AAPT -c): region uses the `-r` prefix, e.g. pt-rBR / zh-rCN.
+        localeFilters += listOf("en", "de", "fr", "es", "it", "nl", "pt-rBR", "ru", "pl", "cs", "zh-rCN", "ja")
     }
 
     signingConfigs {
@@ -137,6 +138,13 @@ android {
     }
 
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+
+    lint {
+        // A user-facing string must be translated into every configured locale before it can
+        // ship: a missing translation fails the build (CI runs :app:lintDebug). Keeps all
+        // locales in lockstep so no new string goes out English-only.
+        error += "MissingTranslation"
+    }
 }
 
 kotlin {

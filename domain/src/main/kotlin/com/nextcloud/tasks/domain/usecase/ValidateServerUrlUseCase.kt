@@ -1,5 +1,6 @@
 package com.nextcloud.tasks.domain.usecase
 
+import com.nextcloud.tasks.domain.model.ServerUrlError
 import java.net.URI
 
 class ValidateServerUrlUseCase {
@@ -9,10 +10,10 @@ class ValidateServerUrlUseCase {
         val parsed = runCatching { URI(normalized) }.getOrNull()
 
         return when {
-            url.isEmpty() -> ValidationResult.Invalid("Please enter a server URL")
+            url.isEmpty() -> ValidationResult.Invalid(ServerUrlError.EMPTY)
             parsed == null || parsed.scheme !in setOf("https", "http") || parsed.host.isNullOrBlank() ->
-                ValidationResult.Invalid("The server URL is not valid")
-            parsed.scheme != "https" -> ValidationResult.Invalid("HTTPS is required for a secure connection")
+                ValidationResult.Invalid(ServerUrlError.INVALID)
+            parsed.scheme != "https" -> ValidationResult.Invalid(ServerUrlError.INSECURE_HTTP)
             else -> ValidationResult.Valid(parsed.toString().trimEnd('/'))
         }
     }
@@ -20,7 +21,7 @@ class ValidateServerUrlUseCase {
 
 sealed class ValidationResult {
     data class Invalid(
-        val reason: String,
+        val error: ServerUrlError,
     ) : ValidationResult()
 
     data class Valid(

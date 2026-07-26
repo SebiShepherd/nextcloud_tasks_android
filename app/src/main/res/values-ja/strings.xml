@@ -1,0 +1,220 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Tasks</string>
+
+    <!-- Login Screen -->
+    <string name="server_url_label">Nextcloud URL</string>
+    <string name="server_url_hint">Nextcloud サーバー https://</string>
+    <string name="server_url_placeholder">cloud.example.com</string>
+    <string name="server_url_description">ブラウザで開いたときの Nextcloud サイトのリンク</string>
+    <string name="waiting_for_login">ブラウザでのログインを待機中…</string>
+    <string name="username_label">ユーザー名</string>
+    <string name="password_label">パスワードまたはアプリパスワード</string>
+    <string name="authorization_code_label">OAuth2 / OCS コード</string>
+    <string name="redirect_uri_label">リダイレクト URI</string>
+    <string name="login_method_password">パスワードでログイン</string>
+    <string name="login_method_oauth">OAuth2 / OCS</string>
+    <string name="login_action">今すぐサインイン</string>
+    <string name="existing_accounts">既存のアカウント</string>
+    <string name="import_account">Nextcloud アプリからアカウントをインポート</string>
+    <string name="select_account">アカウントを選択</string>
+    <string name="no_accounts_found">Nextcloud アカウントが見つかりません。\n\nNextcloud Files アプリをインストールし、まずアカウントを追加してください。</string>
+
+    <!-- Task List -->
+    <string name="task_list_title">タスク一覧</string>
+    <string name="empty_list_title">このリストは空です。</string>
+    <string name="empty_task_hint">+ ボタンをタップして新しいタスクを追加します。</string>
+    <string name="all_tasks">すべてのタスク</string>
+    <string name="task_lists_title">タスクリスト</string>
+    <string name="unknown_list">不明なリスト</string>
+
+    <!-- Search & Sort -->
+    <string name="search_all_notes">すべてのメモを検索</string>
+    <string name="no_search_results_title">結果が見つかりません</string>
+    <string name="no_search_results_hint">検索キーワードを変更してみてください。</string>
+    <string name="sort_dialog_title">並べ替え</string>
+    <string name="sort_by_due_date">期日</string>
+    <string name="sort_by_priority">優先度</string>
+    <string name="sort_by_title">タイトル</string>
+    <string name="sort_by_updated">最終更新</string>
+
+    <!-- Completed Tasks -->
+    <string name="hide_completed_tasks">完了したタスクを非表示 (%1$d)</string>
+    <string name="show_completed_tasks">完了したタスクを表示 (%1$d)</string>
+
+    <!-- Create Task Dialog -->
+    <string name="create_task_dialog_title">新しいタスクを作成</string>
+    <string name="task_title_label">タイトル</string>
+    <string name="task_description_label">説明（任意）</string>
+    <string name="create">作成</string>
+
+    <!-- Account Management -->
+    <string name="active_account">使用中のアカウント</string>
+    <string name="add_account">アカウントを追加</string>
+    <string name="manage_accounts">アカウントを管理</string>
+    <string name="manage_accounts_title">アカウントを管理</string>
+    <string name="account_info">アカウント: %1$s</string>
+    <string name="server_info">サーバー: %1$s</string>
+    <string name="logout">ログアウト</string>
+    <string name="logout_button">ログアウト</string>
+    <string name="switch_account">アカウントを切り替え</string>
+    <string name="account_connection_success">接続が確立されました</string>
+
+    <!-- Common Actions -->
+    <string name="cancel">キャンセル</string>
+    <string name="close">閉じる</string>
+    <string name="delete">削除</string>
+
+    <!-- Content Descriptions (Accessibility) -->
+    <string name="menu_description">メニュー</string>
+    <string name="sort_description">並べ替え</string>
+    <string name="add_account_description">アカウントを追加</string>
+    <string name="manage_accounts_description">アカウントを管理</string>
+    <string name="profile_picture_description">プロフィール画像</string>
+    <string name="create_task_description">タスクを作成</string>
+    <string name="delete_description">削除</string>
+    <string name="active_account_description">使用中のアカウント</string>
+
+    <!-- Error Messages -->
+    <string name="invalid_certificate">証明書を検証できませんでした。</string>
+    <string name="invalid_url">有効な HTTPS URL を入力してください。</string>
+    <string name="error_invalid_credentials">ユーザー名、パスワード、またはコードが正しくありません</string>
+    <string name="error_unexpected">予期しないエラー</string>
+    <string name="error_unknown">不明なエラー</string>
+    <string name="error_login_flow_failed">ログインフローの開始に失敗しました</string>
+    <string name="error_login_timeout">ログインがタイムアウトしました。もう一度お試しください。</string>
+    <string name="error_login_failed">ログインに失敗しました</string>
+    <string name="error_server_url_empty">サーバー URL を入力してください</string>
+    <string name="error_server_url_invalid">サーバー URL が正しくありません</string>
+    <string name="error_server_url_insecure">安全な接続には HTTPS が必要です</string>
+    <string name="error_import_not_supported">Nextcloud Files アプリからのアカウントインポートはまだ対応していません。ブラウザログインをご利用ください。</string>
+    <string name="error_switch_account_failed">アカウントの切り替えに失敗しました</string>
+    <string name="error_logout_failed">ログアウトに失敗しました</string>
+    <string name="error_rate_limited">サーバーが混雑しています。しばらくしてからもう一度お試しください。</string>
+    <string name="error_auth_failed_refresh">認証に失敗しました。認証情報を確認してください。</string>
+    <string name="error_server">サーバーエラー。しばらくしてからもう一度お試しください。</string>
+    <string name="error_network">サーバーに接続できませんでした。インターネット接続を確認してください。</string>
+
+    <!-- Settings -->
+    <string name="settings_title">設定</string>
+    <string name="settings_language">言語</string>
+    <string name="language_system_default">システムのデフォルト</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+    <string name="language_french">Français</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_italian">Italiano</string>
+    <string name="language_dutch">Nederlands</string>
+    <string name="language_portuguese_br">Português (Brasil)</string>
+    <string name="language_russian">Русский</string>
+    <string name="language_polish">Polski</string>
+    <string name="language_czech">Čeština</string>
+    <string name="language_chinese_simplified">简体中文</string>
+    <string name="language_japanese">日本語</string>
+    <string name="language_dialog_title">言語を選択</string>
+
+    <!-- No Lists Empty State -->
+    <string name="no_task_lists_title">タスクリストがまだありません</string>
+    <string name="no_task_lists_hint">タスクリストを作成してタスクの追加を始めましょう。</string>
+    <string name="create_first_list">最初のリストを作成</string>
+    <string name="create_new_list">新しいリストを作成</string>
+    <string name="no_task_lists_sidebar">リストがまだありません</string>
+
+    <!-- Create List Dialog -->
+    <string name="create_list_dialog_title">新しいリストを作成</string>
+    <string name="list_name_label">リスト名</string>
+    <string name="task_list_label">リスト</string>
+    <string name="list_color_label">色</string>
+    <string name="error_create_list_offline">オフラインではリストを作成できません。</string>
+    <string name="error_create_list_failed">リストの作成に失敗しました。もう一度お試しください。</string>
+
+    <!-- Edit List Dialog -->
+    <string name="edit_list_dialog_title">リストを編集</string>
+    <string name="error_edit_list_offline">オフラインではリストを編集できません。</string>
+    <string name="error_edit_list_failed">リストの編集に失敗しました。もう一度お試しください。</string>
+
+    <!-- Delete List Dialog -->
+    <string name="delete_list_dialog_title">リストを削除しますか？</string>
+    <string name="delete_list_dialog_message">「%s」とそのすべてのタスクが完全に削除されます。</string>
+    <string name="delete_list_confirm">削除</string>
+    <string name="error_delete_list_offline">オフラインではリストを削除できません。</string>
+    <string name="error_delete_list_failed">リストの削除に失敗しました。もう一度お試しください。</string>
+
+    <!-- Sharing -->
+    <string name="share_list">共有</string>
+    <string name="share_list_title">リストを共有</string>
+    <string name="share_with_user_or_group">ユーザーまたはグループと共有…</string>
+    <string name="can_edit">編集可能</string>
+    <string name="read_only">読み取り専用</string>
+    <string name="share_access_read_only">読み取り専用</string>
+    <string name="share_access_edit">編集可能</string>
+    <string name="remove_share">削除</string>
+    <string name="no_sharees_found">ユーザーまたはグループが見つかりません</string>
+    <string name="list_read_only_hint">このリストは読み取り専用で共有されています</string>
+    <string name="shared_with_you">自分と共有</string>
+    <string name="shared_by_you">自分が共有</string>
+    <string name="sharee_type_group">グループ</string>
+    <string name="error_share_failed">リストの共有に失敗しました。もう一度お試しください。</string>
+    <string name="error_share_forbidden">このリストを共有する権限がありません。</string>
+    <string name="share_success">ユーザーを追加しました</string>
+    <string name="error_share_offline">オフラインでは共有できません。</string>
+    <string name="error_load_sharees_failed">共有ユーザーの読み込みに失敗しました。もう一度お試しください。</string>
+    <string name="list_options">リストのオプション</string>
+    <string name="edit_list">編集</string>
+    <string name="delete_list">削除</string>
+    <string name="save">保存</string>
+
+    <!-- Offline Mode -->
+    <string name="offline_message">現在オフラインです。変更はオンラインに復帰したときに同期されます。</string>
+    <string name="syncing_pending_changes">保留中の変更を同期中…</string>
+    <string name="sync_complete">すべての変更を同期しました</string>
+
+    <!-- Task Detail View -->
+    <string name="task_detail_title_hint">タスクのタイトル</string>
+    <string name="task_detail_tab_details">詳細</string>
+    <string name="task_detail_tab_notes">メモ</string>
+    <string name="task_detail_start_date">開始日を設定</string>
+    <string name="task_detail_due_date">期日を設定</string>
+    <string name="task_detail_action_section">優先度</string>
+    <string name="task_detail_status">ステータス</string>
+    <string name="task_detail_status_needs_action">要対応</string>
+    <string name="task_detail_status_in_process">進行中</string>
+    <string name="task_detail_status_cancelled">キャンセル済み</string>
+    <string name="task_detail_status_completed">完了</string>
+    <string name="task_detail_no_tags_available">タグがまだありません。上に入力して作成してください。</string>
+    <string name="task_detail_new_tag_label">新しいタグ</string>
+    <string name="task_detail_no_priority">優先度が設定されていません</string>
+    <string name="task_detail_priority_none">なし</string>
+    <string name="task_detail_priority_low">低</string>
+    <string name="task_detail_priority_medium">中</string>
+    <string name="task_detail_priority_high">高</string>
+    <string name="task_detail_percent_complete">%1$d%% 完了</string>
+    <string name="task_detail_location">場所を設定</string>
+    <string name="task_detail_url">URL を設定</string>
+    <string name="task_detail_tags">タグを選択</string>
+    <string name="task_detail_no_tags">タグなし</string>
+    <string name="task_detail_delete">タスクを削除</string>
+    <string name="task_detail_delete_confirm_title">タスクを削除しますか？</string>
+    <string name="task_detail_delete_confirm_body">この操作は元に戻せません。</string>
+    <string name="task_detail_notes_hint">メモを追加…</string>
+    <string name="task_detail_clear_date">日付をクリア</string>
+    <string name="task_detail_select_time">時刻を選択</string>
+    <string name="task_detail_back">戻る</string>
+    <string name="task_due_label">期日: %1$s</string>
+
+    <!-- Certificate trust dialog -->
+    <string name="cert_trust_title">信頼されていない証明書</string>
+    <string name="cert_trust_message">サーバーが検証できない証明書を提示しました。下のフィンガープリントに見覚えがある場合のみ信頼してください。</string>
+    <string name="cert_trust_issued_for">発行対象</string>
+    <string name="cert_trust_issued_by">発行者</string>
+    <string name="cert_trust_validity">有効期間</string>
+    <string name="cert_trust_validity_value">%1$s – %2$s</string>
+    <string name="cert_trust_sha256">SHA-256</string>
+    <string name="cert_trust_sha1">SHA-1</string>
+    <string name="cert_trust_confirm_checkbox">フィンガープリントを確認しました</string>
+    <string name="cert_trust_accept">信頼する</string>
+    <string name="cert_trust_reject">拒否</string>
+    <string name="settings_reset_trusted_certs">信頼済み証明書をリセット</string>
+    <string name="settings_reset_trusted_certs_summary">手動で信頼したすべての証明書を破棄します</string>
+    <string name="settings_reset_trusted_certs_done">信頼済み証明書を消去しました</string>
+</resources>
