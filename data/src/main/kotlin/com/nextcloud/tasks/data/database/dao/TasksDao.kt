@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Upsert
 import com.nextcloud.tasks.data.database.entity.TaskEntity
 import com.nextcloud.tasks.data.database.entity.TaskTagCrossRef
 import com.nextcloud.tasks.data.database.model.TaskWithRelations
@@ -22,10 +23,13 @@ interface TasksDao {
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     suspend fun getTaskWithRelations(taskId: String): TaskWithRelations?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    // @Upsert (not @Insert(REPLACE)): REPLACE deletes and re-inserts the row, giving it a new
+    // rowid so tasks jump position under a stable sort with equal keys (#101), and it would trigger
+    // ON DELETE CASCADE on any child rows. @Upsert updates in place, preserving rowid and relations.
+    @Upsert
     suspend fun upsertTask(task: TaskEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertTasks(tasks: List<TaskEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
