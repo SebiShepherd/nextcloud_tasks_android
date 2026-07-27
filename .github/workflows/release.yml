@@ -173,9 +173,14 @@ jobs:
             PREV_TAG=$(git describe --tags --abbrev=0 --exclude='*-*' ${GITHUB_REF_NAME}^ 2>/dev/null || echo "")
           fi
 
+          # Only user-facing changes belong in Play Store notes. Drop release/CI/docs/
+          # test/chore/build/style/refactor noise by conventional-commit type; keep
+          # feat/fix/perf. (|| true so an all-noise range does not fail under pipefail.)
+          NON_USER_FACING='^- ([a-z]+\(release\):|(docs|test|ci|chore|build|style|refactor)(\([^)]*\))?:)'
+
           # Collect commits (capped at 3000 chars to keep the API payload manageable)
           if [ -n "$PREV_TAG" ]; then
-            COMMITS=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | head -c 3000)
+            COMMITS=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | { grep -vE "$NON_USER_FACING" || true; } | head -c 3000)
           else
             COMMITS=""
           fi
@@ -231,7 +236,7 @@ jobs:
           if [ "$GROK_SUCCESS" = false ]; then
             echo "→ Using fallback: raw commit messages"
             if [ -n "$PREV_TAG" ]; then
-              NOTE=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | head -c 500)
+              NOTE=$(git log ${PREV_TAG}..${GITHUB_REF_NAME} --pretty=format:"- %s" --no-merges | { grep -vE "$NON_USER_FACING" || true; } | head -c 500)
             else
               NOTE="Initial release."
             fi
