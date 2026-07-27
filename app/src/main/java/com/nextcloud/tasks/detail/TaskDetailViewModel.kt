@@ -34,6 +34,11 @@ class TaskDetailViewModel
         private val _task = MutableStateFlow<Task?>(null)
         val task: StateFlow<Task?> = _task.asStateFlow()
 
+        // Last state persisted via saveTask. Used to skip no-op saves (e.g. opening the
+        // notes tab or pressing back without editing), which would otherwise trigger a
+        // redundant server writeback and re-order the task list. See issue #101.
+        private var lastSavedTask: Task? = null
+
         private val activeSaveCount = MutableStateFlow(0)
         val isSaving: StateFlow<Boolean> =
             activeSaveCount
@@ -58,6 +63,7 @@ class TaskDetailViewModel
             viewModelScope.launch {
                 val loadedTask = tasksRepository.getTask(taskId)
                 _task.value = loadedTask
+                lastSavedTask = loadedTask
                 // Determine read-only status from the task's list
                 if (loadedTask != null) {
                     tasksRepository.observeLists().collect { lists ->
@@ -189,9 +195,12 @@ class TaskDetailViewModel
         }
 
         private suspend fun saveTask(task: Task) {
+            // Skip no-op saves: nothing changed since the last persisted state.
+            if (task == lastSavedTask) return
             activeSaveCount.update { it + 1 }
             try {
                 tasksRepository.updateTask(task)
+                lastSavedTask = task
             } catch (
                 @Suppress("TooGenericExceptionCaught") e: Exception,
             ) {
