@@ -444,7 +444,11 @@ $body
         )
 
         val parsed = VTodoParser().parseVTodo(calendarData, "acc", "list", "/h.ics", "etag")
-        assertNotNull(parsed)
+        assertNotNull(
+            parsed,
+            "VTODO was dropped after XML extraction. Extracted calendar-data (escaped):\n" +
+                calendarData.replace("\r", "\\r").replace("\n", "\\n\n"),
+        )
         val description = parsed.entity.description
         assertNotNull(description)
         assertTrue(
