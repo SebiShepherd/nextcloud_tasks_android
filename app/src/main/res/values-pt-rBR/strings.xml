@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">Redefinir certificados confiáveis</string>
     <string name="settings_reset_trusted_certs_summary">Esquecer todos os certificados em que você confiou manualmente</string>
     <string name="settings_reset_trusted_certs_done">Certificados confiáveis removidos</string>
+    <string name="favorite_description">Favorito</string>
+    <string name="subtasks_label">Subtarefas</string>
 </resources>

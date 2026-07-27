@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">Сбросить доверенные сертификаты</string>
     <string name="settings_reset_trusted_certs_summary">Забыть все сертификаты, которым вы доверились вручную</string>
     <string name="settings_reset_trusted_certs_done">Доверенные сертификаты очищены</string>
+    <string name="favorite_description">Избранное</string>
+    <string name="subtasks_label">Подзадачи</string>
 </resources>

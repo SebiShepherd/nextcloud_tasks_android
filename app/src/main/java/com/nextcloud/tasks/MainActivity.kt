@@ -20,6 +20,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,6 +46,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
@@ -53,6 +56,8 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -135,6 +140,7 @@ import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
 import com.nextcloud.tasks.domain.usecase.ShareListUseCase
 import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
+import com.nextcloud.tasks.ui.theme.NextcloudWarning
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -209,6 +215,7 @@ fun NextcloudTasksApp(
     val refreshError by taskListViewModel.refreshError.collectAsState()
     val refreshErrorDetail by taskListViewModel.refreshErrorDetail.collectAsState()
     val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
+    val collapsedIds by taskListViewModel.collapsedIds.collectAsState()
     val createListError by taskListViewModel.createListError.collectAsState()
     val editListError by taskListViewModel.editListError.collectAsState()
     val deleteListError by taskListViewModel.deleteListError.collectAsState()
@@ -282,6 +289,7 @@ fun NextcloudTasksApp(
             isOnline = isOnline,
             hasPendingChanges = hasPendingChanges,
             animatingEntryTaskIds = animatingEntryTaskIds,
+            collapsedIds = collapsedIds,
             showCreateDialog = showCreateDialog,
             isExpandedScreen = isExpandedScreen,
             onLogout = loginFlowViewModel::onLogout,
@@ -298,6 +306,8 @@ fun NextcloudTasksApp(
                 showCreateDialog = false
             },
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
+            onToggleFavorite = taskListViewModel::toggleFavorite,
+            onToggleTaskCollapsed = taskListViewModel::toggleCollapsed,
             onDeleteTask = taskListViewModel::deleteTask,
             onClearAnimatingEntryTaskId = taskListViewModel::clearAnimatingEntryTaskId,
             onAddAccount = { forceShowLogin = true },
@@ -367,6 +377,7 @@ fun AuthenticatedHome(
     isOnline: Boolean,
     hasPendingChanges: Boolean,
     animatingEntryTaskIds: Set<String>,
+    collapsedIds: Set<String>,
     showCreateDialog: Boolean,
     isExpandedScreen: Boolean = false,
     onLogout: (String) -> Unit,
@@ -380,6 +391,8 @@ fun AuthenticatedHome(
     onDismissCreateDialog: () -> Unit,
     onCreateTask: (String, String?, String) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
+    onToggleFavorite: (Task) -> Unit,
+    onToggleTaskCollapsed: (String) -> Unit,
     onDeleteTask: (String) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onAddAccount: () -> Unit,
@@ -504,6 +517,7 @@ fun AuthenticatedHome(
                                 searchQuery = searchQuery,
                                 isOnline = isOnline,
                                 animatingEntryTaskIds = animatingEntryTaskIds,
+                                collapsedIds = collapsedIds,
                                 isExpandedScreen = isExpandedScreen,
                                 onSetFilter = onSetFilter,
                                 onSetSort = onSetSort,
@@ -515,6 +529,15 @@ fun AuthenticatedHome(
                                         }
                                     }
                                 },
+                                onToggleFavorite = { task ->
+                                    if (!isReadOnly) {
+                                        onToggleFavorite(task)
+                                        if (!isOnline) {
+                                            showOfflineSnackbar = true
+                                        }
+                                    }
+                                },
+                                onToggleTaskCollapsed = onToggleTaskCollapsed,
                                 onDeleteTask = { taskId ->
                                     if (!isReadOnly) {
                                         onDeleteTask(taskId)
@@ -987,6 +1010,56 @@ private fun SortOption(
     }
 }
 
+/** A flattened sub-task tree row: the task plus its display depth and sub-task chip data. */
+internal data class TaskRow(
+    val task: Task,
+    val depth: Int,
+    val hasChildren: Boolean,
+    val subtaskDone: Int,
+    val subtaskTotal: Int,
+    val isCollapsed: Boolean,
+)
+
+/**
+ * Flattens open tasks of one list into an ordered list of [TaskRow]s: each parent is followed by its
+ * (open) children, indented one level deeper. Display depth is capped at 2 (deeper nesting from the
+ * web renders flat at level 2). Cycles are broken via a visited set.
+ *
+ * @param openListTasks open tasks of the list, already in the desired sibling order.
+ * @param childCounts parentUid → (done, total) across ALL tasks in the list, for the collapse chip.
+ * @param collapsedUids UIDs of parents whose children are hidden.
+ */
+internal fun buildOpenTaskRows(
+    openListTasks: List<Task>,
+    childCounts: Map<String, Pair<Int, Int>>,
+    collapsedUids: Set<String>,
+): List<TaskRow> {
+    val byParentUid = openListTasks.groupBy { it.parentUid }
+    val openUids = openListTasks.mapNotNull { it.uid }.toSet()
+    // Roots: no parent, or a parent that isn't an open task in this list (orphan → show at top level).
+    val roots = openListTasks.filter { it.parentUid == null || it.parentUid !in openUids }
+    val rows = mutableListOf<TaskRow>()
+    val visited = mutableSetOf<String>()
+
+    fun emit(
+        task: Task,
+        depth: Int,
+    ) {
+        if (!visited.add(task.id)) return
+        val (done, total) = task.uid?.let { childCounts[it] } ?: (0 to 0)
+        val collapsed = task.uid != null && task.uid in collapsedUids
+        rows.add(TaskRow(task, depth.coerceAtMost(2), total > 0, done, total, collapsed))
+        if (!collapsed) {
+            task.uid?.let { byParentUid[it] }?.forEach { emit(it, depth + 1) }
+        }
+    }
+    roots.forEach { emit(it, 0) }
+    // Tasks still unvisited whose parent was also never visited are stuck in a parent cycle with no
+    // root — surface them at top level. (An unvisited task under a visited parent is just collapsed.)
+    openListTasks.forEach { if (it.id !in visited && it.parentUid !in visited) emit(it, 0) }
+    return rows
+}
+
 @Suppress("UnusedParameter", "LongParameterList")
 @Composable
 private fun TasksContent(
@@ -999,10 +1072,13 @@ private fun TasksContent(
     searchQuery: String,
     isOnline: Boolean,
     animatingEntryTaskIds: Set<String>,
+    collapsedIds: Set<String>,
     isExpandedScreen: Boolean = false,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
+    onToggleFavorite: (Task) -> Unit,
+    onToggleTaskCollapsed: (String) -> Unit,
     onDeleteTask: (String) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onShowCreateListDialog: () -> Unit = {},
@@ -1099,14 +1175,35 @@ private fun TasksContent(
                         }
                     }
 
-                    items(listTasks, key = { it.id }) { task ->
+                    // Build the sub-task tree for this list. Counts come from ALL tasks in the list
+                    // (open + completed) so the chip shows real done/total; rows only nest open tasks.
+                    val allInList = knownTasks.filter { it.listId == listId }
+                    val childCounts =
+                        allInList
+                            .groupBy { it.parentUid }
+                            .entries
+                            .mapNotNull { (parentUid, kids) ->
+                                parentUid?.let { it to (kids.count(Task::isEffectivelyDone) to kids.size) }
+                            }.toMap()
+                    val rows = buildOpenTaskRows(listTasks, childCounts, collapsedIds)
+
+                    items(rows, key = { it.task.id }) { row ->
+                        val task = row.task
                         val taskIsReadOnly =
                             taskListMap[task.listId]?.shareAccess == ShareAccess.READ
                         SimpleAnimatedTaskCard(
                             task = task,
                             isReadOnly = taskIsReadOnly,
                             animateEntry = task.id in animatingEntryTaskIds,
+                            depth = row.depth,
+                            hasChildren = row.hasChildren,
+                            subtaskDone = row.subtaskDone,
+                            subtaskTotal = row.subtaskTotal,
+                            isCollapsed = row.isCollapsed,
+                            isStarred = task.isStarred,
                             onToggleComplete = { onToggleTaskComplete(task) },
+                            onToggleFavorite = { onToggleFavorite(task) },
+                            onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
                             onDelete = { onDeleteTask(task.id) },
                             onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
                             onOpenTask = { onOpenTask(task.id) },
@@ -2040,13 +2137,22 @@ private fun AccountItem(
  * IMPORTANT: Animation must complete BEFORE data changes,
  * otherwise the composable is removed from composition immediately.
  */
+@Suppress("LongParameterList")
 @Composable
 private fun SimpleAnimatedTaskCard(
     task: Task,
     isReadOnly: Boolean = false,
     animateEntry: Boolean = false,
+    depth: Int = 0,
+    hasChildren: Boolean = false,
+    subtaskDone: Int = 0,
+    subtaskTotal: Int = 0,
+    isCollapsed: Boolean = false,
+    isStarred: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
+    onToggleCollapsed: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
     onEntryAnimationComplete: () -> Unit = {},
     onOpenTask: () -> Unit = {},
 ) {
@@ -2089,64 +2195,102 @@ private fun SimpleAnimatedTaskCard(
     ) {
         // Column includes bottom spacing so it animates with shrinkVertically
         Column {
-            TaskCard(
-                task = task.copy(completed = localCompleted),
-                isReadOnly = isReadOnly,
-                onToggleComplete = {
-                    if (!isAnimating) {
-                        isAnimating = true
-                        scope.launch {
-                            // Show checkbox change first
-                            localCompleted = !localCompleted
-                            // Wait for user to see the change
-                            delay(200)
-                            // Then start fade/shrink animation
-                            isVisible = false
-                            // Wait for animation to complete
-                            delay(250)
-                            // Then trigger the data change
-                            onToggleComplete()
-                            // Reset so subsequent toggles on the same card work
-                            isAnimating = false
-                        }
-                    }
-                },
-                onDelete = {
-                    if (!isAnimating) {
-                        isAnimating = true
-                        scope.launch {
-                            // Start fade/shrink animation
-                            isVisible = false
-                            // Wait for animation to complete
-                            delay(250)
-                            // Then delete
-                            onDelete()
-                        }
-                    }
-                },
-                onOpenTask = onOpenTask,
-            )
+            // Sub-task rows are indented with a left guide line (Ebene 1 = 16 dp, Ebene 2 = 28 dp).
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+            ) {
+                if (depth > 0) {
+                    Spacer(modifier = Modifier.width(if (depth == 1) 9.dp else 25.dp))
+                    Box(
+                        modifier =
+                            Modifier
+                                .width(2.dp)
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.outlineVariant),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    TaskCard(
+                        task = task.copy(completed = localCompleted),
+                        isReadOnly = isReadOnly,
+                        depth = depth,
+                        hasChildren = hasChildren,
+                        subtaskDone = subtaskDone,
+                        subtaskTotal = subtaskTotal,
+                        isCollapsed = isCollapsed,
+                        isStarred = isStarred,
+                        onToggleComplete = {
+                            if (!isAnimating) {
+                                isAnimating = true
+                                scope.launch {
+                                    // Show checkbox change first
+                                    localCompleted = !localCompleted
+                                    // Wait for user to see the change
+                                    delay(200)
+                                    // Then start fade/shrink animation
+                                    isVisible = false
+                                    // Wait for animation to complete
+                                    delay(250)
+                                    // Then trigger the data change
+                                    onToggleComplete()
+                                    // Reset so subsequent toggles on the same card work
+                                    isAnimating = false
+                                }
+                            }
+                        },
+                        onDelete = {
+                            if (!isAnimating) {
+                                isAnimating = true
+                                scope.launch {
+                                    // Start fade/shrink animation
+                                    isVisible = false
+                                    // Wait for animation to complete
+                                    delay(250)
+                                    // Then delete
+                                    onDelete()
+                                }
+                            }
+                        },
+                        onToggleCollapsed = onToggleCollapsed,
+                        onToggleFavorite = onToggleFavorite,
+                        onOpenTask = onOpenTask,
+                    )
+                }
+            }
             // Bottom spacing - animates with shrinkVertically
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(if (depth > 0) 8.dp else 12.dp))
         }
     }
 }
 
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun TaskCard(
     task: Task,
     isReadOnly: Boolean = false,
+    depth: Int = 0,
+    hasChildren: Boolean = false,
+    subtaskDone: Int = 0,
+    subtaskTotal: Int = 0,
+    isCollapsed: Boolean = false,
+    isStarred: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
+    onToggleCollapsed: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
 ) {
-    // Dynamische vertikale Ausrichtung basierend auf Inhalt
-    val hasDescription = task.description != null
+    val isChild = depth > 0
+    val hasDescription = !isChild && task.description != null
     val hasDueOrTags = task.due != null || task.tags.isNotEmpty()
-    val hasAdditionalContent = hasDescription || hasDueOrTags
+    val hasAdditionalContent = hasDescription || hasDueOrTags || hasChildren
     // CANCELLED tasks are treated as completed for display purposes.
     val isCancelledTask = task.status?.uppercase() == "CANCELLED"
     val localCompleted = task.completed || isCancelledTask
+    val titleStyle = if (isChild) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium
+    val starHit = if (isChild) 32.dp else 36.dp
+    val starIconSize = if (isChild) 20.dp else 22.dp
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val shortDateFormatter =
         remember(locale) {
@@ -2171,7 +2315,7 @@ private fun TaskCard(
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            modifier = Modifier.padding(if (isChild) 10.dp else 12.dp).fillMaxWidth(),
             verticalAlignment = if (hasAdditionalContent) Alignment.Top else Alignment.CenterVertically,
         ) {
             // Checkbox — CANCELLED tasks are displayed as checked (like the web UI)
@@ -2187,30 +2331,24 @@ private fun TaskCard(
 
             // Task content
             Column(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp)) {
-                Row(
+                Text(
+                    text = task.title,
+                    style =
+                        titleStyle.copy(
+                            textDecoration =
+                                if (isCancelledTask) {
+                                    androidx.compose.ui.text.style.TextDecoration.LineThrough
+                                } else {
+                                    androidx.compose.ui.text.style.TextDecoration.None
+                                },
+                        ),
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = task.title,
-                        style =
-                            MaterialTheme.typography.titleMedium.copy(
-                                textDecoration =
-                                    if (isCancelledTask) {
-                                        androidx.compose.ui.text.style.TextDecoration.LineThrough
-                                    } else {
-                                        androidx.compose.ui.text.style.TextDecoration.None
-                                    },
-                            ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                )
 
-                task.description?.let {
+                if (hasDescription) {
                     Text(
-                        text = it,
+                        text = task.description.orEmpty(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
@@ -2219,12 +2357,39 @@ private fun TaskCard(
                     )
                 }
 
-                // Show due date and tags only if they exist
-                if (hasDueOrTags) {
+                // Meta row: collapse chip (if the task has sub-tasks), due date, tags
+                if (hasChildren || hasDueOrTags) {
                     Row(
                         modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        if (hasChildren) {
+                            Surface(
+                                onClick = onToggleCollapsed,
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.height(24.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(start = 4.dp, end = 8.dp),
+                                ) {
+                                    Icon(
+                                        imageVector =
+                                            if (isCollapsed) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
+                                        contentDescription = stringResource(R.string.subtasks_label),
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        text = "$subtaskDone/$subtaskTotal",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
+                        }
                         task.due?.let { due ->
                             Text(
                                 text =
@@ -2247,7 +2412,25 @@ private fun TaskCard(
                 }
             }
 
-            // Delete button (hidden for read-only lists, but space is preserved for uniform height)
+            // Favourite star (writes PRIORITY) — vertically centred regardless of row alignment
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.CenterVertically)
+                        .size(starHit)
+                        .clip(CircleShape)
+                        .clickable(enabled = !isReadOnly, onClick = onToggleFavorite),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isStarred) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    contentDescription = stringResource(R.string.favorite_description),
+                    modifier = Modifier.size(starIconSize),
+                    tint = if (isStarred) NextcloudWarning else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Delete button (hidden for read-only lists; moves to swipe/selection in a later change)
             if (!isReadOnly) {
                 IconButton(onClick = onDelete) {
                     Icon(
@@ -2788,6 +2971,16 @@ class TaskListViewModel
             _animatingEntryTaskIds.update { it - taskId }
         }
 
+        // UIDs of parent tasks whose sub-tasks are collapsed in the list.
+        // ponytail: kept in the ViewModel — survives config changes and in-session navigation, but
+        // not process death. Persist to Room/DataStore if that matters (tracked as a follow-up issue).
+        private val _collapsedIds = MutableStateFlow<Set<String>>(emptySet())
+        val collapsedIds = _collapsedIds.asStateFlow()
+
+        fun toggleCollapsed(taskUid: String) {
+            _collapsedIds.update { if (taskUid in it) it - taskUid else it + taskUid }
+        }
+
         // Network status and pending changes
         val isOnline =
             tasksRepository
@@ -3059,35 +3252,84 @@ class TaskListViewModel
             _animatingEntryTaskIds.update { it + task.id }
             viewModelScope.launch {
                 try {
-                    val isCancelled = task.status?.uppercase() == "CANCELLED"
-                    val updated =
-                        when {
-                            // COMPLETED → NEEDS-ACTION (uncheck)
-                            task.completed ->
-                                task.copy(
-                                    completed = false,
-                                    completedAt = null,
-                                    status = "NEEDS-ACTION",
-                                )
-                            // CANCELLED → NEEDS-ACTION (uncheck / reopen)
-                            isCancelled ->
-                                task.copy(
-                                    status = "NEEDS-ACTION",
-                                )
-                            // NEEDS-ACTION / IN-PROCESS → COMPLETED (check)
-                            else ->
-                                task.copy(
-                                    completed = true,
-                                    completedAt = java.time.Instant.now(),
-                                    status = "COMPLETED",
-                                )
-                        }
-                    tasksRepository.updateTask(updated)
-                    timber.log.Timber.d("Task completion toggled")
+                    val all = allTasks.value
+                    val readOnlyListIds =
+                        taskLists.value
+                            .filter { it.shareAccess == ShareAccess.READ }
+                            .map { it.id }
+                            .toSet()
+                    val wasDone = task.isEffectivelyDone
+                    // Checking a parent cascades down to its descendants; re-opening a child
+                    // cascades up to its ancestors — matching Todoist/Reminders/Google Tasks.
+                    val affected =
+                        if (wasDone) {
+                            collectAncestors(task, all)
+                        } else {
+                            collectDescendants(task, all)
+                        }.filter { it.listId !in readOnlyListIds }
+                    affected.forEach { t ->
+                        // Skip tasks already in the target state (no write amplification).
+                        if (t.isEffectivelyDone == !wasDone) return@forEach
+                        val updated =
+                            if (wasDone) {
+                                t.copy(completed = false, completedAt = null, status = "NEEDS-ACTION")
+                            } else {
+                                t.copy(completed = true, completedAt = java.time.Instant.now(), status = "COMPLETED")
+                            }
+                        tasksRepository.updateTask(updated)
+                    }
+                    timber.log.Timber.d("Task completion toggled (${affected.size} affected)")
                 } catch (ignored: Exception) {
                     timber.log.Timber.e(ignored, "Failed to toggle task completion")
                 }
             }
+        }
+
+        fun toggleFavorite(task: Task) {
+            viewModelScope.launch {
+                try {
+                    val newPriority = if (task.isStarred) null else STARRED_PRIORITY
+                    tasksRepository.updateTask(task.copy(priority = newPriority))
+                } catch (ignored: Exception) {
+                    timber.log.Timber.e(ignored, "Failed to toggle favorite for task ${task.id}")
+                }
+            }
+        }
+
+        /** [root] plus every descendant, walking parentUid→uid links and breaking cycles. */
+        private fun collectDescendants(
+            root: Task,
+            all: List<Task>,
+        ): List<Task> {
+            val byParentUid = all.groupBy { it.parentUid }
+            val result = mutableListOf<Task>()
+            val visited = mutableSetOf<String>()
+
+            fun visit(task: Task) {
+                if (!visited.add(task.id)) return
+                result.add(task)
+                task.uid?.let { byParentUid[it] }?.forEach(::visit)
+            }
+            visit(root)
+            return result
+        }
+
+        /** [leaf] plus every ancestor, walking parentUid→uid links and breaking cycles. */
+        private fun collectAncestors(
+            leaf: Task,
+            all: List<Task>,
+        ): List<Task> {
+            val byUid = all.mapNotNull { t -> t.uid?.let { it to t } }.toMap()
+            val result = mutableListOf(leaf)
+            val visited = mutableSetOf(leaf.id)
+            var parentUid = leaf.parentUid
+            while (parentUid != null) {
+                val parent = byUid[parentUid] ?: break
+                if (!visited.add(parent.id)) break
+                result.add(parent)
+                parentUid = parent.parentUid
+            }
+            return result
         }
 
         fun deleteTask(taskId: String) {

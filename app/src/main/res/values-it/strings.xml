@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">Reimposta certificati attendibili</string>
     <string name="settings_reset_trusted_certs_summary">Dimentica tutti i certificati considerati attendibili manualmente</string>
     <string name="settings_reset_trusted_certs_done">Certificati attendibili cancellati</string>
+    <string name="favorite_description">Preferito</string>
+    <string name="subtasks_label">Sottoattività</string>
 </resources>

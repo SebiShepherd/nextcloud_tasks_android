@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">重置受信任的证书</string>
     <string name="settings_reset_trusted_certs_summary">忘记所有您手动信任的证书</string>
     <string name="settings_reset_trusted_certs_done">已清除受信任的证书</string>
+    <string name="favorite_description">收藏</string>
+    <string name="subtasks_label">子任务</string>
 </resources>

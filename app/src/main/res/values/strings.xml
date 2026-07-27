@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">Reset trusted certificates</string>
     <string name="settings_reset_trusted_certs_summary">Forget all certificates you have manually trusted</string>
     <string name="settings_reset_trusted_certs_done">Trusted certificates cleared</string>
+    <string name="favorite_description">Favourite</string>
+    <string name="subtasks_label">Subtasks</string>
 </resources>

@@ -134,13 +134,13 @@ class DefaultTasksRepository
                         completed = draft.completed,
                         due = draft.due,
                         updatedAt = now,
-                        priority = null,
+                        priority = draft.priority,
                         status = if (draft.completed) "COMPLETED" else "NEEDS-ACTION",
                         completedAt = if (draft.completed) now else null,
                         uid = uid,
                         etag = null,
                         href = null, // Will be set after server sync
-                        parentUid = null,
+                        parentUid = draft.parentUid,
                     )
 
                 database.withTransaction {
@@ -190,7 +190,7 @@ class DefaultTasksRepository
                         uid = taskEntity.uid,
                         etag = null,
                         href = null,
-                        parentUid = null,
+                        parentUid = taskEntity.parentUid,
                         startDate = taskEntity.startDate,
                         location = taskEntity.location,
                         url = taskEntity.url,

@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">Zresetuj zaufane certyfikaty</string>
     <string name="settings_reset_trusted_certs_summary">Zapomnij wszystkie certyfikaty, którym ręcznie zaufałeś</string>
     <string name="settings_reset_trusted_certs_done">Zaufane certyfikaty wyczyszczone</string>
+    <string name="favorite_description">Ulubione</string>
+    <string name="subtasks_label">Podzadania</string>
 </resources>

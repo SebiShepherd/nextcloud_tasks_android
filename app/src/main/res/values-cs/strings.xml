@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">Obnovit důvěryhodné certifikáty</string>
     <string name="settings_reset_trusted_certs_summary">Zapomenout všechny certifikáty, kterým jste ručně důvěřovali</string>
     <string name="settings_reset_trusted_certs_done">Důvěryhodné certifikáty vymazány</string>
+    <string name="favorite_description">Oblíbené</string>
+    <string name="subtasks_label">Dílčí úkoly</string>
 </resources>

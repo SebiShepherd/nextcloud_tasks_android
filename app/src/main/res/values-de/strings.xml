@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">Vertraute Zertifikate zurücksetzen</string>
     <string name="settings_reset_trusted_certs_summary">Alle manuell vertrauten Zertifikate vergessen</string>
     <string name="settings_reset_trusted_certs_done">Vertraute Zertifikate gelöscht</string>
+    <string name="favorite_description">Favorit</string>
+    <string name="subtasks_label">Unteraufgaben</string>
 </resources>

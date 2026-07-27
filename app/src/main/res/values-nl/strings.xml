@@ -202,4 +202,6 @@
     <string name="settings_reset_trusted_certs">Vertrouwde certificaten opnieuw instellen</string>
     <string name="settings_reset_trusted_certs_summary">Alle certificaten vergeten die je handmatig hebt vertrouwd</string>
     <string name="settings_reset_trusted_certs_done">Vertrouwde certificaten gewist</string>
+    <string name="favorite_description">Favoriet</string>
+    <string name="subtasks_label">Subtaken</string>
 </resources>
