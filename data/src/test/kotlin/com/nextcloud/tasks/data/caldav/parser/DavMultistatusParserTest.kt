@@ -404,4 +404,52 @@ $body
         val objects = parser.parseCalendarObjects(parser.parseMultistatus(response))
         assertTrue(objects.isEmpty())
     }
+
+    // Repro for #60 (notes cut off) / #70 (tasks disappear): verify the XML extraction
+    // preserves an RFC 5545 folded DESCRIPTION (continuation line begins with a single
+    // space) end-to-end, from the multistatus XML through to the parsed description.
+    @Test
+    fun `parseCalendarObjects preserves a folded DESCRIPTION continuation line (issue #60, #70)`() {
+        val icalData =
+            "BEGIN:VCALENDAR\r\n" +
+                "VERSION:2.0\r\n" +
+                "BEGIN:VTODO\r\n" +
+                "UID:folded-1\r\n" +
+                "SUMMARY:Folded note\r\n" +
+                "DESCRIPTION:First physical line of the note that is long enough to be\r\n" +
+                " folded and then continues here to finish the note.\r\n" +
+                "END:VTODO\r\n" +
+                "END:VCALENDAR"
+        val response =
+            xml(
+                """
+  <d:response>
+    <d:href>/calendars/admin/tasks/folded.ics</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getetag>"etag-folded"</d:getetag>
+        <c:calendar-data>$icalData</c:calendar-data>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>""",
+            )
+        val objects = parser.parseCalendarObjects(parser.parseMultistatus(response))
+
+        assertEquals(1, objects.size)
+        val calendarData = objects[0].calendarData
+        assertTrue(
+            calendarData.contains("finish the note"),
+            "XML extraction dropped the folded continuation line. Got:\n$calendarData",
+        )
+
+        val parsed = VTodoParser().parseVTodo(calendarData, "acc", "list", "/h.ics", "etag")
+        assertNotNull(parsed, "VTODO was dropped after XML extraction of a folded description")
+        val description = parsed.entity.description
+        assertNotNull(description)
+        assertTrue(
+            description.contains("finish the note"),
+            "Description truncated at the fold boundary. Got: $description",
+        )
+    }
 }
