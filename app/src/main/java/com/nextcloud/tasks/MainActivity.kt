@@ -1168,7 +1168,12 @@ private fun TaskListsDrawer(
     onEditList: (com.nextcloud.tasks.domain.model.TaskList) -> Unit = {},
     onDeleteList: (com.nextcloud.tasks.domain.model.TaskList) -> Unit = {},
 ) {
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxHeight()
+                .padding(16.dp),
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -1205,27 +1210,33 @@ private fun TaskListsDrawer(
         HorizontalDivider()
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (taskLists.isEmpty()) {
-            Text(
-                text = stringResource(R.string.no_task_lists_sidebar),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-        } else {
-            taskLists.forEach { taskList ->
-                TaskListDrawerItem(
-                    taskList = taskList,
-                    isSelected = selectedListId == taskList.id,
-                    onSelect = {
-                        onSelectList(taskList.id)
-                        onCloseDrawer()
-                    },
-                    onOpenShareSheet = { onOpenShareSheet(taskList.id) },
-                    onEditList = { onEditList(taskList) },
-                    onDeleteList = { onDeleteList(taskList) },
-                )
+        // Only the list section scrolls; the header above and the create/settings
+        // footer below stay pinned. weight(1f) lets it take the remaining height.
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            if (taskLists.isEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.no_task_lists_sidebar),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+            } else {
+                items(taskLists, key = { it.id }) { taskList ->
+                    TaskListDrawerItem(
+                        taskList = taskList,
+                        isSelected = selectedListId == taskList.id,
+                        onSelect = {
+                            onSelectList(taskList.id)
+                            onCloseDrawer()
+                        },
+                        onOpenShareSheet = { onOpenShareSheet(taskList.id) },
+                        onEditList = { onEditList(taskList) },
+                        onDeleteList = { onDeleteList(taskList) },
+                    )
+                }
             }
         }
 
