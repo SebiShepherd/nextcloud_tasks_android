@@ -7,6 +7,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -45,6 +46,7 @@ class TaskDetailViewModelTest {
     private fun viewModel(repository: TasksRepository) =
         TaskDetailViewModel(
             repository,
+            CoroutineScope(testDispatcher),
             SavedStateHandle(mapOf("taskId" to taskId)),
         )
 
