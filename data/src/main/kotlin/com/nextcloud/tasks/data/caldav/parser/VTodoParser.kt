@@ -25,7 +25,7 @@ class VTodoParser
         ): ParsedVTodo? {
             return try {
                 val builder = CalendarBuilder()
-                val calendar = builder.build(StringReader(icalData))
+                val calendar = builder.build(StringReader(icalData.toCrlf()))
 
                 @Suppress("UNCHECKED_CAST")
                 val vtodo = calendar.getComponent<VToDo>("VTODO") as? VToDo ?: return null
@@ -121,7 +121,7 @@ class VTodoParser
                     calendarBlocks.flatMap { block ->
                         try {
                             val builder = CalendarBuilder()
-                            val calendar = builder.build(StringReader(block))
+                            val calendar = builder.build(StringReader(block.toCrlf()))
 
                             @Suppress("UNCHECKED_CAST")
                             val vtodos = calendar.getComponents<VToDo>("VTODO") as? List<VToDo> ?: emptyList()
@@ -143,7 +143,7 @@ class VTodoParser
             // Try to parse as a single calendar with multiple VTODOs
             try {
                 val builder = CalendarBuilder()
-                val calendar = builder.build(StringReader(icalData))
+                val calendar = builder.build(StringReader(icalData.toCrlf()))
 
                 @Suppress("UNCHECKED_CAST")
                 val vtodos = calendar.getComponents<VToDo>("VTODO") as? List<VToDo> ?: emptyList()
@@ -171,7 +171,7 @@ class VTodoParser
                 calendarBlocks.flatMap { block ->
                     try {
                         val builder = CalendarBuilder()
-                        val calendar = builder.build(StringReader(block))
+                        val calendar = builder.build(StringReader(block.toCrlf()))
 
                         @Suppress("UNCHECKED_CAST")
                         val vtodos = calendar.getComponents<VToDo>("VTODO") as? List<VToDo> ?: emptyList()
@@ -189,6 +189,23 @@ class VTodoParser
                 emptyList()
             }
         }
+
+        /**
+         * Normalise all line endings to CRLF before handing data to iCal4j.
+         *
+         * iCalendar line folding is "CRLF + whitespace" (RFC 5545 §3.1), and iCal4j's default
+         * unfolding only recognises CRLF folds. Calendar data extracted from a CalDAV REPORT
+         * arrives via XML text, and the XML layer normalises CRLF to LF (XML 1.0 §2.11); the
+         * internal split/rejoin path also uses LF. A folded value then reaches iCal4j as
+         * "LF + whitespace", which it does not unfold, so the continuation line is misread as a
+         * new property and the whole VTODO is dropped (issues #60 and #70). Re-normalising to
+         * CRLF restores correct unfolding.
+         */
+        private fun String.toCrlf(): String =
+            this
+                .replace("\r\n", "\n")
+                .replace("\r", "\n")
+                .replace("\n", "\r\n")
 
         /**
          * Extract VTODO blocks from iCalendar data and wrap each in a minimal VCALENDAR
