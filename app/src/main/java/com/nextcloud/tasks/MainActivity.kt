@@ -1030,14 +1030,18 @@ internal data class TaskRow(
  * @param collapsedUids UIDs of parents whose children are hidden.
  */
 internal fun buildOpenTaskRows(
-    openListTasks: List<Task>,
+    listTasks: List<Task>,
     childCounts: Map<String, Pair<Int, Int>>,
     collapsedUids: Set<String>,
 ): List<TaskRow> {
-    val byParentUid = openListTasks.groupBy { it.parentUid }
-    val openUids = openListTasks.mapNotNull { it.uid }.toSet()
-    // Roots: no parent, or a parent that isn't an open task in this list (orphan → show at top level).
-    val roots = openListTasks.filter { it.parentUid == null || it.parentUid !in openUids }
+    val byParentUid = listTasks.groupBy { it.parentUid }
+    val uidsInList = listTasks.mapNotNull { it.uid }.toSet()
+    // Open roots: top-level (or orphaned) tasks that aren't done. Their whole subtree renders here,
+    // INCLUDING done children (struck through in place); a done root drops to the completed section.
+    val roots =
+        listTasks.filter {
+            (it.parentUid == null || it.parentUid !in uidsInList) && !it.isEffectivelyDone
+        }
     val rows = mutableListOf<TaskRow>()
     val visited = mutableSetOf<String>()
 
@@ -1054,9 +1058,11 @@ internal fun buildOpenTaskRows(
         }
     }
     roots.forEach { emit(it, 0) }
-    // Tasks still unvisited whose parent was also never visited are stuck in a parent cycle with no
-    // root — surface them at top level. (An unvisited task under a visited parent is just collapsed.)
-    openListTasks.forEach { if (it.id !in visited && it.parentUid !in visited) emit(it, 0) }
+    // Open tasks stuck in a parent cycle with no reachable root — surface at top level so they aren't
+    // lost. (An unvisited task under a visited parent is just collapsed; done tasks belong below.)
+    listTasks.forEach {
+        if (!it.isEffectivelyDone && it.id !in visited && it.parentUid !in visited) emit(it, 0)
+    }
     return rows
 }
 
@@ -1092,11 +1098,25 @@ private fun TasksContent(
     // Group tasks by completion status, filtering out tasks with unknown lists
     // (can happen briefly during account switch before refresh completes)
     val knownTasks = remember(tasks, taskListMap) { tasks.filter { it.listId in taskListMap } }
-    val openTasks = knownTasks.filter { !it.completed && it.status?.uppercase() != "CANCELLED" }
-    val completedTasks = knownTasks.filter { it.completed || it.status?.uppercase() == "CANCELLED" }
 
-    // Group open tasks by list
-    val openTasksByList = openTasks.groupBy { it.listId }
+    // Build the open sub-task tree per list. Subtree + chip counts include done tasks, so a done
+    // child stays nested (struck through) under its still-open parent; only done ROOTS drop into the
+    // completed section below.
+    val treeByList =
+        knownTasks.groupBy { it.listId }.mapValues { (_, listTasks) ->
+            val childCounts =
+                listTasks
+                    .groupBy { it.parentUid }
+                    .entries
+                    .mapNotNull { (parentUid, kids) ->
+                        parentUid?.let { it to (kids.count(Task::isEffectivelyDone) to kids.size) }
+                    }.toMap()
+            buildOpenTaskRows(listTasks, childCounts, collapsedIds)
+        }
+    val emittedIds = treeByList.values.flatten().mapTo(mutableSetOf()) { it.task.id }
+    // Lists that actually have an open tree, in first-seen order.
+    val openListIds = knownTasks.map { it.listId }.distinct().filter { treeByList[it]?.isNotEmpty() == true }
+    val completedTasks = knownTasks.filter { it.isEffectivelyDone && it.id !in emittedIds }
 
     // On expanded screens, constrain max content width for readability
     val contentModifier =
@@ -1116,7 +1136,7 @@ private fun TasksContent(
                 bottom = 16.dp,
             ),
     ) {
-        if (openTasks.isEmpty() && completedTasks.isEmpty()) {
+        if (openListIds.isEmpty() && completedTasks.isEmpty()) {
             item {
                 Box(
                     modifier =
@@ -1136,8 +1156,8 @@ private fun TasksContent(
             }
         } else {
             // Offene Tasks gruppiert nach Listen
-            if (openTasks.isNotEmpty()) {
-                openTasksByList.forEach { (listId, listTasks) ->
+            if (openListIds.isNotEmpty()) {
+                openListIds.forEach { listId ->
                     // Get list info from map
                     val taskList = taskListMap[listId]
 
@@ -1147,7 +1167,7 @@ private fun TasksContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier =
                                 Modifier.padding(
-                                    top = if (openTasksByList.keys.first() != listId) 16.dp else 0.dp,
+                                    top = if (openListIds.first() != listId) 16.dp else 0.dp,
                                     bottom = 8.dp,
                                 ),
                         ) {
@@ -1175,17 +1195,7 @@ private fun TasksContent(
                         }
                     }
 
-                    // Build the sub-task tree for this list. Counts come from ALL tasks in the list
-                    // (open + completed) so the chip shows real done/total; rows only nest open tasks.
-                    val allInList = knownTasks.filter { it.listId == listId }
-                    val childCounts =
-                        allInList
-                            .groupBy { it.parentUid }
-                            .entries
-                            .mapNotNull { (parentUid, kids) ->
-                                parentUid?.let { it to (kids.count(Task::isEffectivelyDone) to kids.size) }
-                            }.toMap()
-                    val rows = buildOpenTaskRows(listTasks, childCounts, collapsedIds)
+                    val rows = treeByList.getValue(listId)
 
                     items(rows, key = { it.task.id }) { row ->
                         val task = row.task
@@ -2195,7 +2205,8 @@ private fun SimpleAnimatedTaskCard(
     ) {
         // Column includes bottom spacing so it animates with shrinkVertically
         Column {
-            // Sub-task rows are indented with a left guide line (Ebene 1 = 16 dp, Ebene 2 = 28 dp).
+            // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Matches the
+            // prototype (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp).
             Row(
                 modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
             ) {
@@ -2208,7 +2219,7 @@ private fun SimpleAnimatedTaskCard(
                                 .fillMaxHeight()
                                 .background(MaterialTheme.colorScheme.outlineVariant),
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     TaskCard(

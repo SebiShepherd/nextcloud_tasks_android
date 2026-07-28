@@ -54,6 +54,21 @@ class SubtaskTreeTest {
     }
 
     @Test
+    fun `done child stays nested under an open parent`() {
+        val tasks = listOf(task("p"), task("c", parentUid = "p").copy(completed = true))
+        val rows = buildOpenTaskRows(tasks, mapOf("p" to (1 to 1)), emptySet())
+        assertEquals(listOf("p", "c"), rows.map { it.task.uid })
+        assertEquals(listOf(0, 1), rows.map { it.depth })
+    }
+
+    @Test
+    fun `done root is not surfaced in the open tree`() {
+        val tasks = listOf(task("p").copy(completed = true), task("s", parentUid = "p"))
+        val rows = buildOpenTaskRows(tasks, emptyMap(), emptySet())
+        assertTrue(rows.none { it.task.uid == "p" })
+    }
+
+    @Test
     fun `cycle does not loop forever and emits each task once`() {
         val tasks = listOf(task("a", parentUid = "b"), task("b", parentUid = "a"))
         val rows = buildOpenTaskRows(tasks, emptyMap(), emptySet())
