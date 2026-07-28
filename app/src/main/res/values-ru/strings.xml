@@ -204,4 +204,8 @@
     <string name="settings_reset_trusted_certs_done">Доверенные сертификаты очищены</string>
     <string name="favorite_description">Избранное</string>
     <string name="subtasks_label">Подзадачи</string>
+    <string name="create_subtask_of">Подзадача «%1$s»</string>
+    <string name="select_parent_task">Родительская задача</string>
+    <string name="parent_none">Нет</string>
+    <string name="pick_due_date">Срок выполнения</string>
 </resources>

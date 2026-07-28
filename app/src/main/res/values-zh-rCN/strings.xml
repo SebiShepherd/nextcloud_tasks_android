@@ -204,4 +204,8 @@
     <string name="settings_reset_trusted_certs_done">已清除受信任的证书</string>
     <string name="favorite_description">收藏</string>
     <string name="subtasks_label">子任务</string>
+    <string name="create_subtask_of">「%1$s」的子任务</string>
+    <string name="select_parent_task">父任务</string>
+    <string name="parent_none">无</string>
+    <string name="pick_due_date">截止日期</string>
 </resources>

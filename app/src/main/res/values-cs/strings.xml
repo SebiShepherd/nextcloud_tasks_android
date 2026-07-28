@@ -204,4 +204,8 @@
     <string name="settings_reset_trusted_certs_done">Důvěryhodné certifikáty vymazány</string>
     <string name="favorite_description">Oblíbené</string>
     <string name="subtasks_label">Dílčí úkoly</string>
+    <string name="create_subtask_of">Dílčí úkol „%1$s“</string>
+    <string name="select_parent_task">Nadřazený úkol</string>
+    <string name="parent_none">Žádný</string>
+    <string name="pick_due_date">Datum splnění</string>
 </resources>

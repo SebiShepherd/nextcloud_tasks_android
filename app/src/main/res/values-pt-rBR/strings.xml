@@ -204,4 +204,8 @@
     <string name="settings_reset_trusted_certs_done">Certificados confiáveis removidos</string>
     <string name="favorite_description">Favorito</string>
     <string name="subtasks_label">Subtarefas</string>
+    <string name="create_subtask_of">Subtarefa de “%1$s”</string>
+    <string name="select_parent_task">Tarefa principal</string>
+    <string name="parent_none">Nenhuma</string>
+    <string name="pick_due_date">Data de vencimento</string>
 </resources>

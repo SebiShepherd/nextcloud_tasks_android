@@ -497,7 +497,16 @@ class TaskListViewModelTest {
         runTest(testDispatcher) {
             withViewModelAndRepo { vm, repo ->
                 coEvery { repo.createTask(any()) } returns createTask()
-                vm.createTask("New Task", "Description", "list-1")
+                vm.createTask(
+                    NewTaskInput(
+                        title = "New Task",
+                        description = "Description",
+                        listId = "list-1",
+                        parentUid = null,
+                        due = null,
+                        starred = false,
+                    ),
+                )
                 coVerify {
                     repo.createTask(
                         match {

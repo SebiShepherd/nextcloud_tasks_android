@@ -204,4 +204,8 @@
     <string name="settings_reset_trusted_certs_done">Vertrouwde certificaten gewist</string>
     <string name="favorite_description">Favoriet</string>
     <string name="subtasks_label">Subtaken</string>
+    <string name="create_subtask_of">Subtaak van ‘%1$s’</string>
+    <string name="select_parent_task">Oudertaak</string>
+    <string name="parent_none">Geen</string>
+    <string name="pick_due_date">Vervaldatum</string>
 </resources>

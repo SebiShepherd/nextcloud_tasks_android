@@ -204,4 +204,8 @@
     <string name="settings_reset_trusted_certs_done">Zaufane certyfikaty wyczyszczone</string>
     <string name="favorite_description">Ulubione</string>
     <string name="subtasks_label">Podzadania</string>
+    <string name="create_subtask_of">Podzadanie „%1$s”</string>
+    <string name="select_parent_task">Zadanie nadrzędne</string>
+    <string name="parent_none">Brak</string>
+    <string name="pick_due_date">Termin</string>
 </resources>
