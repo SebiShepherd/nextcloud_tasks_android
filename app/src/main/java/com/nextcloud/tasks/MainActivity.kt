@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -17,6 +18,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +31,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -171,6 +175,11 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Edge-to-edge so the main window delivers the IME as an animated inset. The create sheet is
+        // an in-window overlay pinned to the bottom with imePadding, so it rides the keyboard up in
+        // one motion (see CreateTaskOverlay) instead of a separate dialog window lagging behind.
+        enableEdgeToEdge()
 
         // Pre-initialize AppCompatDelegate to prevent first-time recreation
         // This reads any saved locale without triggering a configuration change
@@ -602,37 +611,41 @@ fun AuthenticatedHome(
         )
     }
 
-    if (isExpandedScreen) {
-        PermanentNavigationDrawer(
-            drawerContent = {
-                PermanentDrawerSheet { drawerContent() }
-            },
-            content = mainContent,
-        )
-    } else {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet { drawerContent() }
-            },
-            content = mainContent,
-        )
-    }
+    // The create sheet is an in-window overlay (see CreateTaskOverlay), so it must be a sibling of
+    // the drawer inside one full-screen Box that draws it on top.
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isExpandedScreen) {
+            PermanentNavigationDrawer(
+                drawerContent = {
+                    PermanentDrawerSheet { drawerContent() }
+                },
+                content = mainContent,
+            )
+        } else {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    ModalDrawerSheet { drawerContent() }
+                },
+                content = mainContent,
+            )
+        }
 
-    // Create task dialog — only shown when at least one writable list exists.
-    if (showCreateDialog && hasWritableLists) {
-        CreateTaskSheet(
-            taskLists = taskLists,
-            tasks = tasks,
-            initialListId = selectedListId ?: taskLists.first().id,
-            onDismiss = onDismissCreateDialog,
-            onCreate = { input ->
-                onCreateTask(input)
-                if (!isOnline) {
-                    showOfflineSnackbar = true
-                }
-            },
-        )
+        // Create sheet — only shown when at least one writable list exists.
+        if (showCreateDialog && hasWritableLists) {
+            CreateTaskOverlay(
+                taskLists = taskLists,
+                tasks = tasks,
+                initialListId = selectedListId ?: taskLists.first().id,
+                onDismiss = onDismissCreateDialog,
+                onCreate = { input ->
+                    onCreateTask(input)
+                    if (!isOnline) {
+                        showOfflineSnackbar = true
+                    }
+                },
+            )
+        }
     }
 
     // Create list dialog
@@ -2501,7 +2514,7 @@ private fun sheetFieldColors() =
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
-private fun CreateTaskSheet(
+private fun CreateTaskOverlay(
     taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
     tasks: List<Task>,
     initialListId: String,
@@ -2510,7 +2523,6 @@ private fun CreateTaskSheet(
 ) {
     val writableLists = taskLists.filter { it.shareAccess != ShareAccess.READ }
     if (writableLists.isEmpty()) return
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -2529,208 +2541,240 @@ private fun CreateTaskSheet(
     val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.first()
     val titleFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) { titleFocus.requestFocus() }
+    BackHandler(enabled = true) { onDismiss() }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        // No imePadding here: ModalBottomSheet already applies it to its own container, so adding a
-        // second one made the content lift twice and out of sync (the "sheet covered, then jumps up").
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
-            parentTask?.let { parent ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+    // In-window sheet (NOT a ModalBottomSheet): a scrim plus a bottom-pinned Surface with imePadding.
+    // Because it lives in the main window, its vertical position IS the keyboard top, so the sheet and
+    // keyboard rise in a single motion — the separate dialog window of ModalBottomSheet could not.
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        androidx.compose.ui.graphics.Color.Black
+                            .copy(alpha = 0.32f),
+                    ).clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { onDismiss() },
+        )
+        Surface(
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().imePadding(),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 1.dp,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 8.dp)) {
+                Box(
                     modifier =
-                        Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
-                ) {
-                    Icon(
-                        Icons.Default.SubdirectoryArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.create_subtask_of, parent.title),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).padding(start = 8.dp),
-                    )
-                    IconButton(onClick = { parentUid = null }) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = stringResource(R.string.cancel),
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
-            }
-
-            TextField(
-                value = title,
-                onValueChange = { title = it },
-                placeholder = { Text(stringResource(R.string.task_title_label)) },
-                singleLine = true,
-                colors = sheetFieldColors(),
-                textStyle = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
-            )
-
-            if (showDescription) {
-                TextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    placeholder = { Text(stringResource(R.string.task_description_label)) },
-                    colors = sheetFieldColors(),
-                    textStyle = MaterialTheme.typography.bodyMedium,
-                    maxLines = 4,
-                    modifier = Modifier.fillMaxWidth(),
+                        Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 12.dp, bottom = 4.dp)
+                            .size(width = 32.dp, height = 4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                RoundedCornerShape(2.dp),
+                            ),
                 )
-            }
-
-            due?.let { dueInstant ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        text = DUE_DATE_FORMATTER.format(dueInstant.atZone(java.time.ZoneId.systemDefault())),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f).padding(start = 12.dp),
-                    )
-                    IconButton(onClick = { due = null }) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = stringResource(R.string.cancel),
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
-            }
-
-            if (parentTask == null) {
-                ExposedDropdownMenuBox(
-                    expanded = listDropdownExpanded,
-                    onExpandedChange = { listDropdownExpanded = it },
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                ) {
+                parentTask?.let { parent ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier =
-                            Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth()
-                                .padding(vertical = 10.dp),
+                            Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
                     ) {
-                        selectedList.color?.let { colorHex ->
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(10.dp)
-                                        .background(
-                                            androidx.compose.ui.graphics.Color(
-                                                android.graphics.Color.parseColor(colorHex),
-                                            ),
-                                            CircleShape,
-                                        ),
+                        Icon(
+                            Icons.Default.SubdirectoryArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.create_subtask_of, parent.title),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).padding(start = 8.dp),
+                        )
+                        IconButton(onClick = { parentUid = null }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.cancel),
+                                modifier = Modifier.size(18.dp),
                             )
                         }
+                    }
+                }
+
+                TextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    placeholder = { Text(stringResource(R.string.task_title_label)) },
+                    singleLine = true,
+                    colors = sheetFieldColors(),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
+                )
+
+                if (showDescription) {
+                    TextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        placeholder = { Text(stringResource(R.string.task_description_label)) },
+                        colors = sheetFieldColors(),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                due?.let { dueInstant ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
                         Text(
-                            selectedList.name,
+                            text = DUE_DATE_FORMATTER.format(dueInstant.atZone(java.time.ZoneId.systemDefault())),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f).padding(start = 12.dp),
                         )
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                    }
-                    ExposedDropdownMenu(
-                        expanded = listDropdownExpanded,
-                        onDismissRequest = { listDropdownExpanded = false },
-                    ) {
-                        writableLists.forEach { list ->
-                            DropdownMenuItem(
-                                text = { Text(list.name) },
-                                onClick = {
-                                    selectedListId = list.id
-                                    listDropdownExpanded = false
-                                },
-                                leadingIcon =
-                                    list.color?.let { colorHex ->
-                                        {
-                                            Box(
-                                                modifier =
-                                                    Modifier
-                                                        .size(10.dp)
-                                                        .background(
-                                                            androidx.compose.ui.graphics.Color(
-                                                                android.graphics.Color.parseColor(colorHex),
-                                                            ),
-                                                            CircleShape,
-                                                        ),
-                                            )
-                                        }
-                                    },
+                        IconButton(onClick = { due = null }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.cancel),
+                                modifier = Modifier.size(16.dp),
                             )
                         }
                     }
                 }
-            }
 
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+                if (parentTask == null) {
+                    ExposedDropdownMenuBox(
+                        expanded = listDropdownExpanded,
+                        onExpandedChange = { listDropdownExpanded = it },
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier =
+                                Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth()
+                                    .padding(vertical = 10.dp),
+                        ) {
+                            selectedList.color?.let { colorHex ->
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(10.dp)
+                                            .background(
+                                                androidx.compose.ui.graphics.Color(
+                                                    android.graphics.Color.parseColor(colorHex),
+                                                ),
+                                                CircleShape,
+                                            ),
+                                )
+                            }
+                            Text(
+                                selectedList.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f).padding(start = 12.dp),
+                            )
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                        }
+                        ExposedDropdownMenu(
+                            expanded = listDropdownExpanded,
+                            onDismissRequest = { listDropdownExpanded = false },
+                        ) {
+                            writableLists.forEach { list ->
+                                DropdownMenuItem(
+                                    text = { Text(list.name) },
+                                    onClick = {
+                                        selectedListId = list.id
+                                        listDropdownExpanded = false
+                                    },
+                                    leadingIcon =
+                                        list.color?.let { colorHex ->
+                                            {
+                                                Box(
+                                                    modifier =
+                                                        Modifier
+                                                            .size(10.dp)
+                                                            .background(
+                                                                androidx.compose.ui.graphics.Color(
+                                                                    android.graphics.Color.parseColor(colorHex),
+                                                                ),
+                                                                CircleShape,
+                                                            ),
+                                                )
+                                            }
+                                        },
+                                )
+                            }
+                        }
+                    }
+                }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, bottom = 8.dp),
-            ) {
-                val active = MaterialTheme.colorScheme.primary
-                val muted = MaterialTheme.colorScheme.onSurfaceVariant
-                IconButton(onClick = { showDescription = !showDescription }) {
-                    Icon(
-                        Icons.Default.Notes,
-                        contentDescription = stringResource(R.string.task_description_label),
-                        tint = if (showDescription) active else muted,
-                    )
-                }
-                IconButton(onClick = { showDatePicker = true }) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = stringResource(R.string.pick_due_date),
-                        tint = if (due != null) active else muted,
-                    )
-                }
-                IconButton(onClick = { starred = !starred }) {
-                    Icon(
-                        if (starred) Icons.Default.Star else Icons.Default.StarBorder,
-                        contentDescription = stringResource(R.string.favorite_description),
-                        tint = if (starred) NextcloudWarning else muted,
-                    )
-                }
-                IconButton(onClick = { showParentPicker = true }) {
-                    Icon(
-                        Icons.Default.SubdirectoryArrowRight,
-                        contentDescription = stringResource(R.string.select_parent_task),
-                        tint = if (parentTask != null) active else muted,
-                    )
-                }
-                Spacer(Modifier.weight(1f))
-                TextButton(
-                    enabled = title.isNotBlank(),
-                    onClick = {
-                        onCreate(
-                            NewTaskInput(
-                                title = title.trim(),
-                                description = if (showDescription) description.ifBlank { null } else null,
-                                listId = selectedListId,
-                                parentUid = parentUid,
-                                due = due,
-                                starred = starred,
-                            ),
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, bottom = 8.dp),
+                ) {
+                    val active = MaterialTheme.colorScheme.primary
+                    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+                    IconButton(onClick = { showDescription = !showDescription }) {
+                        Icon(
+                            Icons.Default.Notes,
+                            contentDescription = stringResource(R.string.task_description_label),
+                            tint = if (showDescription) active else muted,
                         )
-                    },
-                ) { Text(stringResource(R.string.save)) }
+                    }
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = stringResource(R.string.pick_due_date),
+                            tint = if (due != null) active else muted,
+                        )
+                    }
+                    IconButton(onClick = { starred = !starred }) {
+                        Icon(
+                            if (starred) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = stringResource(R.string.favorite_description),
+                            tint = if (starred) NextcloudWarning else muted,
+                        )
+                    }
+                    IconButton(onClick = { showParentPicker = true }) {
+                        Icon(
+                            Icons.Default.SubdirectoryArrowRight,
+                            contentDescription = stringResource(R.string.select_parent_task),
+                            tint = if (parentTask != null) active else muted,
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(
+                        enabled = title.isNotBlank(),
+                        onClick = {
+                            onCreate(
+                                NewTaskInput(
+                                    title = title.trim(),
+                                    description = if (showDescription) description.ifBlank { null } else null,
+                                    listId = selectedListId,
+                                    parentUid = parentUid,
+                                    due = due,
+                                    starred = starred,
+                                ),
+                            )
+                        },
+                    ) { Text(stringResource(R.string.save)) }
+                }
             }
         }
     }
