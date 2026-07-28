@@ -4,6 +4,7 @@ package com.nextcloud.tasks
 
 import android.content.res.Configuration
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -91,7 +92,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -116,13 +116,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -131,6 +131,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.compose.NavHost
@@ -162,7 +164,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -2538,11 +2539,16 @@ private fun CreateTaskSheet(
     val parentTask = parentUid?.let { uid -> tasks.firstOrNull { it.uid == uid } }
     val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.first()
     val titleFocus = remember { FocusRequester() }
+    val sheetView = LocalView.current
     LaunchedEffect(Unit) {
-        // Open the keyboard only after the sheet has finished sliding up. Otherwise the auto-focus
-        // fires mid-animation and the keyboard covers a half-open sheet before it catches up. Once the
-        // sheet is settled, the content rides the animated IME inset up with the keyboard.
-        snapshotFlow { sheetState.currentValue }.first { it == SheetValue.Expanded }
+        // The sheet lives in its own Dialog window, which by default does NOT dispatch animated IME
+        // insets — so imePadding jumped only after the keyboard was fully open ("sheet covered, then
+        // snaps up"). Tell that window to lay out edge-to-edge and resize for the IME; now the inset
+        // animates and the content rides the keyboard up in lockstep. Then focus so it opens at once.
+        (sheetView.parent as? DialogWindowProvider)?.window?.let { window ->
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        }
         titleFocus.requestFocus()
     }
 
