@@ -33,16 +33,12 @@ class SubtaskTreeTest {
     }
 
     @Test
-    fun `depth is capped at 2 for deep nesting`() {
-        val tasks =
-            listOf(
-                task("a"),
-                task("b", parentUid = "a"),
-                task("c", parentUid = "b"),
-                task("d", parentUid = "c"),
-            )
+    fun `depth is capped at MAX_DISPLAY_DEPTH for deep nesting`() {
+        // a>b>c>d>e>f: natural depths 0..5, capped at MAX_DISPLAY_DEPTH (4).
+        val chain = listOf("a", "b", "c", "d", "e", "f")
+        val tasks = chain.mapIndexed { i, uid -> task(uid, parentUid = chain.getOrNull(i - 1)) }
         val rows = buildOpenTaskRows(tasks, emptyMap(), emptySet())
-        assertEquals(listOf(0, 1, 2, 2), rows.map { it.depth })
+        assertEquals(listOf(0, 1, 2, 3, 4, 4), rows.map { it.depth })
     }
 
     @Test

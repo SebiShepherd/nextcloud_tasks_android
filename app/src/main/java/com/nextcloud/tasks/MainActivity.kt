@@ -1020,12 +1020,15 @@ internal data class TaskRow(
     val isCollapsed: Boolean,
 )
 
+/** Deepest indent level rendered; nesting beyond this renders flat at this depth (data untouched). */
+internal const val MAX_DISPLAY_DEPTH = 4
+
 /**
  * Flattens open tasks of one list into an ordered list of [TaskRow]s: each parent is followed by its
- * (open) children, indented one level deeper. Display depth is capped at 2 (deeper nesting from the
- * web renders flat at level 2). Cycles are broken via a visited set.
+ * children, indented one level deeper. Display depth is capped at [MAX_DISPLAY_DEPTH] (deeper nesting
+ * from the web renders flat at that level). Cycles are broken via a visited set.
  *
- * @param openListTasks open tasks of the list, already in the desired sibling order.
+ * @param listTasks all tasks of the list, already in the desired sibling order.
  * @param childCounts parentUid → (done, total) across ALL tasks in the list, for the collapse chip.
  * @param collapsedUids UIDs of parents whose children are hidden.
  */
@@ -1052,7 +1055,7 @@ internal fun buildOpenTaskRows(
         if (!visited.add(task.id)) return
         val (done, total) = task.uid?.let { childCounts[it] } ?: (0 to 0)
         val collapsed = task.uid != null && task.uid in collapsedUids
-        rows.add(TaskRow(task, depth.coerceAtMost(2), total > 0, done, total, collapsed))
+        rows.add(TaskRow(task, depth.coerceAtMost(MAX_DISPLAY_DEPTH), total > 0, done, total, collapsed))
         if (!collapsed) {
             task.uid?.let { byParentUid[it] }?.forEach { emit(it, depth + 1) }
         }
@@ -2205,13 +2208,13 @@ private fun SimpleAnimatedTaskCard(
     ) {
         // Column includes bottom spacing so it animates with shrinkVertically
         Column {
-            // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Matches the
-            // prototype (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp).
+            // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
+            // level (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp, then +16 dp each deeper level).
             Row(
                 modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
             ) {
                 if (depth > 0) {
-                    Spacer(modifier = Modifier.width(if (depth == 1) 9.dp else 25.dp))
+                    Spacer(modifier = Modifier.width((9 + (depth - 1) * 16).dp))
                     Box(
                         modifier =
                             Modifier
