@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">У этой задачи есть подзадачи. Что с ними сделать?</string>
     <string name="delete_subtasks_all">Удалить все</string>
     <string name="delete_subtasks_keep">Сохранить подзадачи</string>
+    <string name="swipe_complete">Готово</string>
+    <string name="task_reopened">Задача возобновлена</string>
 </resources>

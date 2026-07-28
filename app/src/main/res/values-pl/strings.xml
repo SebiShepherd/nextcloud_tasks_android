@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">To zadanie ma podzadania. Co z nimi zrobić?</string>
     <string name="delete_subtasks_all">Usuń wszystko</string>
     <string name="delete_subtasks_keep">Zachowaj podzadania</string>
+    <string name="swipe_complete">Gotowe</string>
+    <string name="task_reopened">Zadanie ponownie otwarte</string>
 </resources>

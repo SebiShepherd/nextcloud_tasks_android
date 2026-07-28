@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">Cette tâche a des sous-tâches. Que faut-il en faire ?</string>
     <string name="delete_subtasks_all">Tout supprimer</string>
     <string name="delete_subtasks_keep">Conserver les sous-tâches</string>
+    <string name="swipe_complete">Terminé</string>
+    <string name="task_reopened">Tâche rouverte</string>
 </resources>

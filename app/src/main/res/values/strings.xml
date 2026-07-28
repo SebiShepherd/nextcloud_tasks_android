@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">This task has sub-tasks. What should happen to them?</string>
     <string name="delete_subtasks_all">Delete all</string>
     <string name="delete_subtasks_keep">Keep sub-tasks</string>
+    <string name="swipe_complete">Done</string>
+    <string name="task_reopened">Task reopened</string>
 </resources>

@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">Deze taak heeft subtaken. Wat moet ermee gebeuren?</string>
     <string name="delete_subtasks_all">Alles verwijderen</string>
     <string name="delete_subtasks_keep">Subtaken behouden</string>
+    <string name="swipe_complete">Klaar</string>
+    <string name="task_reopened">Taak heropend</string>
 </resources>

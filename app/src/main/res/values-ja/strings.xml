@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">このタスクにはサブタスクがあります。どうしますか？</string>
     <string name="delete_subtasks_all">すべて削除</string>
     <string name="delete_subtasks_keep">サブタスクを残す</string>
+    <string name="swipe_complete">完了</string>
+    <string name="task_reopened">タスクを再開しました</string>
 </resources>

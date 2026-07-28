@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">Tento úkol má podúkoly. Co se s nimi má stát?</string>
     <string name="delete_subtasks_all">Smazat vše</string>
     <string name="delete_subtasks_keep">Ponechat podúkoly</string>
+    <string name="swipe_complete">Hotovo</string>
+    <string name="task_reopened">Úkol znovu otevřen</string>
 </resources>

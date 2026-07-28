@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">此任务包含子任务。要如何处理？</string>
     <string name="delete_subtasks_all">全部删除</string>
     <string name="delete_subtasks_keep">保留子任务</string>
+    <string name="swipe_complete">完成</string>
+    <string name="task_reopened">任务已重新打开</string>
 </resources>

@@ -215,4 +215,6 @@
     <string name="delete_subtasks_message">Questa attività ha delle sottoattività. Cosa deve accadere?</string>
     <string name="delete_subtasks_all">Elimina tutto</string>
     <string name="delete_subtasks_keep">Mantieni le sottoattività</string>
+    <string name="swipe_complete">Fatto</string>
+    <string name="task_reopened">Attività riaperta</string>
 </resources>

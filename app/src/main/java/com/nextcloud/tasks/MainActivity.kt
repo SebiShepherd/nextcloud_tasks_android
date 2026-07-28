@@ -334,7 +334,6 @@ fun NextcloudTasksApp(
                 taskListViewModel.createTask(input)
                 showCreateDialog = false
             },
-            onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
             onToggleFavorite = taskListViewModel::toggleFavorite,
             onToggleTaskCollapsed = taskListViewModel::toggleCollapsed,
             onApplyCompletion = taskListViewModel::applyCompletion,
@@ -423,7 +422,6 @@ fun AuthenticatedHome(
     onShowCreateDialog: () -> Unit,
     onDismissCreateDialog: () -> Unit,
     onCreateTask: (NewTaskInput) -> Unit,
-    onToggleTaskComplete: (Task) -> Unit,
     onToggleFavorite: (Task) -> Unit,
     onToggleTaskCollapsed: (String) -> Unit,
     onApplyCompletion: (Task) -> CompletionChange,
@@ -500,6 +498,7 @@ fun AuthenticatedHome(
     val undoLabel = stringResource(R.string.action_undo)
     val deletedMsg = stringResource(R.string.task_deleted)
     val completedMsg = stringResource(R.string.task_completed)
+    val reopenedMsg = stringResource(R.string.task_reopened)
     var deleteDialogTask by remember { mutableStateOf<Task?>(null) }
 
     val performDelete: (Task, Boolean) -> Unit = { task, keepChildren ->
@@ -512,10 +511,13 @@ fun AuthenticatedHome(
     val onSwipeDelete: (Task, Boolean) -> Unit = { task, hasChildren ->
         if (hasChildren) deleteDialogTask = task else performDelete(task, false)
     }
-    val onSwipeComplete: (Task) -> Unit = { task ->
+    // Unified completion for both the checkbox and the swipe: mark done/reopen (cascading) and offer
+    // one undo. Same handler → identical behaviour and message no matter how the user triggers it.
+    val completeWithUndo: (Task) -> Unit = { task ->
         val change = onApplyCompletion(task)
+        val message = if (change.nowDone) completedMsg else reopenedMsg
         scope.launch {
-            val result = snackbarHostState.showSnackbar(completedMsg, undoLabel, duration = SnackbarDuration.Short)
+            val result = snackbarHostState.showSnackbar(message, undoLabel, duration = SnackbarDuration.Short)
             if (result == SnackbarResult.ActionPerformed) onUndoCompletion(change)
         }
     }
@@ -585,7 +587,7 @@ fun AuthenticatedHome(
                                 onSetSort = onSetSort,
                                 onToggleTaskComplete = { task ->
                                     if (!isReadOnly) {
-                                        onToggleTaskComplete(task)
+                                        completeWithUndo(task)
                                         if (!isOnline) {
                                             showOfflineSnackbar = true
                                         }
@@ -600,10 +602,6 @@ fun AuthenticatedHome(
                                     }
                                 },
                                 onToggleTaskCollapsed = onToggleTaskCollapsed,
-                                onSwipeComplete = { task ->
-                                    onSwipeComplete(task)
-                                    if (!isOnline) showOfflineSnackbar = true
-                                },
                                 onSwipeDelete = onSwipeDelete,
                                 onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
                                 onShowCreateListDialog = onShowCreateListDialog,
@@ -1193,7 +1191,6 @@ private fun TasksContent(
     onToggleTaskComplete: (Task) -> Unit,
     onToggleFavorite: (Task) -> Unit,
     onToggleTaskCollapsed: (String) -> Unit,
-    onSwipeComplete: (Task) -> Unit,
     onSwipeDelete: (Task, Boolean) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onShowCreateListDialog: () -> Unit = {},
@@ -1313,7 +1310,8 @@ private fun TasksContent(
                         SwipeableTaskRow(
                             enabled = !taskIsReadOnly,
                             hasChildren = row.hasChildren,
-                            onComplete = { onSwipeComplete(task) },
+                            bottomInset = if (row.depth > 0) 8.dp else 12.dp,
+                            onComplete = { onToggleTaskComplete(task) },
                             onDelete = { hasChildren -> onSwipeDelete(task, hasChildren) },
                         ) {
                             SimpleAnimatedTaskCard(
@@ -1363,7 +1361,8 @@ private fun TasksContent(
                         SwipeableTaskRow(
                             enabled = !taskIsReadOnly,
                             hasChildren = false,
-                            onComplete = { onSwipeComplete(task) },
+                            bottomInset = 12.dp,
+                            onComplete = { onToggleTaskComplete(task) },
                             onDelete = { onSwipeDelete(task, false) },
                         ) {
                             SimpleAnimatedTaskCard(
@@ -2559,6 +2558,7 @@ private fun TaskCard(
 private fun SwipeableTaskRow(
     enabled: Boolean,
     hasChildren: Boolean,
+    bottomInset: androidx.compose.ui.unit.Dp,
     onComplete: () -> Unit,
     onDelete: (Boolean) -> Unit,
     content: @Composable () -> Unit,
@@ -2567,53 +2567,69 @@ private fun SwipeableTaskRow(
         content()
         return
     }
+    // Accept the dismissal (return true): the action itself removes the row (complete → moves to the
+    // done section, delete → hidden until commit), so the swipe fires exactly once and slides off
+    // cleanly. Returning false would snap the row back while it still exists, re-firing the gesture.
     val state =
         rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
                 when (value) {
                     SwipeToDismissBoxValue.StartToEnd -> onComplete()
                     SwipeToDismissBoxValue.EndToStart -> onDelete(hasChildren)
-                    SwipeToDismissBoxValue.Settled -> Unit
+                    SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState false
                 }
-                false
+                true
             },
         )
     SwipeToDismissBox(
         state = state,
-        backgroundContent = { SwipeActionBackground(state.targetValue) },
+        // dismissDirection follows the drag offset immediately, so the colour + icon reveal as the
+        // row moves (targetValue only flips past the settle threshold, leaving a blank gap on a
+        // partial swipe).
+        backgroundContent = { SwipeActionBackground(state.dismissDirection, bottomInset) },
         content = { content() },
     )
 }
 
 @Composable
-private fun SwipeActionBackground(target: SwipeToDismissBoxValue) {
-    val completing = target == SwipeToDismissBoxValue.StartToEnd
+private fun SwipeActionBackground(
+    direction: SwipeToDismissBoxValue,
+    bottomInset: androidx.compose.ui.unit.Dp,
+) {
+    val completing = direction == SwipeToDismissBoxValue.StartToEnd
     val color =
-        when (target) {
+        when (direction) {
             SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary
             SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
             SwipeToDismissBoxValue.Settled -> androidx.compose.ui.graphics.Color.Transparent
         }
+    val onColor = if (completing) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onError
     Box(
         modifier =
             Modifier
+                // Exclude the row's bottom gap so the coloured pill matches the card height exactly.
                 .fillMaxSize()
+                .padding(bottom = bottomInset)
                 .clip(MaterialTheme.shapes.medium)
                 .background(color)
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 20.dp),
         contentAlignment = if (completing) Alignment.CenterStart else Alignment.CenterEnd,
     ) {
-        if (target != SwipeToDismissBoxValue.Settled) {
-            Icon(
-                imageVector = if (completing) Icons.Filled.Check else Icons.Default.Delete,
-                contentDescription = null,
-                tint =
-                    if (completing) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onError
-                    },
-            )
+        if (direction != SwipeToDismissBoxValue.Settled) {
+            val label =
+                if (completing) {
+                    stringResource(R.string.swipe_complete)
+                } else {
+                    stringResource(R.string.delete)
+                }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = if (completing) Icons.Filled.Check else Icons.Default.Delete,
+                    contentDescription = label,
+                    tint = onColor,
+                )
+                Text(text = label, style = MaterialTheme.typography.labelSmall, color = onColor)
+            }
         }
     }
 }
