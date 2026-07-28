@@ -98,9 +98,13 @@ import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -109,6 +113,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -332,7 +337,11 @@ fun NextcloudTasksApp(
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
             onToggleFavorite = taskListViewModel::toggleFavorite,
             onToggleTaskCollapsed = taskListViewModel::toggleCollapsed,
-            onDeleteTask = taskListViewModel::deleteTask,
+            onApplyCompletion = taskListViewModel::applyCompletion,
+            onUndoCompletion = taskListViewModel::undoCompletion,
+            onStageDelete = taskListViewModel::stageDelete,
+            onUndoDelete = taskListViewModel::undoDelete,
+            onCommitDelete = taskListViewModel::commitDelete,
             onClearAnimatingEntryTaskId = taskListViewModel::clearAnimatingEntryTaskId,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
@@ -417,7 +426,11 @@ fun AuthenticatedHome(
     onToggleTaskComplete: (Task) -> Unit,
     onToggleFavorite: (Task) -> Unit,
     onToggleTaskCollapsed: (String) -> Unit,
-    onDeleteTask: (String) -> Unit,
+    onApplyCompletion: (Task) -> CompletionChange,
+    onUndoCompletion: (CompletionChange) -> Unit,
+    onStageDelete: (Task, Boolean) -> Deletion,
+    onUndoDelete: (Deletion) -> Unit,
+    onCommitDelete: (Deletion) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -481,6 +494,31 @@ fun AuthenticatedHome(
     CreateListErrorEffect(createListError, snackbarHostState, onClearCreateListError)
     EditListErrorEffect(editListError, snackbarHostState, onClearEditListError)
     DeleteListErrorEffect(deleteListError, snackbarHostState, onClearDeleteListError)
+
+    // Swipe actions: complete/delete with an undo snackbar. Deleting a task that has sub-tasks
+    // first asks whether to delete the whole subtree or free the children.
+    val undoLabel = stringResource(R.string.action_undo)
+    val deletedMsg = stringResource(R.string.task_deleted)
+    val completedMsg = stringResource(R.string.task_completed)
+    var deleteDialogTask by remember { mutableStateOf<Task?>(null) }
+
+    val performDelete: (Task, Boolean) -> Unit = { task, keepChildren ->
+        val deletion = onStageDelete(task, keepChildren)
+        scope.launch {
+            val result = snackbarHostState.showSnackbar(deletedMsg, undoLabel, duration = SnackbarDuration.Short)
+            if (result == SnackbarResult.ActionPerformed) onUndoDelete(deletion) else onCommitDelete(deletion)
+        }
+    }
+    val onSwipeDelete: (Task, Boolean) -> Unit = { task, hasChildren ->
+        if (hasChildren) deleteDialogTask = task else performDelete(task, false)
+    }
+    val onSwipeComplete: (Task) -> Unit = { task ->
+        val change = onApplyCompletion(task)
+        scope.launch {
+            val result = snackbarHostState.showSnackbar(completedMsg, undoLabel, duration = SnackbarDuration.Short)
+            if (result == SnackbarResult.ActionPerformed) onUndoCompletion(change)
+        }
+    }
 
     // Share errors and success are shown in the bottom sheet only (no duplicate snackbar)
 
@@ -562,14 +600,11 @@ fun AuthenticatedHome(
                                     }
                                 },
                                 onToggleTaskCollapsed = onToggleTaskCollapsed,
-                                onDeleteTask = { taskId ->
-                                    if (!isReadOnly) {
-                                        onDeleteTask(taskId)
-                                        if (!isOnline) {
-                                            showOfflineSnackbar = true
-                                        }
-                                    }
+                                onSwipeComplete = { task ->
+                                    onSwipeComplete(task)
+                                    if (!isOnline) showOfflineSnackbar = true
                                 },
+                                onSwipeDelete = onSwipeDelete,
                                 onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
                                 onShowCreateListDialog = onShowCreateListDialog,
                                 onOpenTask = { taskId -> navController.navigate("task/$taskId") },
@@ -676,6 +711,21 @@ fun AuthenticatedHome(
             listName = listToDelete!!.name,
             onDismiss = onDismissDeleteListDialog,
             onConfirm = { onDeleteList(listToDelete!!.id) },
+        )
+    }
+
+    // Delete-with-sub-tasks choice dialog (shown when swiping a parent away)
+    deleteDialogTask?.let { task ->
+        DeleteWithChildrenDialog(
+            onDeleteAll = {
+                performDelete(task, false)
+                deleteDialogTask = null
+            },
+            onKeepChildren = {
+                performDelete(task, true)
+                deleteDialogTask = null
+            },
+            onDismiss = { deleteDialogTask = null },
         )
     }
 
@@ -1048,6 +1098,23 @@ data class NewTaskInput(
     val starred: Boolean,
 )
 
+/**
+ * A staged, still-undoable delete. Rows in [hiddenIds] vanish from the list immediately; on commit
+ * [freeIds] are detached from their parent (parentUid=null) and [deleteIds] are removed from the
+ * server. Undo just un-hides — nothing was written yet.
+ */
+data class Deletion(
+    val hiddenIds: Set<String>,
+    val deleteIds: List<String>,
+    val freeIds: List<String>,
+)
+
+/** A completed/reopened cascade, captured so an undo snackbar can flip exactly the same tasks back. */
+data class CompletionChange(
+    val ids: List<String>,
+    val nowDone: Boolean,
+)
+
 /** A flattened sub-task tree row: the task plus its display depth and sub-task chip data. */
 internal data class TaskRow(
     val task: Task,
@@ -1126,7 +1193,8 @@ private fun TasksContent(
     onToggleTaskComplete: (Task) -> Unit,
     onToggleFavorite: (Task) -> Unit,
     onToggleTaskCollapsed: (String) -> Unit,
-    onDeleteTask: (String) -> Unit,
+    onSwipeComplete: (Task) -> Unit,
+    onSwipeDelete: (Task, Boolean) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onShowCreateListDialog: () -> Unit = {},
     onOpenTask: (String) -> Unit = {},
@@ -1242,23 +1310,29 @@ private fun TasksContent(
                         val task = row.task
                         val taskIsReadOnly =
                             taskListMap[task.listId]?.shareAccess == ShareAccess.READ
-                        SimpleAnimatedTaskCard(
-                            task = task,
-                            isReadOnly = taskIsReadOnly,
-                            animateEntry = task.id in animatingEntryTaskIds,
-                            depth = row.depth,
+                        SwipeableTaskRow(
+                            enabled = !taskIsReadOnly,
                             hasChildren = row.hasChildren,
-                            subtaskDone = row.subtaskDone,
-                            subtaskTotal = row.subtaskTotal,
-                            isCollapsed = row.isCollapsed,
-                            isStarred = task.isStarred,
-                            onToggleComplete = { onToggleTaskComplete(task) },
-                            onToggleFavorite = { onToggleFavorite(task) },
-                            onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
-                            onDelete = { onDeleteTask(task.id) },
-                            onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
-                            onOpenTask = { onOpenTask(task.id) },
-                        )
+                            onComplete = { onSwipeComplete(task) },
+                            onDelete = { hasChildren -> onSwipeDelete(task, hasChildren) },
+                        ) {
+                            SimpleAnimatedTaskCard(
+                                task = task,
+                                isReadOnly = taskIsReadOnly,
+                                animateEntry = task.id in animatingEntryTaskIds,
+                                depth = row.depth,
+                                hasChildren = row.hasChildren,
+                                subtaskDone = row.subtaskDone,
+                                subtaskTotal = row.subtaskTotal,
+                                isCollapsed = row.isCollapsed,
+                                isStarred = task.isStarred,
+                                onToggleComplete = { onToggleTaskComplete(task) },
+                                onToggleFavorite = { onToggleFavorite(task) },
+                                onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
+                                onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
+                                onOpenTask = { onOpenTask(task.id) },
+                            )
+                        }
                     }
                 }
             }
@@ -1286,15 +1360,21 @@ private fun TasksContent(
                     items(completedTasks, key = { it.id }) { task ->
                         val taskIsReadOnly =
                             taskListMap[task.listId]?.shareAccess == ShareAccess.READ
-                        SimpleAnimatedTaskCard(
-                            task = task,
-                            isReadOnly = taskIsReadOnly,
-                            animateEntry = task.id in animatingEntryTaskIds,
-                            onToggleComplete = { onToggleTaskComplete(task) },
-                            onDelete = { onDeleteTask(task.id) },
-                            onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
-                            onOpenTask = { onOpenTask(task.id) },
-                        )
+                        SwipeableTaskRow(
+                            enabled = !taskIsReadOnly,
+                            hasChildren = false,
+                            onComplete = { onSwipeComplete(task) },
+                            onDelete = { onSwipeDelete(task, false) },
+                        ) {
+                            SimpleAnimatedTaskCard(
+                                task = task,
+                                isReadOnly = taskIsReadOnly,
+                                animateEntry = task.id in animatingEntryTaskIds,
+                                onToggleComplete = { onToggleTaskComplete(task) },
+                                onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
+                                onOpenTask = { onOpenTask(task.id) },
+                            )
+                        }
                     }
                 }
             }
@@ -2201,7 +2281,6 @@ private fun SimpleAnimatedTaskCard(
     isCollapsed: Boolean = false,
     isStarred: Boolean = false,
     onToggleComplete: () -> Unit,
-    onDelete: () -> Unit,
     onToggleCollapsed: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
     onEntryAnimationComplete: () -> Unit = {},
@@ -2291,19 +2370,6 @@ private fun SimpleAnimatedTaskCard(
                                 }
                             }
                         },
-                        onDelete = {
-                            if (!isAnimating) {
-                                isAnimating = true
-                                scope.launch {
-                                    // Start fade/shrink animation
-                                    isVisible = false
-                                    // Wait for animation to complete
-                                    delay(250)
-                                    // Then delete
-                                    onDelete()
-                                }
-                            }
-                        },
                         onToggleCollapsed = onToggleCollapsed,
                         onToggleFavorite = onToggleFavorite,
                         onOpenTask = onOpenTask,
@@ -2328,7 +2394,6 @@ private fun TaskCard(
     isCollapsed: Boolean = false,
     isStarred: Boolean = false,
     onToggleComplete: () -> Unit,
-    onDelete: () -> Unit,
     onToggleCollapsed: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
@@ -2481,21 +2546,102 @@ private fun TaskCard(
                     tint = if (isStarred) NextcloudWarning else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
-            // Delete button (hidden for read-only lists; moves to swipe/selection in a later change)
-            if (!isReadOnly) {
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.delete_description),
-                        tint = MaterialTheme.colorScheme.error,
-                    )
-                }
-            } else {
-                Spacer(modifier = Modifier.size(48.dp))
-            }
         }
     }
+}
+
+/**
+ * Wraps a task row so swiping right completes it and swiping left deletes it. The gesture fires the
+ * action and snaps back (returns false from confirmValueChange) — the action removes the row itself,
+ * which keeps the swipe reusable if an undo brings the row back. Disabled on read-only lists.
+ */
+@Composable
+private fun SwipeableTaskRow(
+    enabled: Boolean,
+    hasChildren: Boolean,
+    onComplete: () -> Unit,
+    onDelete: (Boolean) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (!enabled) {
+        content()
+        return
+    }
+    val state =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                when (value) {
+                    SwipeToDismissBoxValue.StartToEnd -> onComplete()
+                    SwipeToDismissBoxValue.EndToStart -> onDelete(hasChildren)
+                    SwipeToDismissBoxValue.Settled -> Unit
+                }
+                false
+            },
+        )
+    SwipeToDismissBox(
+        state = state,
+        backgroundContent = { SwipeActionBackground(state.targetValue) },
+        content = { content() },
+    )
+}
+
+@Composable
+private fun SwipeActionBackground(target: SwipeToDismissBoxValue) {
+    val completing = target == SwipeToDismissBoxValue.StartToEnd
+    val color =
+        when (target) {
+            SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary
+            SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
+            SwipeToDismissBoxValue.Settled -> androidx.compose.ui.graphics.Color.Transparent
+        }
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .clip(MaterialTheme.shapes.medium)
+                .background(color)
+                .padding(horizontal = 24.dp),
+        contentAlignment = if (completing) Alignment.CenterStart else Alignment.CenterEnd,
+    ) {
+        if (target != SwipeToDismissBoxValue.Settled) {
+            Icon(
+                imageVector = if (completing) Icons.Filled.Check else Icons.Default.Delete,
+                contentDescription = null,
+                tint =
+                    if (completing) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onError
+                    },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DeleteWithChildrenDialog(
+    onDeleteAll: () -> Unit,
+    onKeepChildren: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.delete_subtasks_title)) },
+        text = { Text(stringResource(R.string.delete_subtasks_message)) },
+        confirmButton = {
+            TextButton(onClick = onDeleteAll) {
+                Text(
+                    stringResource(R.string.delete_subtasks_all),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeepChildren) {
+                Text(stringResource(R.string.delete_subtasks_keep))
+            }
+        },
+    )
 }
 
 private val DUE_DATE_FORMATTER: java.time.format.DateTimeFormatter =
@@ -3383,6 +3529,9 @@ class TaskListViewModel
             _collapsedIds.update { if (taskUid in it) it - taskUid else it + taskUid }
         }
 
+        // Ids of tasks swipe-deleted but not yet committed (undo window). Hidden from the list.
+        private val pendingDeleteIds = MutableStateFlow<Set<String>>(emptySet())
+
         // Network status and pending changes
         val isOnline =
             tasksRepository
@@ -3542,11 +3691,11 @@ class TaskListViewModel
                     )
             }
 
-        // Public tasks flow that respects freezing during sync
+        // Public tasks flow that respects freezing during sync and hides pending swipe-deletes
         val tasks =
-            combine(filteredTasks, frozenTasksForSync) { filtered, frozen ->
+            combine(filteredTasks, frozenTasksForSync, pendingDeleteIds) { filtered, frozen, pending ->
                 // Use frozen tasks during refresh to prevent UI flicker
-                frozen ?: filtered
+                (frozen ?: filtered).filter { it.id !in pending }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         init {
@@ -3647,40 +3796,56 @@ class TaskListViewModel
             }
         }
 
+        /** Checkbox path — fire and forget; the swipe path uses [applyCompletion] for its undo token. */
         fun toggleTaskComplete(task: Task) {
-            // Mark task for entry animation in the new section
+            applyCompletion(task)
+        }
+
+        /**
+         * Toggle [task]'s completion, cascading down to descendants (complete) or up to ancestors
+         * (reopen) — matching Todoist/Reminders/Google Tasks. Returns the exact set flipped so an
+         * undo snackbar can reverse it precisely.
+         */
+        fun applyCompletion(task: Task): CompletionChange {
             _animatingEntryTaskIds.update { it + task.id }
+            val all = allTasks.value
+            val readOnlyListIds =
+                taskLists.value
+                    .filter { it.shareAccess == ShareAccess.READ }
+                    .map { it.id }
+                    .toSet()
+            val wasDone = task.isEffectivelyDone
+            val affected =
+                (if (wasDone) collectAncestors(task, all) else collectDescendants(task, all))
+                    .filter { it.listId !in readOnlyListIds && it.isEffectivelyDone == wasDone }
+            setCompletion(affected, done = !wasDone)
+            return CompletionChange(affected.map { it.id }, nowDone = !wasDone)
+        }
+
+        /** Reverse an [applyCompletion] on exactly the tasks it flipped. */
+        fun undoCompletion(change: CompletionChange) {
+            val byId = allTasks.value.associateBy { it.id }
+            setCompletion(change.ids.mapNotNull { byId[it] }, done = !change.nowDone)
+        }
+
+        private fun setCompletion(
+            tasks: List<Task>,
+            done: Boolean,
+        ) {
             viewModelScope.launch {
                 try {
-                    val all = allTasks.value
-                    val readOnlyListIds =
-                        taskLists.value
-                            .filter { it.shareAccess == ShareAccess.READ }
-                            .map { it.id }
-                            .toSet()
-                    val wasDone = task.isEffectivelyDone
-                    // Checking a parent cascades down to its descendants; re-opening a child
-                    // cascades up to its ancestors — matching Todoist/Reminders/Google Tasks.
-                    val affected =
-                        if (wasDone) {
-                            collectAncestors(task, all)
-                        } else {
-                            collectDescendants(task, all)
-                        }.filter { it.listId !in readOnlyListIds }
-                    affected.forEach { t ->
-                        // Skip tasks already in the target state (no write amplification).
-                        if (t.isEffectivelyDone == !wasDone) return@forEach
+                    tasks.forEach { t ->
                         val updated =
-                            if (wasDone) {
-                                t.copy(completed = false, completedAt = null, status = "NEEDS-ACTION")
-                            } else {
+                            if (done) {
                                 t.copy(completed = true, completedAt = java.time.Instant.now(), status = "COMPLETED")
+                            } else {
+                                t.copy(completed = false, completedAt = null, status = "NEEDS-ACTION")
                             }
                         tasksRepository.updateTask(updated)
                     }
-                    timber.log.Timber.d("Task completion toggled (${affected.size} affected)")
+                    timber.log.Timber.d("Completion set to $done (${tasks.size} tasks)")
                 } catch (ignored: Exception) {
-                    timber.log.Timber.e(ignored, "Failed to toggle task completion")
+                    timber.log.Timber.e(ignored, "Failed to set completion")
                 }
             }
         }
@@ -3732,13 +3897,45 @@ class TaskListViewModel
             return result
         }
 
-        fun deleteTask(taskId: String) {
+        /**
+         * Stage a swipe-delete of [task]: hide the affected rows now (undo window), commit later.
+         * [keepChildren] frees the task's direct children (parentUid=null) and deletes only [task];
+         * otherwise the whole subtree is deleted. Nothing is written until [commitDelete].
+         */
+        fun stageDelete(
+            task: Task,
+            keepChildren: Boolean,
+        ): Deletion {
+            val all = allTasks.value
+            val deletion =
+                if (keepChildren) {
+                    val childIds = all.filter { it.parentUid != null && it.parentUid == task.uid }.map { it.id }
+                    Deletion(hiddenIds = setOf(task.id), deleteIds = listOf(task.id), freeIds = childIds)
+                } else {
+                    val subtree = collectDescendants(task, all).map { it.id }
+                    Deletion(hiddenIds = subtree.toSet(), deleteIds = subtree, freeIds = emptyList())
+                }
+            pendingDeleteIds.update { it + deletion.hiddenIds }
+            return deletion
+        }
+
+        fun undoDelete(deletion: Deletion) {
+            pendingDeleteIds.update { it - deletion.hiddenIds }
+        }
+
+        fun commitDelete(deletion: Deletion) {
             viewModelScope.launch {
                 try {
-                    tasksRepository.deleteTask(taskId)
-                    timber.log.Timber.d("Task deleted successfully")
+                    val byId = allTasks.value.associateBy { it.id }
+                    deletion.freeIds.forEach { id ->
+                        byId[id]?.let { tasksRepository.updateTask(it.copy(parentUid = null)) }
+                    }
+                    deletion.deleteIds.forEach { tasksRepository.deleteTask(it) }
+                    timber.log.Timber.d("Delete committed (${deletion.deleteIds.size} removed)")
                 } catch (ignored: Exception) {
-                    timber.log.Timber.e(ignored, "Failed to delete task")
+                    timber.log.Timber.e(ignored, "Failed to commit delete")
+                } finally {
+                    pendingDeleteIds.update { it - deletion.hiddenIds }
                 }
             }
         }

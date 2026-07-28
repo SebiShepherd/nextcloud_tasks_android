@@ -208,4 +208,11 @@
     <string name="select_parent_task">Zadanie nadrzędne</string>
     <string name="parent_none">Brak</string>
     <string name="pick_due_date">Termin</string>
+    <string name="task_deleted">Usunięto zadanie</string>
+    <string name="task_completed">Ukończono zadanie</string>
+    <string name="action_undo">Cofnij</string>
+    <string name="delete_subtasks_title">Usunąć zadanie z podzadaniami?</string>
+    <string name="delete_subtasks_message">To zadanie ma podzadania. Co z nimi zrobić?</string>
+    <string name="delete_subtasks_all">Usuń wszystko</string>
+    <string name="delete_subtasks_keep">Zachowaj podzadania</string>
 </resources>

@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0..1,0&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f0eee9;font-family:Roboto,system-ui,sans-serif}
+a{color:#0082c9}a:hover{color:#006aa3}
+.material-symbols-outlined{font-variation-settings:'FILL' 1;line-height:1;user-select:none}
+</style>
+</helmet>
+
+<div style="display:flex;gap:36px;align-items:flex-start;padding:40px 44px;box-sizing:border-box">
+
+<div style="display:flex;flex-direction:column;gap:12px">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="412px,892px">
+
+<div style="position:relative;height:100%;background:#fff;font-family:Roboto,sans-serif;-webkit-user-select:none;user-select:none;touch-action:none">
+
+  <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+  <div style="height:100%;display:flex;flex-direction:column">
+    <div style="height:64px;box-sizing:border-box;padding:8px 16px;flex:none">
+      <sc-if value="{{ selMode }}" hint-placeholder-val="{{ false }}">
+        <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;padding:0;box-sizing:border-box">
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none" onClick="{{ onExitSel }}"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">arrow_back</span></div>
+          <div style="flex:1;min-width:0;font:500 16px Roboto,sans-serif;color:#006aa3;padding-left:4px">{{ selCount }}</div>
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none" onClick="{{ onSelComplete }}"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">check_circle</span></div>
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none;opacity:{{ selAddOpacity }}" onClick="{{ onSelAddChild }}"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">subdirectory_arrow_right</span></div>
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none" onClick="{{ onSelMoveList }}"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">drive_file_move</span></div>
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none" onClick="{{ onToggleOverflow }}"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">more_vert</span></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ normalMode }}" hint-placeholder-val="{{ true }}">
+        <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+          <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center" onClick="{{ onOpenSort }}"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+          <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="flex:1;overflow:auto;padding:0 16px 16px;box-sizing:border-box">
+
+      <sc-for list="{{ rows }}" as="row" hint-placeholder-count="6">
+
+        <sc-if value="{{ row.isHeader }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0">
+            <div style="width:8px;height:8px;border-radius:50%;background:{{ row.dotColor }}"></div>
+            <div style="font:500 14px/20px Roboto,sans-serif;color:#767676">{{ row.title }}</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ row.isGuide }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px {{ row.guideIndent }}">
+            <div style="flex:1;height:40px;border:2px dashed #0082c9;border-radius:12px;background:rgba(0,130,201,.06);display:flex;align-items:center;padding:0 10px;font:500 12px Roboto,sans-serif;color:#0082c9;box-sizing:border-box">{{ row.guideLabel }}</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ row.isParent }}" hint-placeholder-val="{{ true }}">
+          <div style="position:relative;border-radius:12px;overflow:hidden;margin-bottom:12px;background:{{ row.swipeBg }}">
+            <sc-if value="{{ row.swipingRight }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;left:0;top:0;bottom:0;width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span class="material-symbols-outlined" style="font-size:20px;color:#fff">check</span><span style="font:500 10px Roboto,sans-serif;color:#fff">Erledigt</span></div>
+            </sc-if>
+            <sc-if value="{{ row.swipingLeft }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;right:0;top:0;bottom:0;width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span class="material-symbols-outlined" style="font-size:20px;color:#fff">delete</span><span style="font:500 10px Roboto,sans-serif;color:#fff">Löschen</span></div>
+            </sc-if>
+            <div style="background:{{ row.rowBg }};border:1px solid {{ row.borderColor }};border-radius:12px;padding:12px;display:flex;align-items:flex-start;box-shadow:{{ row.shadow }};transform:{{ row.transform }};position:relative" onPointerDown="{{ row.onPointerDown }}" onPointerMove="{{ row.onPointerMove }}" onPointerUp="{{ row.onPointerUp }}" onPointerCancel="{{ row.onPointerUp }}">
+              <div style="flex:none;margin:1px" onClick="{{ row.onToggle }}" onPointerDown="{{ row.onStopDown }}">
+                <sc-if value="{{ row.checked }}" hint-placeholder-val="{{ false }}">
+                  <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;margin:2px"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+                </sc-if>
+                <sc-if value="{{ row.unchecked }}" hint-placeholder-val="{{ true }}">
+                  <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:2px"></div>
+                </sc-if>
+              </div>
+              <div style="flex:1;padding-left:8px;min-width:0">
+                <div style="font:500 16px/24px Roboto,sans-serif;color:{{ row.titleColor }}">{{ row.title }}</div>
+                <sc-if value="{{ row.hasMeta }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;align-items:center;gap:8px;padding-top:8px;flex-wrap:wrap">
+                    <sc-if value="{{ row.hasChildren }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7" onClick="{{ row.onExpand }}" onPointerDown="{{ row.onStopDown }}">
+                        <sc-if value="{{ row.expanded }}" hint-placeholder-val="{{ true }}"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_less</span></sc-if>
+                        <sc-if value="{{ row.collapsed }}" hint-placeholder-val="{{ false }}"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_more</span></sc-if>
+                        <span style="font:500 12px Roboto,sans-serif;color:#222">{{ row.countLabel }}</span>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ row.hasDue }}" hint-placeholder-val="{{ true }}">
+                      <div style="font:500 11px/16px Roboto,sans-serif;color:#767676">{{ row.dueLabel }}</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="width:36px;height:36px;margin:-4px -4px 0 0;display:flex;align-items:center;justify-content:center;flex:none;align-self:center" onClick="{{ row.onStar }}" onPointerDown="{{ row.onStopDown }}"><span class="material-symbols-outlined" style="font-size:22px;color:{{ row.starColor }};font-variation-settings:{{ row.starFill }}">star</span></div>
+              <sc-if value="{{ row.showHandle }}" hint-placeholder-val="{{ false }}">
+                <div style="width:36px;height:36px;margin:-4px -8px 0 0;display:flex;align-items:center;justify-content:center;flex:none;touch-action:none;align-self:center" onPointerDown="{{ row.onHandleDown }}" onPointerMove="{{ row.onHandleMove }}" onPointerUp="{{ row.onHandleUp }}" onPointerCancel="{{ row.onHandleUp }}"><span class="material-symbols-outlined" style="font-size:22px;color:#0082c9">drag_indicator</span></div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ row.isChild }}" hint-placeholder-val="{{ false }}">
+          <div style="padding-left:{{ row.indentPx }};border-left:2px solid #e0e0e0;margin:0 0 8px {{ row.railLeft }}">
+            <div style="position:relative;border-radius:12px;overflow:hidden;background:{{ row.swipeBg }}">
+              <sc-if value="{{ row.swipingRight }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span class="material-symbols-outlined" style="font-size:20px;color:#fff">check</span><span style="font:500 10px Roboto,sans-serif;color:#fff">Erledigt</span></div>
+              </sc-if>
+              <sc-if value="{{ row.swipingLeft }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;right:0;top:0;bottom:0;width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span class="material-symbols-outlined" style="font-size:20px;color:#fff">delete</span><span style="font:500 10px Roboto,sans-serif;color:#fff">Löschen</span></div>
+              </sc-if>
+              <div style="background:{{ row.rowBg }};border:1px solid {{ row.borderColor }};border-radius:12px;padding:10px;display:flex;align-items:center;box-shadow:{{ row.shadow }};transform:{{ row.transform }};position:relative" onPointerDown="{{ row.onPointerDown }}" onPointerMove="{{ row.onPointerMove }}" onPointerUp="{{ row.onPointerUp }}" onPointerCancel="{{ row.onPointerUp }}">
+                <div style="flex:none" onClick="{{ row.onToggle }}" onPointerDown="{{ row.onStopDown }}">
+                  <sc-if value="{{ row.checked }}" hint-placeholder-val="{{ false }}">
+                    <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+                  </sc-if>
+                  <sc-if value="{{ row.unchecked }}" hint-placeholder-val="{{ true }}">
+                    <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px"></div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ row.checked }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">{{ row.title }}</div>
+                </sc-if>
+                <sc-if value="{{ row.unchecked }}" hint-placeholder-val="{{ true }}">
+                  <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:{{ row.titleColor }}">{{ row.title }}</div>
+                </sc-if>
+                <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none" onClick="{{ row.onStar }}" onPointerDown="{{ row.onStopDown }}"><span class="material-symbols-outlined" style="font-size:20px;color:{{ row.starColor }};font-variation-settings:{{ row.starFill }}">star</span></div>
+                <sc-if value="{{ row.showHandle }}" hint-placeholder-val="{{ false }}">
+                  <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;touch-action:none" onPointerDown="{{ row.onHandleDown }}" onPointerMove="{{ row.onHandleMove }}" onPointerUp="{{ row.onHandleUp }}" onPointerCancel="{{ row.onHandleUp }}"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">drag_indicator</span></div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ row.isAdder }}" hint-placeholder-val="{{ false }}">
+          <div style="padding-left:16px;border-left:2px solid #0082c9;margin:0 0 12px 9px">
+            <div style="background:#fff;border:1px solid #0082c9;border-radius:12px;padding:10px;display:flex;align-items:center">
+              <div style="width:18px;height:18px;border:2px solid #cacaca;border-radius:2px;flex:none"></div>
+              <input value="{{ draft }}" onChange="{{ onDraftChange }}" onKeyDown="{{ onDraftKey }}" placeholder="Unteraufgabe …" autoFocus="{{ true }}" style="flex:1;min-width:0;margin:0 8px;border:none;outline:none;background:transparent;font:16px/22px Roboto,sans-serif;color:#222" />
+              <div style="font:500 13px Roboto,sans-serif;color:#0082c9;padding:0 4px" onClick="{{ onDraftCommit }}">FERTIG</div>
+            </div>
+          </div>
+        </sc-if>
+
+      </sc-for>
+
+      <sc-if value="{{ hasCompleted }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;justify-content:center;height:40px;margin-top:4px" onClick="{{ onToggleCompleted }}">
+          <div style="font:500 14px Roboto,sans-serif;color:#0082c9;letter-spacing:.4px">{{ completedLabel }}</div>
+        </div>
+      </sc-if>
+      <sc-for list="{{ completedRows }}" as="done" hint-placeholder-count="0">
+        <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;margin-bottom:12px" onClick="{{ done.onOpen }}">
+          <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none" onClick="{{ done.onToggle }}"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+          <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#767676;text-decoration:line-through">{{ done.title }}</div>
+        </div>
+      </sc-for>
+      <div style="height:72px"></div>
+    </div>
+
+    <sc-if value="{{ normalMode }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center" onClick="{{ onOpenCreate }}"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+  <div style="height:100%;display:flex;flex-direction:column;overflow:auto">
+    <div style="height:64px;display:flex;align-items:center;padding:0 4px;flex:none">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center" onClick="{{ onBack }}"><span class="material-symbols-outlined" style="font-size:24px;color:#222">arrow_back</span></div>
+      <div style="flex:1"></div>
+      <sc-if value="{{ detail.isChild }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:4px;padding-right:4px;min-width:0" onClick="{{ onOpenParent }}"><span class="material-symbols-outlined" style="font-size:18px;color:#0082c9">arrow_upward</span><span style="font:500 12px Roboto,sans-serif;color:#0082c9;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ detail.parentTitle }}</span></div>
+      </sc-if>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center" onClick="{{ onMoreDetail }}"><span class="material-symbols-outlined" style="font-size:24px;color:#222">more_vert</span></div>
+    </div>
+    <div style="padding:8px 16px;font:400 24px/32px Roboto,sans-serif;color:#222">{{ detail.title }}</div>
+    <div style="display:flex;border-bottom:1px solid #e0e0e0;flex:none">
+      <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#0082c9;box-shadow:inset 0 -3px 0 #0082c9">Details</div>
+      <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#767676">Notizen</div>
+    </div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0;flex:none"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">radio_button_unchecked</span><div style="flex:1"><div style="font:500 11px Roboto,sans-serif;color:#767676">Status</div><div style="font:16px Roboto,sans-serif;color:#222">{{ detail.statusLabel }}</div></div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0;flex:none" onClick="{{ onOpenDetailDate }}"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">calendar_month</span><div style="flex:1"><div style="font:500 11px Roboto,sans-serif;color:#767676">Fälligkeitsdatum</div><div style="font:16px Roboto,sans-serif;color:#222">{{ detail.dueLabel }}</div></div></div>
+
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 4px"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">account_tree</span><div style="font:500 14px Roboto,sans-serif;color:#0082c9;flex:1">Unteraufgaben</div><div style="font:500 12px Roboto,sans-serif;color:#767676">{{ detail.progressLabel }}</div></div>
+    <div style="padding:0 16px 8px"><div style="height:4px;border-radius:2px;background:#e7e7e7"><div style="height:4px;border-radius:2px;background:#0082c9;width:{{ detail.progressPct }}"></div></div></div>
+
+    <sc-for list="{{ detail.children }}" as="kid" hint-placeholder-count="3">
+      <div style="min-height:48px;display:flex;align-items:center;padding:4px 16px">
+        <div style="flex:none" onClick="{{ kid.onToggle }}">
+          <sc-if value="{{ kid.checked }}" hint-placeholder-val="{{ false }}">
+            <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+          </sc-if>
+          <sc-if value="{{ kid.unchecked }}" hint-placeholder-val="{{ true }}">
+            <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px"></div>
+          </sc-if>
+        </div>
+        <sc-if value="{{ kid.checked }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:1;padding:0 12px;min-width:0;font:16px Roboto,sans-serif;color:#767676;text-decoration:line-through" onClick="{{ kid.onOpen }}">{{ kid.title }}</div>
+        </sc-if>
+        <sc-if value="{{ kid.unchecked }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;padding:0 12px;min-width:0;font:16px Roboto,sans-serif;color:#222" onClick="{{ kid.onOpen }}">{{ kid.title }}</div>
+        </sc-if>
+        <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none" onClick="{{ kid.onMore }}"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">more_vert</span></div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{ detail.adding }}" hint-placeholder-val="{{ false }}">
+      <div style="min-height:48px;display:flex;align-items:center;padding:4px 16px">
+        <div style="width:18px;height:18px;border:2px solid #cacaca;border-radius:2px;flex:none"></div>
+        <input value="{{ draft }}" onChange="{{ onDraftChange }}" onKeyDown="{{ onDraftKey }}" placeholder="Unteraufgabe …" autoFocus="{{ true }}" style="flex:1;min-width:0;margin:0 12px;border:none;outline:none;background:transparent;font:16px Roboto,sans-serif;color:#222;border-bottom:2px solid #0082c9;padding-bottom:2px" />
+        <div style="font:500 13px Roboto,sans-serif;color:#0082c9" onClick="{{ onDraftCommit }}">FERTIG</div>
+      </div>
+    </sc-if>
+
+    <div style="min-height:48px;display:flex;align-items:center;padding:4px 16px;gap:12px;border-bottom:1px solid #e0e0e0" onClick="{{ onAddInDetail }}"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">add</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Unteraufgabe hinzufügen</div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0;flex:none"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">location_on</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Standort festlegen</div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0;flex:none"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">label</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Tags auswählen</div></div>
+    <div style="height:24px;flex:none"></div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ overflow }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0" onClick="{{ onCloseOverflow }}">
+      <div style="position:absolute;right:8px;top:60px;background:#fff;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.28);padding:8px 0;width:238px" onClick="{{ stop }}">
+        <sc-if value="{{ overflow.canPromote }}" hint-placeholder-val="{{ false }}">
+          <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px" onClick="{{ onSelPromote }}"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">low_priority</span><span style="font:16px Roboto,sans-serif;color:#222">Aus Unteraufgabe lösen</span></div>
+        </sc-if>
+        <sc-if value="{{ overflow.canAssign }}" hint-placeholder-val="{{ false }}">
+          <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px" onClick="{{ onSelAssign }}"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">format_indent_increase</span><span style="font:16px Roboto,sans-serif;color:#222">Zuordnen zu …</span></div>
+        </sc-if>
+        <sc-if value="{{ overflow.assignBlocked }}" hint-placeholder-val="{{ false }}">
+          <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#cacaca">format_indent_increase</span><span style="font:16px Roboto,sans-serif;color:#cacaca">Zuordnen zu …</span></div>
+        </sc-if>
+        <sc-if value="{{ overflow.canOrder }}" hint-placeholder-val="{{ false }}">
+          <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px" onClick="{{ onSelOrder }}"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">swap_vert</span><span style="font:16px Roboto,sans-serif;color:#222">Reihenfolge ändern</span></div>
+        </sc-if>
+        <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px" onClick="{{ onSelAll }}"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">select_all</span><span style="font:16px Roboto,sans-serif;color:#222">Alle auswählen</span></div>
+        <div style="height:1px;background:#e0e0e0;margin:4px 0"></div>
+        <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px" onClick="{{ onSelDelete }}"><span class="material-symbols-outlined" style="font-size:20px;color:#e9322d">delete</span><span style="font:16px Roboto,sans-serif;color:#e9322d">Löschen</span></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ sheet }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.32);display:flex;flex-direction:column;justify-content:flex-end" onClick="{{ onCloseSheet }}">
+      <div style="background:#fff;border-radius:28px 28px 0 0;padding:0 0 12px;box-shadow:0 -6px 24px rgba(0,0,0,.24)" onClick="{{ stop }}">
+        <div style="display:flex;justify-content:center;padding:8px 0 4px"><div style="width:32px;height:4px;border-radius:2px;background:#cacaca"></div></div>
+        <div style="padding:8px 24px 12px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">{{ sheet.title }}</div><div style="font:500 11px Roboto,sans-serif;color:#767676;padding-top:2px">{{ sheet.subtitle }}</div></div>
+        <div style="height:1px;background:#e0e0e0;margin-bottom:4px"></div>
+        <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px" onClick="{{ onSheetComplete }}"><span class="material-symbols-outlined" style="font-size:22px;color:#46ba61">check_circle</span><span style="font:16px Roboto,sans-serif;color:#222">{{ sheet.completeLabel }}</span></div>
+        <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px" onClick="{{ onSheetAddChild }}"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">subdirectory_arrow_right</span><span style="font:16px Roboto,sans-serif;color:#222">Unteraufgabe hinzufügen</span></div>
+        <sc-if value="{{ sheet.canPromote }}" hint-placeholder-val="{{ false }}">
+          <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px" onClick="{{ onSheetPromote }}"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">low_priority</span><span style="font:16px Roboto,sans-serif;color:#222">Aus Unteraufgabe lösen</span></div>
+        </sc-if>
+        <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px" onClick="{{ onSheetAssign }}"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">format_indent_increase</span><div style="flex:1;min-width:0"><span style="font:16px Roboto,sans-serif;color:#222">Zuordnen zu …</span><div style="font:500 11px Roboto,sans-serif;color:#767676">Übergeordnete Aufgabe wählen</div></div><span class="material-symbols-outlined" style="font-size:22px;color:#767676">chevron_right</span></div>
+        <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px" onClick="{{ onSheetMoveList }}"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">drive_file_move</span><div style="flex:1;min-width:0"><span style="font:16px Roboto,sans-serif;color:#222">Liste wechseln</span><div style="font:500 11px Roboto,sans-serif;color:#767676">{{ sheet.listName }}</div></div><span class="material-symbols-outlined" style="font-size:22px;color:#767676">chevron_right</span></div>
+        <div style="height:1px;background:#e0e0e0;margin:4px 0"></div>
+        <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px" onClick="{{ onSheetDelete }}"><span class="material-symbols-outlined" style="font-size:22px;color:#e9322d">delete</span><span style="font:16px Roboto,sans-serif;color:#e9322d">Löschen</span></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ sortOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;padding:24px" onClick="{{ onCloseSort }}">
+      <div style="background:#fff;border-radius:28px;box-shadow:0 8px 28px rgba(0,0,0,.3);padding:24px 0 12px;width:100%;box-sizing:border-box" onClick="{{ stop }}">
+        <div style="font:400 24px/32px Roboto,sans-serif;color:#222;padding:0 24px 12px">Sortierung</div>
+        <sc-for list="{{ sortOptions }}" as="opt" hint-placeholder-count="5">
+          <div style="min-height:48px;display:flex;align-items:center;gap:12px;padding:4px 24px" onClick="{{ opt.onPick }}">
+            <sc-if value="{{ opt.current }}" hint-placeholder-val="{{ false }}">
+              <div style="width:20px;height:20px;border-radius:50%;border:2px solid #0082c9;display:flex;align-items:center;justify-content:center;flex:none"><div style="width:10px;height:10px;border-radius:50%;background:#0082c9"></div></div>
+            </sc-if>
+            <sc-if value="{{ opt.notCurrent }}" hint-placeholder-val="{{ true }}">
+              <div style="width:20px;height:20px;border-radius:50%;border:2px solid #767676;flex:none"></div>
+            </sc-if>
+            <div style="flex:1;min-width:0"><div style="font:16px Roboto,sans-serif;color:#222">{{ opt.title }}</div><sc-if value="{{ opt.isManual }}" hint-placeholder-val="{{ false }}"><div style="font:500 11px Roboto,sans-serif;color:#0082c9">Ziehen &amp; Verschachteln möglich</div></sc-if></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ createOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.32);display:flex;flex-direction:column;justify-content:flex-end" onClick="{{ onCloseCreate }}">
+      <div style="background:#fff;border-radius:28px 28px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.24);padding:8px 0 4px" onClick="{{ stop }}">
+        <sc-if value="{{ createParentLabel }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 20px 6px">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#0082c9">subdirectory_arrow_right</span>
+            <div style="flex:1;min-width:0;font:500 12px Roboto,sans-serif;color:#0082c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ createParentLabel }}</div>
+            <span class="material-symbols-outlined" style="font-size:18px;color:#767676" onClick="{{ onClearCreateParent }}">close</span>
+          </div>
+        </sc-if>
+        <div style="padding:12px 20px 2px">
+          <input value="{{ draft }}" onChange="{{ onDraftChange }}" onKeyDown="{{ onDraftKey }}" placeholder="{{ createTitleHint }}" autoFocus="{{ true }}" style="width:100%;border:none;outline:none;background:transparent;font:16px/24px Roboto,sans-serif;color:#222;padding:0" />
+        </div>
+        <sc-if value="{{ showDesc }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:2px 20px 8px">
+            <input value="{{ createDesc }}" onChange="{{ onDescChange }}" placeholder="Beschreibung" style="width:100%;border:none;outline:none;background:transparent;font:14px/20px Roboto,sans-serif;color:#222;padding:0" />
+          </div>
+        </sc-if>
+        <sc-if value="{{ createDueLabel }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:12px;padding:2px 20px 8px" onClick="{{ onCreateDue }}">
+            <span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">event</span>
+            <div style="flex:1;min-width:0;font:14px Roboto,sans-serif;color:#222">{{ createDueLabel }}</div>
+            <span class="material-symbols-outlined" style="font-size:18px;color:#767676" onClick="{{ onClearCreateDue }}">close</span>
+          </div>
+        </sc-if>
+        <div style="height:1px;background:#e0e0e0;margin:0 20px 8px"></div>
+        <sc-if value="{{ listEditable }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;align-items:center;gap:12px;padding:0 20px 10px" onClick="{{ onPickCreateList }}">
+            <span class="material-symbols-outlined" style="font-size:20px;color:#767676">list_alt</span>
+            <div style="flex:1;min-width:0;font:14px Roboto,sans-serif;color:#222">{{ createListName }}</div>
+            <span class="material-symbols-outlined" style="font-size:20px;color:#767676">arrow_drop_down</span>
+          </div>
+        </sc-if>
+        <div style="display:flex;align-items:center;padding:4px 8px 8px">
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center" onClick="{{ onShowDesc }}"><span class="material-symbols-outlined" style="font-size:22px;color:{{ descIconColor }}">notes</span></div>
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center" onClick="{{ onCreateDue }}"><span class="material-symbols-outlined" style="font-size:22px;color:{{ dueIconColor }}">schedule</span></div>
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center" onClick="{{ onToggleCreateStar }}"><span class="material-symbols-outlined" style="font-size:22px;color:{{ starIconColor }};font-variation-settings:{{ starIconFill }}">star</span></div>
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center" onClick="{{ onPickCreateParent }}"><span class="material-symbols-outlined" style="font-size:22px;color:{{ parentIconColor }}">subdirectory_arrow_right</span></div>
+          <div style="flex:1"></div>
+          <div style="height:40px;padding:0 16px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:{{ saveColor }}" onClick="{{ onDraftCommit }}">SPEICHERN</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ picker }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.32);display:flex;flex-direction:column;justify-content:flex-end" onClick="{{ onClosePicker }}">
+      <div style="background:#fff;border-radius:28px 28px 0 0;padding:0 0 16px;box-shadow:0 -6px 24px rgba(0,0,0,.24);max-height:70%;overflow:auto" onClick="{{ stop }}">
+        <div style="display:flex;justify-content:center;padding:8px 0 4px"><div style="width:32px;height:4px;border-radius:2px;background:#cacaca"></div></div>
+        <div style="padding:8px 24px 12px;font:500 16px/24px Roboto,sans-serif;color:#222">{{ picker.title }}</div>
+        <div style="height:1px;background:#e0e0e0;margin-bottom:4px"></div>
+        <sc-for list="{{ picker.options }}" as="opt" hint-placeholder-count="3">
+          <div style="min-height:52px;display:flex;align-items:center;gap:16px;padding:8px 24px" onClick="{{ opt.onPick }}">
+            <div style="width:10px;height:10px;border-radius:50%;background:{{ opt.dot }};flex:none"></div>
+            <div style="flex:1;min-width:0;font:16px Roboto,sans-serif;color:#222">{{ opt.title }}</div>
+            <sc-if value="{{ opt.current }}" hint-placeholder-val="{{ false }}"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">check</span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ datePicker }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;padding:20px" onClick="{{ onCloseDate }}">
+      <div style="background:#fff;border-radius:28px;box-shadow:0 8px 28px rgba(0,0,0,.3);padding:16px 12px 8px;width:100%;max-width:328px;box-sizing:border-box" onClick="{{ stop }}">
+        <div style="padding:0 12px 4px;font:500 12px Roboto,sans-serif;color:#767676">Fälligkeitsdatum wählen</div>
+        <div style="padding:0 12px 16px;font:400 32px/40px Roboto,sans-serif;color:#222">{{ datePicker.headline }}</div>
+        <div style="height:1px;background:#e0e0e0;margin-bottom:4px"></div>
+        <div style="display:flex;align-items:center;padding:0 4px 2px">
+          <div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center" onClick="{{ onPrevMonth }}"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">chevron_left</span></div>
+          <div style="flex:1;text-align:center;font:500 14px Roboto,sans-serif;color:#222">{{ datePicker.monthLabel }}</div>
+          <div style="width:40px;height:40px;display:flex;align-items:center;justify-content:center" onClick="{{ onNextMonth }}"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">chevron_right</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 2px 4px">
+          <div style="height:24px;display:flex;align-items:center;justify-content:center;font:500 12px Roboto,sans-serif;color:#767676">M</div>
+          <div style="height:24px;display:flex;align-items:center;justify-content:center;font:500 12px Roboto,sans-serif;color:#767676">D</div>
+          <div style="height:24px;display:flex;align-items:center;justify-content:center;font:500 12px Roboto,sans-serif;color:#767676">M</div>
+          <div style="height:24px;display:flex;align-items:center;justify-content:center;font:500 12px Roboto,sans-serif;color:#767676">D</div>
+          <div style="height:24px;display:flex;align-items:center;justify-content:center;font:500 12px Roboto,sans-serif;color:#767676">F</div>
+          <div style="height:24px;display:flex;align-items:center;justify-content:center;font:500 12px Roboto,sans-serif;color:#767676">S</div>
+          <div style="height:24px;display:flex;align-items:center;justify-content:center;font:500 12px Roboto,sans-serif;color:#767676">S</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:0 2px">
+          <sc-for list="{{ datePicker.days }}" as="day" hint-placeholder-count="35">
+            <div style="height:44px;display:flex;align-items:center;justify-content:center" onClick="{{ day.onPick }}">
+              <div style="width:40px;height:40px;border-radius:50%;background:{{ day.bg }};display:flex;align-items:center;justify-content:center;font:14px Roboto,sans-serif;color:{{ day.color }}">{{ day.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:8px 8px 0">
+          <div style="height:40px;padding:0 12px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:#0082c9" onClick="{{ onCloseDate }}">ABBRECHEN</div>
+          <div style="height:40px;padding:0 12px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:{{ datePicker.okColor }}" onClick="{{ onConfirmDate }}">OK</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ confirm }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center;padding:24px">
+      <div style="background:#fff;border-radius:28px;box-shadow:0 8px 24px rgba(0,0,0,.3);padding:24px;width:100%;box-sizing:border-box">
+        <div style="font:400 24px/32px Roboto,sans-serif;color:#222;margin-bottom:12px">„{{ confirm.title }}“ löschen?</div>
+        <div style="font:14px/20px Roboto,sans-serif;color:#767676;margin-bottom:20px">Diese Aufgabe hat {{ confirm.countLabel }}. Sollen sie mitgelöscht oder freigestellt werden?</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <div style="height:44px;padding:0 12px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:#0082c9" onClick="{{ onConfirmPromote }}">UNTERAUFGABEN BEHALTEN</div>
+          <div style="height:44px;padding:0 12px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:#e9322d" onClick="{{ onConfirmDeleteAll }}">ALLES LÖSCHEN</div>
+          <div style="height:44px;padding:0 12px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:#767676" onClick="{{ onCloseConfirm }}">ABBRECHEN</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ snack }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;left:16px;right:16px;bottom:88px;min-height:48px;border-radius:4px;background:#e7e7e7;display:flex;align-items:center;justify-content:space-between;padding:8px 16px;box-shadow:0 3px 8px rgba(0,0,0,.18)">
+      <span style="font:14px/20px Roboto,sans-serif;color:#222;padding-right:12px">{{ snack.text }}</span>
+      <span style="font:500 14px Roboto,sans-serif;color:#0082c9" onClick="{{ onSnackAction }}">{{ snack.action }}</span>
+    </div>
+  </sc-if>
+
+</div>
+</x-import>
+<div style="width:412px;font:12px/1.55 Roboto,sans-serif;color:rgba(0,0,0,.55)">Tippen öffnet das Detail · Chip klappt · <b>waagerecht wischen</b>: rechts erledigen, links löschen · <b>lange drücken</b> wählt aus <i>und</i> schaltet die Handles frei (nach rechts ziehen = verschachteln) · weitere Zeilen antippen = Mehrfachauswahl · Pfeil zurück beendet den Modus · Handles nur bei „Meine Reihenfolge“.</div>
+</div>
+
+<div style="width:400px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#222">
+<div style="font:500 15px/1.3 Roboto,sans-serif;margin-bottom:6px">Stand: 5a (Liste) + 7a (Erstell-Blatt) · Turn 7</div>
+<div style="display:flex;flex-direction:column;gap:10px;color:#555">
+<div><b style="color:#222">Ein Modus, zwei Fähigkeiten.</b> Long-Press wählt aus <i>und</i> gibt die Handles frei (wie Tasks.org / MS To Do); Zurück beendet. Die Zeilen bleiben frei von Icons — kein Dreipunkt, kein Delete.</div>
+<div><b style="color:#222">Swipe zusätzlich:</b> rechts erledigen, links löschen, beides mit Rückgängig. Damit ist Löschen besser erreichbar als vorher mit dem Icon.</div>
+<div><b style="color:#222">Handles nur bei „Meine Reihenfolge“.</b> Bei Feld-Sortierung bleibt der Auswahl-Modus nutzbar, nur ohne Handles — im Overflow liegt dann <i>Reihenfolge ändern</i>, das auf „Meine Reihenfolge“ umstellt. Vorbild ist die Adapter-Weiche in Tasks.org (<code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">isManualSort</code>).</div>
+<div><b style="color:#222">Zwei Ebenen (deine Wahl b).</b> Ebene 2 wird mit halber Einrückung gerendert (12dp statt 16dp), tiefer geht nicht — der Versuch kommentiert sich per Snackbar. Ein Parent kann nicht in seinen eigenen Nachfahren fallen (<code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">canMove</code>-Regel).</div>
+<div><b style="color:#222">Abhaken kaskadiert.</b> Parent abhaken hakt die Unteraufgaben mit ab, ein Kind wieder öffnen öffnet die übergeordnete Aufgabe mit — genau die Regel aus <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">TaskCompleter</code> in Tasks.org, und identisch zu Todoist, Reminders und Google Tasks. Ein Rückgängig deckt die ganze Kette.</div>
+<div><b style="color:#222">Löschen mit Kindern</b> fragt: mitlöschen oder freistellen. Mehrfachauswahl erzeugt <b>eine</b> Snackbar mit einem Rückgängig.</div><div><b style="color:#222">Liste wechseln</b> zeigt nur die Listen — keine Warnung vorher. Ein Parent nimmt seine Kinder mit; eine einzeln verschobene Unteraufgabe wird eigenständig. Danach nur die normale Snackbar „Nach … verschoben“ mit Rückgängig — keine Erklärtexte. Genau so machen es Todoist und Google Tasks.</div>
+</div>
+<div style="font:500 15px/1.3 Roboto,sans-serif;margin:18px 0 6px">Neue Aufgabe</div>
+<div style="color:#555">Der FAB öffnet ein Blatt statt eines Dialogs: Titel ist das einzige Pflichtfeld. Die Icon-Reihe enthüllt Beschreibung, öffnet den echten Datepicker, setzt den Favoriten-Stern und die übergeordnete Aufgabe. Keine Chip-Wolke — Parent-Auswahl ist ein eigenes Blatt, gruppiert nach Liste; die Liste folgt dem Parent.</div><div style="color:#555;margin-top:10px"><b style="color:#222">Favoriten brauchen kein neues Feld.</b> Nextcloud Web bildet den Stern auf <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">PRIORITY</code> ab: <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">toggleStarred</code> setzt 1, wenn die Priorität nicht 1–4 ist, sonst 0; die Sammlung „Favoriten“ filtert <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">priority &gt; 0 &amp;&amp; &lt; 5</code>. Der Prototyp macht es genauso — Konsequenz: „Dringlichkeit: Hoch“ im Detail und der Stern sind dasselbe Datum und müssen synchron bleiben.</div>
+<div style="font:500 15px/1.3 Roboto,sans-serif;margin:18px 0 6px">Offen für die Umsetzung</div>
+<div style="color:#555">Reihenfolge-Persistenz (CalDAV kennt kein Standardfeld — Vorschlag: <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">X-APPLE-SORT-ORDER</code> wie Reminders, sonst lokal), Verhalten beim Wechsel der Liste eines Parents (Kinder mitnehmen?), und ob <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">MANUAL</code> („Meine Reihenfolge“) pro Liste oder global gilt.</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:900,&quot;height&quot;:1000}}">
+const LISTS = [
+  { id: 'privat', name: 'Privat', color: '#0082c9' },
+  { id: 'arbeit', name: 'Arbeit', color: '#46ba61' },
+];
+const SEED = [
+  { id: 'p1', listId: 'privat', title: 'Wohnung in der Sonnenstraße kündigen', parentId: null, completed: false, due: 'Fällig: 14. August', priority: 5 },
+  { id: 'c1', listId: 'privat', title: 'Kartons besorgen', parentId: 'p1', completed: true, due: null },
+  { id: 'c2', listId: 'privat', title: 'Nachsendeauftrag stellen', parentId: 'p1', completed: false, due: null },
+  { id: 'c3', listId: 'privat', title: 'Möbel abbauen', parentId: 'p1', completed: false, due: null },
+  { id: 'p2', listId: 'privat', title: 'Steuererklärung', parentId: null, completed: false, due: null, priority: 9 },
+  { id: 'c4', listId: 'privat', title: 'Belege sortieren', parentId: 'p2', completed: false, due: null },
+  { id: 'c5', listId: 'privat', title: 'Elster-Zugang prüfen', parentId: 'p2', completed: false, due: null },
+  { id: 'p3', listId: 'privat', title: 'Zahnarzttermin', parentId: null, completed: false, due: 'Fällig: 3. August', priority: 1 },
+  { id: 'p4', listId: 'arbeit', title: 'Release 1.4 vorbereiten', parentId: null, completed: false, due: null, priority: 3 },
+  { id: 'c6', listId: 'arbeit', title: 'Changelog schreiben', parentId: 'p4', completed: true, due: null },
+  { id: 'c7', listId: 'arbeit', title: 'Signing prüfen', parentId: 'p4', completed: false, due: null },
+];
+const SORTS = [
+  { key: 'manual', label: 'Meine Reihenfolge' },
+  { key: 'due', label: 'Fälligkeitsdatum' },
+  { key: 'priority', label: 'Priorität' },
+  { key: 'title', label: 'Titel' },
+  { key: 'updated', label: 'Zuletzt aktualisiert' },
+];
+const STEP = 56;
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+/* Favorit ist in Nextcloud Tasks kein eigenes Feld, sondern PRIORITY 1..4 (siehe toggleStarred im Web-Client) */
+function isStarred(t) { return !!t.priority && t.priority > 0 && t.priority < 5; }
+function dueValue(t) {
+  if (!t.due) return 1e9;
+  const m = /(\d+)\.\s*(\S+)/.exec(t.due);
+  if (!m) return 1e9;
+  const mi = MONTHS.indexOf(m[2]);
+  return (mi < 0 ? 11 : mi) * 100 + parseInt(m[1], 10);
+}
+
+class Component extends DCLogic {
+  state = {
+    tasks: SEED,
+    expanded: { p1: true },
+    screen: 'list',
+    selectedId: null,
+    addingFor: null,
+    draft: '',
+    sheetId: null,
+    picker: null,
+    confirmId: null,
+    createOpen: false,
+    createParent: null,
+    createList: 'privat',
+    createDesc: '',
+    showDesc: false,
+    createStar: false,
+    createDue: null,
+    dateFor: null,
+    dateMonth: 7,
+    dateDay: null,
+    snack: null,
+    undo: null,
+    showCompleted: false,
+    sort: 'manual',
+    sortOpen: false,
+    selMode: false,
+    selected: {},
+    overflowOpen: false,
+    drag: null,
+    swipe: null,
+  };
+  holdTimer = null;
+  snackTimer = null;
+  press = null;
+  seq = 100;
+
+  kids(id) { return this.sortLevel(this.state.tasks.filter((t) => t.parentId === id)); }
+
+  /* Sortierung innerhalb einer Ebene — Kinder bleiben immer bei ihrem Parent */
+  sortLevel(items) {
+    const mode = this.state.sort;
+    if (mode === 'manual' || mode === 'updated') return items;
+    const out = items.slice();
+    if (mode === 'due') out.sort((a, b) => dueValue(a) - dueValue(b));
+    if (mode === 'title') out.sort((a, b) => a.title.localeCompare(b.title, 'de'));
+    if (mode === 'priority') out.sort((a, b) => (a.priority || 99) - (b.priority || 99));
+    return out;
+  }
+
+  tops(listId) {
+    return this.sortLevel(this.state.tasks.filter((t) => t.listId === listId && !t.parentId && !t.completed));
+  }
+  byId(id) { return this.state.tasks.find((t) => t.id === id) || null; }
+  snap() { return this.state.tasks.map((t) => Object.assign({}, t)); }
+
+  selIds() { return Object.keys(this.state.selected).filter((k) => this.state.selected[k]); }
+
+  enterSel(id) {
+    const sel = {};
+    sel[id] = true;
+    this.setState({ selMode: true, selected: sel, swipe: null });
+  }
+
+  toggleSel(id) {
+    const sel = Object.assign({}, this.state.selected);
+    if (sel[id]) delete sel[id]; else sel[id] = true;
+    if (Object.keys(sel).length === 0) { this.setState({ selMode: false, selected: {}, overflowOpen: false }); return; }
+    this.setState({ selected: sel });
+  }
+
+  toast(text, action) {
+    clearTimeout(this.snackTimer);
+    this.setState({ snack: { text, action: action || 'RÜCKGÄNGIG' } });
+    this.snackTimer = setTimeout(() => this.setState({ snack: null }), 4600);
+  }
+
+  descendants(id) {
+    let out = [];
+    this.state.tasks.filter((t) => t.parentId === id).forEach((k) => {
+      out.push(k.id);
+      out = out.concat(this.descendants(k.id));
+    });
+    return out;
+  }
+
+  ancestors(id) {
+    const out = [];
+    let cur = this.byId(id);
+    let guard = 0;
+    while (cur && cur.parentId && guard < 8) {
+      out.push(cur.parentId);
+      cur = this.byId(cur.parentId);
+      guard += 1;
+    }
+    return out;
+  }
+
+  /* Abhaken zieht die Kinder mit, Wieder-Öffnen zieht die Eltern mit — wie TaskCompleter in Tasks.org */
+  toggle(id) {
+    const t = this.byId(id);
+    if (!t) return;
+    const next = !t.completed;
+    const ids = [id].concat(next ? this.descendants(id) : this.ancestors(id));
+    const changed = this.state.tasks.filter((x) => ids.indexOf(x.id) >= 0 && x.completed !== next).length;
+    this.setState({
+      undo: this.snap(),
+      tasks: this.state.tasks.map((x) => (ids.indexOf(x.id) >= 0 ? Object.assign({}, x, { completed: next }) : x)),
+    });
+    if (next) this.toast(changed > 1 ? 'Erledigt · ' + (changed - 1) + ' Unteraufgabe(n) mit' : 'Erledigt');
+    else if (changed > 1) this.toast('Wieder offen · übergeordnete Aufgabe mit');
+  }
+
+  remove(id, mode) {
+    const kids = this.kids(id);
+    if (kids.length > 0 && !mode) { this.setState({ confirmId: id, sheetId: null }); return; }
+    const undo = this.snap();
+    let tasks = this.state.tasks.filter((x) => x.id !== id);
+    if (mode === 'all') tasks = tasks.filter((x) => x.parentId !== id);
+    else tasks = tasks.map((x) => (x.parentId === id ? Object.assign({}, x, { parentId: null }) : x));
+    this.setState({ tasks, undo, confirmId: null, sheetId: null });
+    this.toast(mode === 'all' ? 'Aufgabe und Unteraufgaben gelöscht' : 'Aufgabe gelöscht');
+  }
+
+  createFrom(parentId, listId, title) {
+    if (!title || !title.trim()) return;
+    this.seq += 1;
+    const task = { id: 'n' + this.seq, listId, title: title.trim(), parentId: parentId || null, completed: false, due: this.state.createDue, priority: this.state.createStar ? 1 : 0 };
+    const tasks = this.state.tasks.slice();
+    if (parentId) {
+      let idx = -1;
+      tasks.forEach((t, i) => { if (t.id === parentId || t.parentId === parentId) idx = i; });
+      tasks.splice(idx + 1, 0, task);
+    } else tasks.push(task);
+    const expanded = Object.assign({}, this.state.expanded);
+    if (parentId) expanded[parentId] = true;
+    this.setState({ tasks, expanded, draft: '' });
+  }
+
+  commitDraft = () => {
+    const s = this.state;
+    if (s.createOpen) {
+      if (!s.draft.trim()) return;
+      const parent = s.createParent ? this.byId(s.createParent) : null;
+      this.createFrom(s.createParent, parent ? parent.listId : s.createList, s.draft);
+      this.setState({ createOpen: false, createParent: null, draft: '', createDesc: '', showDesc: false, createStar: false, createDue: null, dateDay: null });
+      return;
+    }
+    const parent = this.byId(s.addingFor);
+    if (parent) this.createFrom(parent.id, parent.listId, s.draft);
+  };
+
+  setParent(id, parentId) {
+    const t = this.byId(id);
+    if (!t || id === parentId) return;
+    const target = parentId ? this.byId(parentId) : null;
+    if (target && this.ancestors(target.id).indexOf(id) >= 0) return;
+    if (target && this.level(target.id) >= 2) { this.toast('Tiefer als zwei Ebenen geht nicht', 'OK'); return; }
+    const undo = this.snap();
+    const own = this.kids(id);
+    let tasks = this.state.tasks.map((x) => (x.id === id ? Object.assign({}, x, { parentId: parentId || null, listId: target ? target.listId : x.listId }) : x));
+    if (parentId && own.length > 0) tasks = tasks.map((x) => (x.parentId === id ? Object.assign({}, x, { parentId: parentId }) : x));
+    const expanded = Object.assign({}, this.state.expanded);
+    if (parentId) expanded[parentId] = true;
+    this.setState({ tasks, undo, expanded, sheetId: null, picker: null });
+    this.toast(parentId ? 'Zu „' + target.title + '“ verschoben' : 'Aus Unteraufgabe gelöst');
+  }
+
+  /* flache Liste der sichtbaren Aufgaben (Reihenfolge wie gerendert) */
+  visible() {
+    const out = [];
+    const s = this.state;
+    const walk = (t, level) => {
+      out.push(t);
+      if (s.expanded[t.id] && level < 2) this.kids(t.id).forEach((k) => walk(k, level + 1));
+    };
+    LISTS.forEach((list) => { this.tops(list.id).forEach((t) => walk(t, 0)); });
+    return out;
+  }
+
+  level(id) { return Math.min(2, this.ancestors(id).length); }
+
+  dropTarget() {
+    const d = this.state.drag;
+    if (!d) return null;
+    const flat = this.visible();
+    const from = flat.findIndex((t) => t.id === d.id);
+    if (from < 0) return null;
+    const shift = Math.round(d.dy / STEP);
+    let to = Math.max(0, Math.min(flat.length - 1, from + shift));
+    const anchor = to > 0 ? flat[to - 1] : (to > from ? flat[to] : null);
+    const wantChild = d.dx > 28;
+    let parentId = null;
+    if (wantChild && anchor && anchor.id !== d.id) {
+      const base = this.level(anchor.id) < 2 ? anchor.id : anchor.parentId;
+      if (base && base !== d.id && this.ancestors(base).indexOf(d.id) < 0) parentId = base;
+    }
+    return { index: to, parentId, anchor };
+  }
+
+  commitDrag() {
+    const target = this.dropTarget();
+    const d = this.state.drag;
+    this.setState({ drag: null });
+    if (!target || !d) return;
+    const task = this.byId(d.id);
+    if (!task) return;
+    if (target.parentId !== (task.parentId || null)) { this.setParent(d.id, target.parentId); return; }
+    const flat = this.visible();
+    const from = flat.findIndex((t) => t.id === d.id);
+    if (from === target.index) return;
+    const undo = this.snap();
+    const moving = [task].concat(this.kids(task.id));
+    const ids = moving.map((m) => m.id);
+    const rest = this.state.tasks.filter((t) => ids.indexOf(t.id) < 0);
+    const anchor = target.anchor;
+    let at = rest.length;
+    if (anchor && ids.indexOf(anchor.id) < 0) {
+      const ai = rest.findIndex((t) => t.id === anchor.id);
+      at = ai + 1 + this.kids(anchor.id).filter((k) => ids.indexOf(k.id) < 0).length;
+    } else at = 0;
+    const tasks = rest.slice();
+    tasks.splice(at, 0, ...moving);
+    this.setState({ tasks, undo });
+    this.toast('Reihenfolge geändert');
+  }
+
+  rowGestures(t, isChild) {
+    const s = this.state;
+    return {
+      onStopDown: (e) => {
+        e.stopPropagation();
+        this.press = null;
+        clearTimeout(this.holdTimer);
+      },
+      onPointerDown: (e) => {
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+        this.press = { id: t.id, x: e.clientX, y: e.clientY, moved: false, swiping: false };
+        if (s.selMode) return;
+        clearTimeout(this.holdTimer);
+        this.holdTimer = setTimeout(() => {
+          if (!this.press || this.press.moved) return;
+          this.enterSel(t.id);
+          this.press = null;
+        }, 430);
+      },
+      onPointerMove: (e) => {
+        const p = this.press;
+        if (!p || p.id !== t.id || this.state.selMode) return;
+        const dx = e.clientX - p.x;
+        const dy = e.clientY - p.y;
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) p.moved = true;
+        if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+          p.swiping = true;
+          clearTimeout(this.holdTimer);
+          this.setState({ swipe: { id: t.id, dx: Math.max(-140, Math.min(140, dx)) } });
+        }
+      },
+      onPointerUp: () => {
+        clearTimeout(this.holdTimer);
+        const p = this.press;
+        this.press = null;
+        const sw = this.state.swipe;
+        if (sw && sw.id === t.id) {
+          this.setState({ swipe: null });
+          if (sw.dx > 64) { this.toggle(t.id); return; }
+          if (sw.dx < -64) { this.remove(t.id); return; }
+          return;
+        }
+        if (p && !p.moved) {
+          if (this.state.selMode) this.toggleSel(t.id);
+          else this.setState({ screen: 'detail', selectedId: t.id, addingFor: null });
+        }
+      },
+      onHandleDown: (e) => {
+        e.stopPropagation();
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+        this.setState({ drag: { id: t.id, x: e.clientX, y: e.clientY, dx: 0, dy: 0 } });
+      },
+      onHandleMove: (e) => {
+        const d = this.state.drag;
+        if (!d || d.id !== t.id) return;
+        this.setState({ drag: Object.assign({}, d, { dx: e.clientX - d.x, dy: e.clientY - d.y }) });
+      },
+      onHandleUp: (e) => { e.stopPropagation(); if (this.state.drag) this.commitDrag(); },
+    };
+  }
+
+  buildRows() {
+    const s = this.state;
+    const rows = [];
+    const drag = s.drag;
+    const target = this.dropTarget();
+    const flat = this.visible();
+    const guideAt = target ? target.index : -1;
+    let vIndex = 0;
+
+    LISTS.forEach((list) => {
+      const tops = this.tops(list.id);
+      if (tops.length === 0) return;
+      rows.push({ key: 'h-' + list.id, isHeader: true, title: list.name, dotColor: list.color });
+
+      const emit = (t, level) => {
+        const isChild = level > 0;
+        if (drag && guideAt === vIndex) {
+          rows.push({
+            key: 'guide-' + vIndex,
+            isGuide: true,
+            guideIndent: target.parentId ? (this.level(target.parentId) > 0 ? '46px' : '25px') : '0px',
+            guideLabel: target.parentId ? 'Ebene 1 · Unteraufgabe von „' + this.byId(target.parentId).title.slice(0, 22) + '…“' : 'Ebene 0 · eigenständige Aufgabe',
+          });
+        }
+        vIndex += 1;
+        const kids = this.kids(t.id);
+        const done = kids.filter((k) => k.completed).length;
+        const expanded = !!s.expanded[t.id];
+        const isDragged = !!drag && drag.id === t.id;
+        const sw = s.swipe && s.swipe.id === t.id ? s.swipe.dx : 0;
+        const g = this.rowGestures(t, isChild);
+        rows.push(Object.assign({
+          key: t.id,
+          isParent: !isChild,
+          isChild: isChild,
+          indentPx: level > 1 ? '12px' : '16px',
+          railLeft: level > 1 ? '25px' : '9px',
+          title: t.title,
+          checked: t.completed,
+          unchecked: !t.completed,
+          hasChildren: kids.length > 0,
+          hasMeta: kids.length > 0 || !!t.due,
+          hasDue: !!t.due,
+          dueLabel: t.due || '',
+          countLabel: kids.length > 0 ? done + '/' + kids.length : '',
+          expanded: expanded,
+          collapsed: !expanded,
+          showHandle: s.selMode && s.sort === 'manual',
+          rowBg: s.selected[t.id] ? '#d3e4f4' : '#f8f8f8',
+          titleColor: s.selected[t.id] ? '#006aa3' : '#222',
+          swipeBg: sw > 12 ? '#46ba61' : (sw < -12 ? '#e9322d' : 'transparent'),
+          swipingRight: sw > 12,
+          swipingLeft: sw < -12,
+          transform: isDragged ? 'translate(' + Math.max(0, Math.min(40, drag.dx)) + 'px,' + drag.dy + 'px) rotate(-.7deg)' : 'translateX(' + sw + 'px)',
+          shadow: isDragged ? '0 10px 20px rgba(0,0,0,.26)' : 'none',
+          borderColor: isDragged || s.selected[t.id] ? '#0082c9' : '#e0e0e0',
+          starColor: isStarred(t) ? '#eca700' : '#767676',
+          starFill: isStarred(t) ? "'FILL' 1" : "'FILL' 0",
+          onStar: (e) => {
+            e.stopPropagation();
+            const next = isStarred(t) ? 0 : 1;
+            this.setState({ tasks: this.state.tasks.map((x) => (x.id === t.id ? Object.assign({}, x, { priority: next }) : x)) });
+          },
+          onToggle: (e) => { e.stopPropagation(); this.toggle(t.id); },
+          onExpand: (e) => {
+            e.stopPropagation();
+            const ex = Object.assign({}, s.expanded);
+            ex[t.id] = !ex[t.id];
+            this.setState({ expanded: ex });
+          },
+        }, g));
+      };
+
+      const walk = (t, level) => {
+        emit(t, level);
+        if (s.expanded[t.id] && level < 2) this.kids(t.id).forEach((k) => walk(k, level + 1));
+        if (s.addingFor === t.id && s.screen === 'list') rows.push({ key: 'add-' + t.id, isAdder: true });
+      };
+      tops.forEach((t) => walk(t, 0));
+    });
+
+    if (drag && guideAt >= flat.length) {
+      rows.push({ key: 'guide-end', isGuide: true, guideIndent: '0px', guideLabel: 'Ebene 0 · eigenständige Aufgabe' });
+    }
+    return rows;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const rows = this.buildRows();
+    const completedTop = s.tasks.filter((t) => !t.parentId && t.completed);
+    const sel = this.byId(s.selectedId);
+
+    let detail = null;
+    if (sel) {
+      const kids = this.kids(sel.id);
+      const done = kids.filter((k) => k.completed).length;
+      const parent = sel.parentId ? this.byId(sel.parentId) : null;
+      detail = {
+        title: sel.title,
+        isChild: !!parent,
+        parentTitle: parent ? parent.title : '',
+        statusLabel: sel.completed ? 'Abgeschlossen' : 'Offen',
+        dueLabel: sel.due ? sel.due.replace('Fällig: ', '') + ' 2026' : 'Nicht gesetzt',
+        progressLabel: kids.length > 0 ? done + '/' + kids.length : 'keine',
+        progressPct: kids.length > 0 ? Math.round((done / kids.length) * 100) + '%' : '0%',
+        adding: s.addingFor === sel.id && s.screen === 'detail',
+        children: kids.map((k) => ({
+          key: k.id,
+          title: k.title,
+          checked: k.completed,
+          unchecked: !k.completed,
+          onToggle: (e) => { e.stopPropagation(); this.toggle(k.id); },
+          onOpen: () => this.setState({ selectedId: k.id, addingFor: null }),
+          onMore: (e) => { e.stopPropagation(); this.setState({ sheetId: k.id }); },
+        })),
+      };
+    }
+
+    const sheetTask = this.byId(s.sheetId);
+    let sheet = null;
+    if (sheetTask) {
+      const parent = sheetTask.parentId ? this.byId(sheetTask.parentId) : null;
+      const list = LISTS.find((l) => l.id === sheetTask.listId);
+      sheet = {
+        title: sheetTask.title,
+        subtitle: (list ? list.name : '') + (parent ? ' · Unteraufgabe von „' + parent.title.slice(0, 20) + '…“' : ' · Ebene 0'),
+        completeLabel: sheetTask.completed ? 'Als offen markieren' : 'Als erledigt markieren',
+        canPromote: !!parent,
+        listName: list ? list.name : '',
+      };
+    }
+
+    const confirmTask = this.byId(s.confirmId);
+    const confirm = confirmTask ? { title: confirmTask.title, countLabel: this.kids(confirmTask.id).length + ' Unteraufgabe(n)' } : null;
+
+    let picker = null;
+    const pickIds = this.selIds().length > 0 ? this.selIds() : (s.sheetId ? [s.sheetId] : []);
+    const pickOne = pickIds.length === 1 ? this.byId(pickIds[0]) : null;
+    if (s.picker === 'assign' && pickOne) {
+      const opts = [{ key: 'none', title: 'Keine — eigenständige Aufgabe', dot: '#cacaca', current: !pickOne.parentId, onPick: () => { this.setParent(pickOne.id, null); this.setState({ selMode: false, selected: {} }); } }];
+      s.tasks.filter((t) => !t.completed && t.id !== pickOne.id && this.level(t.id) < 2 && this.ancestors(t.id).indexOf(pickOne.id) < 0).forEach((t) => {
+        opts.push({ key: t.id, title: t.title, dot: '#0082c9', current: pickOne.parentId === t.id, onPick: () => { this.setParent(pickOne.id, t.id); this.setState({ selMode: false, selected: {} }); } });
+      });
+      picker = { title: 'Zuordnen zu …', options: opts };
+    }
+    if (s.picker === 'newParent') {
+      const opts = [{ key: 'none', title: 'Keine', dot: '#cacaca', current: !s.createParent, onPick: () => this.setState({ createParent: null, picker: null }) }];
+      LISTS.forEach((l) => {
+        this.tops(l.id).forEach((t) => {
+          opts.push({ key: t.id, title: t.title, dot: l.color, current: s.createParent === t.id, onPick: () => this.setState({ createParent: t.id, createList: l.id, picker: null }) });
+          this.kids(t.id).filter((k) => !k.completed).forEach((k) => {
+            opts.push({ key: k.id, title: '— ' + k.title, dot: '#cacaca', current: s.createParent === k.id, onPick: () => this.setState({ createParent: k.id, createList: l.id, picker: null }) });
+          });
+        });
+      });
+      picker = { title: 'Übergeordnete Aufgabe', options: opts };
+    }
+    if (s.picker === 'newList') {
+      picker = {
+        title: 'Liste',
+        options: LISTS.map((l) => ({ key: l.id, title: l.name, dot: l.color, current: s.createList === l.id, onPick: () => this.setState({ createList: l.id, picker: null }) })),
+      };
+    }
+    if (s.picker === 'list' && pickIds.length > 0) {
+      const loose = pickIds.filter((id) => { const t = this.byId(id); return t && t.parentId && pickIds.indexOf(t.parentId) < 0; });
+      picker = {
+        title: 'Liste wechseln',
+        options: LISTS.map((l) => ({
+          key: l.id,
+          title: l.name,
+          dot: l.color,
+          current: pickOne ? pickOne.listId === l.id : false,
+          onPick: () => {
+            const ids = [];
+            pickIds.forEach((id) => { ids.push(id); this.kids(id).forEach((k) => ids.push(k.id)); });
+            this.setState({
+              undo: this.snap(),
+              tasks: s.tasks.map((x) => (ids.indexOf(x.id) >= 0 ? Object.assign({}, x, {
+                listId: l.id,
+                parentId: x.parentId && ids.indexOf(x.parentId) < 0 ? null : x.parentId,
+              }) : x)),
+              picker: null, sheetId: null, selMode: false, selected: {},
+            });
+            this.toast('Nach „' + l.name + '“ verschoben');
+          },
+        })),
+      };
+    }
+
+
+    const current = SORTS.find((x) => x.key === s.sort) || SORTS[0];
+
+    return {
+      rows,
+      isList: s.screen === 'list',
+      isDetail: s.screen === 'detail' && !!detail,
+      detail,
+      draft: s.draft,
+      sheet,
+      picker,
+      confirm,
+      snack: s.snack,
+      createOpen: s.createOpen,
+      createDesc: s.createDesc,
+      showDesc: s.showDesc,
+      hideDesc: !s.showDesc,
+      descIconColor: s.showDesc ? '#0082c9' : '#767676',
+      parentIconColor: s.createParent ? '#0082c9' : '#767676',
+      saveColor: s.draft.trim() ? '#0082c9' : '#cacaca',
+      createTitleHint: s.createParent ? 'Neue Unteraufgabe' : 'Neue Aufgabe',
+      createListName: (function () {
+        const par = s.createParent ? this.byId(s.createParent) : null;
+        const id = par ? par.listId : s.createList;
+        return (LISTS.find((l) => l.id === id) || LISTS[0]).name;
+      }).call(this),
+      listEditable: !s.createParent,
+      createParentLabel: s.createParent && this.byId(s.createParent) ? 'Unteraufgabe von „' + this.byId(s.createParent).title + '“' : '',
+      onClearCreateParent: (e) => { e.stopPropagation(); this.setState({ createParent: null }); },
+      onDescChange: (e) => this.setState({ createDesc: e.target.value }),
+      onShowDesc: () => this.setState({ showDesc: true }),
+      onPickCreateParent: () => this.setState({ picker: 'newParent' }),
+      onPickCreateList: () => this.setState({ picker: 'newList' }),
+      onCreateDue: () => this.setState({ dateFor: 'create', dateDay: null }),
+      onClearCreateDue: (e) => { e.stopPropagation(); this.setState({ createDue: null }); },
+      onToggleCreateStar: () => this.setState({ createStar: !s.createStar }),
+      dueIconColor: s.createDue ? '#0082c9' : '#767676',
+      createDueLabel: s.createDue || '',
+      starIconColor: s.createStar ? '#eca700' : '#767676',
+      starIconFill: s.createStar ? "'FILL' 1" : "'FILL' 0",
+      datePicker: s.dateFor ? (function () {
+        const first = new Date(2026, s.dateMonth, 1);
+        const offset = (first.getDay() + 6) % 7;
+        const len = new Date(2026, s.dateMonth + 1, 0).getDate();
+        const days = [];
+        for (let i = 0; i < offset; i += 1) days.push({ key: 'e' + i, label: '', bg: 'transparent', color: '#222', onPick: () => {} });
+        for (let d = 1; d <= len; d += 1) {
+          const sel = s.dateDay === d;
+          days.push({
+            key: 'd' + d,
+            label: String(d),
+            bg: sel ? '#0082c9' : 'transparent',
+            color: sel ? '#fff' : '#222',
+            onPick: () => this.setState({ dateDay: d }),
+          });
+        }
+        return {
+          headline: s.dateDay ? s.dateDay + '. ' + MONTHS[s.dateMonth] + ' 2026' : 'Datum wählen',
+          monthLabel: MONTHS[s.dateMonth] + ' 2026',
+          okColor: s.dateDay ? '#0082c9' : '#cacaca',
+          days: days,
+        };
+      }).call(this) : null,
+      onPrevMonth: () => this.setState({ dateMonth: (s.dateMonth + 11) % 12 }),
+      onNextMonth: () => this.setState({ dateMonth: (s.dateMonth + 1) % 12 }),
+      onCloseDate: () => this.setState({ dateFor: null, dateDay: null }),
+      onConfirmDate: () => {
+        if (!s.dateDay) return;
+        const label = 'Fällig: ' + s.dateDay + '. ' + MONTHS[s.dateMonth];
+        if (s.dateFor === 'create') { this.setState({ createDue: label, dateFor: null }); return; }
+        const id = s.dateFor;
+        this.setState({
+          undo: this.snap(),
+          tasks: s.tasks.map((x) => (x.id === id ? Object.assign({}, x, { due: label }) : x)),
+          dateFor: null,
+        });
+        this.toast('Fälligkeitsdatum gesetzt');
+      },
+      onOpenDetailDate: () => this.setState({ dateFor: s.selectedId, dateDay: null }),
+      selMode: s.selMode,
+      normalMode: !s.selMode,
+      selCount: this.selIds().length,
+      selAddOpacity: this.selIds().length === 1 ? '1' : '.4',
+      overflow: s.overflowOpen ? {
+        canPromote: this.selIds().some((id) => { const t = this.byId(id); return t && t.parentId; }),
+        canAssign: this.selIds().length === 1,
+        assignBlocked: this.selIds().length > 1,
+        canOrder: s.sort !== 'manual',
+      } : null,
+      onExitSel: () => this.setState({ selMode: false, selected: {}, overflowOpen: false, drag: null }),
+      onToggleOverflow: () => this.setState({ overflowOpen: !s.overflowOpen }),
+      onCloseOverflow: () => this.setState({ overflowOpen: false }),
+      onSelComplete: () => {
+        const ids = this.selIds();
+        this.setState({
+          undo: this.snap(),
+          tasks: s.tasks.map((x) => (ids.indexOf(x.id) >= 0 ? Object.assign({}, x, { completed: true }) : x)),
+          selMode: false, selected: {}, overflowOpen: false,
+        });
+        this.toast(ids.length + ' Aufgabe(n) erledigt');
+      },
+      onSelAddChild: () => {
+        const ids = this.selIds();
+        if (ids.length !== 1) return;
+        const ex = Object.assign({}, s.expanded);
+        ex[ids[0]] = true;
+        this.setState({ selMode: false, selected: {}, overflowOpen: false, expanded: ex, addingFor: ids[0], draft: '' });
+      },
+      onSelMoveList: () => this.setState({ picker: 'list', overflowOpen: false }),
+      onSelAssign: () => this.setState({ picker: 'assign', overflowOpen: false }),
+      onSelPromote: () => {
+        const ids = this.selIds();
+        this.setState({
+          undo: this.snap(),
+          tasks: s.tasks.map((x) => (ids.indexOf(x.id) >= 0 ? Object.assign({}, x, { parentId: null }) : x)),
+          selMode: false, selected: {}, overflowOpen: false,
+        });
+        this.toast('Aus Unteraufgabe gelöst');
+      },
+      onSelOrder: () => { this.setState({ sort: 'manual', overflowOpen: false }); this.toast('Sortierung: Meine Reihenfolge', 'OK'); },
+      onSelAll: () => {
+        const sel = {};
+        this.visible().forEach((t) => { sel[t.id] = true; });
+        this.setState({ selected: sel, overflowOpen: false });
+      },
+      onSelDelete: () => {
+        const ids = this.selIds();
+        if (ids.length === 1) { this.setState({ overflowOpen: false }); this.remove(ids[0]); this.setState({ selMode: false, selected: {} }); return; }
+        this.setState({
+          undo: this.snap(),
+          tasks: s.tasks
+            .filter((x) => ids.indexOf(x.id) < 0)
+            .map((x) => (x.parentId && ids.indexOf(x.parentId) >= 0 ? Object.assign({}, x, { parentId: null }) : x)),
+          selMode: false, selected: {}, overflowOpen: false,
+        });
+        this.toast(ids.length + ' Aufgaben gelöscht, Unteraufgaben behalten');
+      },
+      sortOpen: s.sortOpen,
+      sortLabel: current.label,
+      sortOptions: SORTS.map((o) => ({
+        key: o.key,
+        title: o.label,
+        current: s.sort === o.key,
+        notCurrent: s.sort !== o.key,
+        isManual: o.key === 'manual',
+        onPick: () => this.setState({ sort: o.key, sortOpen: false }),
+      })),
+      hasCompleted: completedTop.length > 0,
+      completedLabel: s.showCompleted ? 'ERLEDIGTE AUFGABEN AUSBLENDEN (' + completedTop.length + ')' : 'ERLEDIGTE AUFGABEN ANZEIGEN (' + completedTop.length + ')',
+      completedRows: s.showCompleted ? completedTop.map((t) => ({
+        key: 'done-' + t.id,
+        title: t.title,
+        onToggle: (e) => { e.stopPropagation(); this.toggle(t.id); },
+        onOpen: () => this.setState({ screen: 'detail', selectedId: t.id }),
+      })) : [],
+      onToggleCompleted: () => this.setState({ showCompleted: !s.showCompleted }),
+      onOpenSort: () => this.setState({ sortOpen: true }),
+      onCloseSort: () => this.setState({ sortOpen: false }),
+      onDraftChange: (e) => this.setState({ draft: e.target.value }),
+      onDraftKey: (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); this.commitDraft(); }
+        if (e.key === 'Escape') this.setState({ addingFor: null, draft: '', createOpen: false });
+      },
+      onDraftCommit: this.commitDraft,
+      onBack: () => this.setState({ screen: 'list', selectedId: null, addingFor: null, draft: '' }),
+      onOpenParent: () => { if (sel && sel.parentId) this.setState({ selectedId: sel.parentId }); },
+      onAddInDetail: () => this.setState({ addingFor: s.selectedId, draft: '' }),
+      onMoreDetail: () => this.setState({ sheetId: s.selectedId }),
+      onCloseSheet: () => this.setState({ sheetId: null }),
+      onSheetComplete: () => { this.toggle(s.sheetId); this.setState({ sheetId: null }); },
+      onSheetAddChild: () => {
+        const ex = Object.assign({}, s.expanded);
+        ex[s.sheetId] = true;
+        this.setState({ sheetId: null, expanded: ex, addingFor: s.sheetId, draft: '' });
+      },
+      onSheetPromote: () => this.setParent(s.sheetId, null),
+      onSheetAssign: () => this.setState({ picker: 'assign' }),
+      onSheetMoveList: () => this.setState({ picker: 'list' }),
+      onSheetDelete: () => this.remove(s.sheetId),
+      onClosePicker: () => this.setState({ picker: null }),
+      onCloseConfirm: () => this.setState({ confirmId: null }),
+      onConfirmPromote: () => this.remove(s.confirmId, 'promote'),
+      onConfirmDeleteAll: () => this.remove(s.confirmId, 'all'),
+      onOpenCreate: () => this.setState({ createOpen: true, draft: '', createParent: null, createDesc: '', showDesc: false }),
+      onCloseCreate: () => this.setState({ createOpen: false, draft: '', createParent: null, createDesc: '', showDesc: false }),
+      onSnackAction: () => {
+        if (s.snack && s.snack.action === 'OK') { this.setState({ snack: null }); return; }
+        this.setState({ tasks: s.undo || s.tasks, snack: null });
+      },
+      stop: (e) => e.stopPropagation(),
+    };
+  }
+}
+</script>
+</body>
+</html>

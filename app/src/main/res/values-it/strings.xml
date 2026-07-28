@@ -208,4 +208,11 @@
     <string name="select_parent_task">Attività principale</string>
     <string name="parent_none">Nessuna</string>
     <string name="pick_due_date">Scadenza</string>
+    <string name="task_deleted">Attività eliminata</string>
+    <string name="task_completed">Attività completata</string>
+    <string name="action_undo">Annulla</string>
+    <string name="delete_subtasks_title">Eliminare l\'attività con le sottoattività?</string>
+    <string name="delete_subtasks_message">Questa attività ha delle sottoattività. Cosa deve accadere?</string>
+    <string name="delete_subtasks_all">Elimina tutto</string>
+    <string name="delete_subtasks_keep">Mantieni le sottoattività</string>
 </resources>

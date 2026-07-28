@@ -208,4 +208,11 @@
     <string name="select_parent_task">Родительская задача</string>
     <string name="parent_none">Нет</string>
     <string name="pick_due_date">Срок выполнения</string>
+    <string name="task_deleted">Задача удалена</string>
+    <string name="task_completed">Задача выполнена</string>
+    <string name="action_undo">Отменить</string>
+    <string name="delete_subtasks_title">Удалить задачу с подзадачами?</string>
+    <string name="delete_subtasks_message">У этой задачи есть подзадачи. Что с ними сделать?</string>
+    <string name="delete_subtasks_all">Удалить все</string>
+    <string name="delete_subtasks_keep">Сохранить подзадачи</string>
 </resources>

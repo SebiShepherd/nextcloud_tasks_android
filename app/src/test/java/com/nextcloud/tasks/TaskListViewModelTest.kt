@@ -545,14 +545,27 @@ class TaskListViewModelTest {
             }
         }
 
-    // --- deleteTask ---
+    // --- staged delete (swipe + undo) ---
 
     @Test
-    fun `deleteTask calls repository`() =
+    fun `stage then commit delete calls repository`() =
         runTest(testDispatcher) {
             withViewModelAndRepo { vm, repo ->
-                vm.deleteTask("task-1")
+                val task = createTask(id = "task-1")
+                val deletion = vm.stageDelete(task, keepChildren = false)
+                vm.commitDelete(deletion)
                 coVerify { repo.deleteTask("task-1") }
+            }
+        }
+
+    @Test
+    fun `undo delete never touches repository`() =
+        runTest(testDispatcher) {
+            withViewModelAndRepo { vm, repo ->
+                val task = createTask(id = "task-1")
+                val deletion = vm.stageDelete(task, keepChildren = false)
+                vm.undoDelete(deletion)
+                coVerify(exactly = 0) { repo.deleteTask(any()) }
             }
         }
 

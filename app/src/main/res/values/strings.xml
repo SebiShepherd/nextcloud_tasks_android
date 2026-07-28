@@ -208,4 +208,11 @@
     <string name="select_parent_task">Parent task</string>
     <string name="parent_none">None</string>
     <string name="pick_due_date">Due date</string>
+    <string name="task_deleted">Task deleted</string>
+    <string name="task_completed">Task completed</string>
+    <string name="action_undo">Undo</string>
+    <string name="delete_subtasks_title">Delete task with sub-tasks?</string>
+    <string name="delete_subtasks_message">This task has sub-tasks. What should happen to them?</string>
+    <string name="delete_subtasks_all">Delete all</string>
+    <string name="delete_subtasks_keep">Keep sub-tasks</string>
 </resources>

@@ -208,4 +208,11 @@
     <string name="select_parent_task">Oudertaak</string>
     <string name="parent_none">Geen</string>
     <string name="pick_due_date">Vervaldatum</string>
+    <string name="task_deleted">Taak verwijderd</string>
+    <string name="task_completed">Taak voltooid</string>
+    <string name="action_undo">Ongedaan maken</string>
+    <string name="delete_subtasks_title">Taak met subtaken verwijderen?</string>
+    <string name="delete_subtasks_message">Deze taak heeft subtaken. Wat moet ermee gebeuren?</string>
+    <string name="delete_subtasks_all">Alles verwijderen</string>
+    <string name="delete_subtasks_keep">Subtaken behouden</string>
 </resources>

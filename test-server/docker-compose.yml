@@ -1,0 +1,32 @@
+# Throwaway Nextcloud behind a self-signed TLS proxy — for device-testing the cert4android
+# trust flow (PR #69 / issue #61). NOT for production. SQLite, plaintext admin password.
+#
+# Caddy terminates TLS with its internal CA (a genuinely untrusted, self-signed cert), which is
+# exactly what the phone should reject until the user accepts it in the cert4android dialog.
+#
+# Set SERVER_IP to this machine's LAN IP (default prefilled). Phone must be on the same WiFi.
+
+services:
+  nextcloud:
+    image: nextcloud:apache
+    environment:
+      SQLITE_DATABASE: nextcloud
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: admin12345
+      NEXTCLOUD_TRUSTED_DOMAINS: ${SERVER_IP:-192.168.178.145}
+      OVERWRITEPROTOCOL: https
+      OVERWRITEHOST: ${SERVER_IP:-192.168.178.145}
+      OVERWRITECLIURL: https://${SERVER_IP:-192.168.178.145}
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "443:443"
+    environment:
+      SERVER_IP: ${SERVER_IP:-192.168.178.145}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - nextcloud
+    restart: unless-stopped
