@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -17,20 +18,29 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -45,14 +55,21 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.RemoveCircle
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -60,11 +77,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -85,9 +103,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -103,6 +125,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -135,6 +159,7 @@ import com.nextcloud.tasks.domain.usecase.SearchShareesUseCase
 import com.nextcloud.tasks.domain.usecase.ShareListUseCase
 import com.nextcloud.tasks.domain.usecase.UnshareListUseCase
 import com.nextcloud.tasks.ui.theme.NextcloudTasksTheme
+import com.nextcloud.tasks.ui.theme.NextcloudWarning
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -155,6 +180,11 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Edge-to-edge so the main window delivers the IME as an animated inset. The create sheet is
+        // an in-window overlay pinned to the bottom with imePadding, so it rides the keyboard up in
+        // one motion (see CreateTaskOverlay) instead of a separate dialog window lagging behind.
+        enableEdgeToEdge()
 
         // Pre-initialize AppCompatDelegate to prevent first-time recreation
         // This reads any saved locale without triggering a configuration change
@@ -209,6 +239,7 @@ fun NextcloudTasksApp(
     val refreshError by taskListViewModel.refreshError.collectAsState()
     val refreshErrorDetail by taskListViewModel.refreshErrorDetail.collectAsState()
     val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
+    val collapsedIds by taskListViewModel.collapsedIds.collectAsState()
     val createListError by taskListViewModel.createListError.collectAsState()
     val editListError by taskListViewModel.editListError.collectAsState()
     val deleteListError by taskListViewModel.deleteListError.collectAsState()
@@ -282,6 +313,7 @@ fun NextcloudTasksApp(
             isOnline = isOnline,
             hasPendingChanges = hasPendingChanges,
             animatingEntryTaskIds = animatingEntryTaskIds,
+            collapsedIds = collapsedIds,
             showCreateDialog = showCreateDialog,
             isExpandedScreen = isExpandedScreen,
             onLogout = loginFlowViewModel::onLogout,
@@ -293,11 +325,13 @@ fun NextcloudTasksApp(
             onRefresh = taskListViewModel::refresh,
             onShowCreateDialog = { showCreateDialog = true },
             onDismissCreateDialog = { showCreateDialog = false },
-            onCreateTask = { title, description, listId ->
-                taskListViewModel.createTask(title, description, listId)
+            onCreateTask = { input ->
+                taskListViewModel.createTask(input)
                 showCreateDialog = false
             },
             onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
+            onToggleFavorite = taskListViewModel::toggleFavorite,
+            onToggleTaskCollapsed = taskListViewModel::toggleCollapsed,
             onDeleteTask = taskListViewModel::deleteTask,
             onClearAnimatingEntryTaskId = taskListViewModel::clearAnimatingEntryTaskId,
             onAddAccount = { forceShowLogin = true },
@@ -367,6 +401,7 @@ fun AuthenticatedHome(
     isOnline: Boolean,
     hasPendingChanges: Boolean,
     animatingEntryTaskIds: Set<String>,
+    collapsedIds: Set<String>,
     showCreateDialog: Boolean,
     isExpandedScreen: Boolean = false,
     onLogout: (String) -> Unit,
@@ -378,8 +413,10 @@ fun AuthenticatedHome(
     onRefresh: () -> Unit,
     onShowCreateDialog: () -> Unit,
     onDismissCreateDialog: () -> Unit,
-    onCreateTask: (String, String?, String) -> Unit,
+    onCreateTask: (NewTaskInput) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
+    onToggleFavorite: (Task) -> Unit,
+    onToggleTaskCollapsed: (String) -> Unit,
     onDeleteTask: (String) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onAddAccount: () -> Unit,
@@ -504,6 +541,7 @@ fun AuthenticatedHome(
                                 searchQuery = searchQuery,
                                 isOnline = isOnline,
                                 animatingEntryTaskIds = animatingEntryTaskIds,
+                                collapsedIds = collapsedIds,
                                 isExpandedScreen = isExpandedScreen,
                                 onSetFilter = onSetFilter,
                                 onSetSort = onSetSort,
@@ -515,6 +553,15 @@ fun AuthenticatedHome(
                                         }
                                     }
                                 },
+                                onToggleFavorite = { task ->
+                                    if (!isReadOnly) {
+                                        onToggleFavorite(task)
+                                        if (!isOnline) {
+                                            showOfflineSnackbar = true
+                                        }
+                                    }
+                                },
+                                onToggleTaskCollapsed = onToggleTaskCollapsed,
                                 onDeleteTask = { taskId ->
                                     if (!isReadOnly) {
                                         onDeleteTask(taskId)
@@ -569,37 +616,41 @@ fun AuthenticatedHome(
         )
     }
 
-    if (isExpandedScreen) {
-        PermanentNavigationDrawer(
-            drawerContent = {
-                PermanentDrawerSheet { drawerContent() }
-            },
-            content = mainContent,
-        )
-    } else {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet { drawerContent() }
-            },
-            content = mainContent,
-        )
-    }
+    // The create sheet is an in-window overlay (see CreateTaskOverlay), so it must be a sibling of
+    // the drawer inside one full-screen Box that draws it on top.
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isExpandedScreen) {
+            PermanentNavigationDrawer(
+                drawerContent = {
+                    PermanentDrawerSheet { drawerContent() }
+                },
+                content = mainContent,
+            )
+        } else {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    ModalDrawerSheet { drawerContent() }
+                },
+                content = mainContent,
+            )
+        }
 
-    // Create task dialog — only shown when at least one writable list exists.
-    if (showCreateDialog && hasWritableLists) {
-        CreateTaskDialog(
-            taskLists = taskLists,
-            initialListId = selectedListId ?: taskLists.first().id,
-            showListSelector = selectedListId == null,
-            onDismiss = onDismissCreateDialog,
-            onCreate = { title, description, listId ->
-                onCreateTask(title, description, listId)
-                if (!isOnline) {
-                    showOfflineSnackbar = true
-                }
-            },
-        )
+        // Create sheet — only shown when at least one writable list exists.
+        if (showCreateDialog && hasWritableLists) {
+            CreateTaskOverlay(
+                taskLists = taskLists,
+                tasks = tasks,
+                initialListId = selectedListId ?: taskLists.first().id,
+                onDismiss = onDismissCreateDialog,
+                onCreate = { input ->
+                    onCreateTask(input)
+                    if (!isOnline) {
+                        showOfflineSnackbar = true
+                    }
+                },
+            )
+        }
     }
 
     // Create list dialog
@@ -987,6 +1038,75 @@ private fun SortOption(
     }
 }
 
+/** Everything the create sheet collects for a new task. */
+data class NewTaskInput(
+    val title: String,
+    val description: String?,
+    val listId: String,
+    val parentUid: String?,
+    val due: java.time.Instant?,
+    val starred: Boolean,
+)
+
+/** A flattened sub-task tree row: the task plus its display depth and sub-task chip data. */
+internal data class TaskRow(
+    val task: Task,
+    val depth: Int,
+    val hasChildren: Boolean,
+    val subtaskDone: Int,
+    val subtaskTotal: Int,
+    val isCollapsed: Boolean,
+)
+
+/** Deepest indent level rendered; nesting beyond this renders flat at this depth (data untouched). */
+internal const val MAX_DISPLAY_DEPTH = 4
+
+/**
+ * Flattens open tasks of one list into an ordered list of [TaskRow]s: each parent is followed by its
+ * children, indented one level deeper. Display depth is capped at [MAX_DISPLAY_DEPTH] (deeper nesting
+ * from the web renders flat at that level). Cycles are broken via a visited set.
+ *
+ * @param listTasks all tasks of the list, already in the desired sibling order.
+ * @param childCounts parentUid → (done, total) across ALL tasks in the list, for the collapse chip.
+ * @param collapsedUids UIDs of parents whose children are hidden.
+ */
+internal fun buildOpenTaskRows(
+    listTasks: List<Task>,
+    childCounts: Map<String, Pair<Int, Int>>,
+    collapsedUids: Set<String>,
+): List<TaskRow> {
+    val byParentUid = listTasks.groupBy { it.parentUid }
+    val uidsInList = listTasks.mapNotNull { it.uid }.toSet()
+    // Open roots: top-level (or orphaned) tasks that aren't done. Their whole subtree renders here,
+    // INCLUDING done children (struck through in place); a done root drops to the completed section.
+    val roots =
+        listTasks.filter {
+            (it.parentUid == null || it.parentUid !in uidsInList) && !it.isEffectivelyDone
+        }
+    val rows = mutableListOf<TaskRow>()
+    val visited = mutableSetOf<String>()
+
+    fun emit(
+        task: Task,
+        depth: Int,
+    ) {
+        if (!visited.add(task.id)) return
+        val (done, total) = task.uid?.let { childCounts[it] } ?: (0 to 0)
+        val collapsed = task.uid != null && task.uid in collapsedUids
+        rows.add(TaskRow(task, depth.coerceAtMost(MAX_DISPLAY_DEPTH), total > 0, done, total, collapsed))
+        if (!collapsed) {
+            task.uid?.let { byParentUid[it] }?.forEach { emit(it, depth + 1) }
+        }
+    }
+    roots.forEach { emit(it, 0) }
+    // Open tasks stuck in a parent cycle with no reachable root — surface at top level so they aren't
+    // lost. (An unvisited task under a visited parent is just collapsed; done tasks belong below.)
+    listTasks.forEach {
+        if (!it.isEffectivelyDone && it.id !in visited && it.parentUid !in visited) emit(it, 0)
+    }
+    return rows
+}
+
 @Suppress("UnusedParameter", "LongParameterList")
 @Composable
 private fun TasksContent(
@@ -999,10 +1119,13 @@ private fun TasksContent(
     searchQuery: String,
     isOnline: Boolean,
     animatingEntryTaskIds: Set<String>,
+    collapsedIds: Set<String>,
     isExpandedScreen: Boolean = false,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
+    onToggleFavorite: (Task) -> Unit,
+    onToggleTaskCollapsed: (String) -> Unit,
     onDeleteTask: (String) -> Unit,
     onClearAnimatingEntryTaskId: (String) -> Unit,
     onShowCreateListDialog: () -> Unit = {},
@@ -1016,11 +1139,25 @@ private fun TasksContent(
     // Group tasks by completion status, filtering out tasks with unknown lists
     // (can happen briefly during account switch before refresh completes)
     val knownTasks = remember(tasks, taskListMap) { tasks.filter { it.listId in taskListMap } }
-    val openTasks = knownTasks.filter { !it.completed && it.status?.uppercase() != "CANCELLED" }
-    val completedTasks = knownTasks.filter { it.completed || it.status?.uppercase() == "CANCELLED" }
 
-    // Group open tasks by list
-    val openTasksByList = openTasks.groupBy { it.listId }
+    // Build the open sub-task tree per list. Subtree + chip counts include done tasks, so a done
+    // child stays nested (struck through) under its still-open parent; only done ROOTS drop into the
+    // completed section below.
+    val treeByList =
+        knownTasks.groupBy { it.listId }.mapValues { (_, listTasks) ->
+            val childCounts =
+                listTasks
+                    .groupBy { it.parentUid }
+                    .entries
+                    .mapNotNull { (parentUid, kids) ->
+                        parentUid?.let { it to (kids.count(Task::isEffectivelyDone) to kids.size) }
+                    }.toMap()
+            buildOpenTaskRows(listTasks, childCounts, collapsedIds)
+        }
+    val emittedIds = treeByList.values.flatten().mapTo(mutableSetOf()) { it.task.id }
+    // Lists that actually have an open tree, in first-seen order.
+    val openListIds = knownTasks.map { it.listId }.distinct().filter { treeByList[it]?.isNotEmpty() == true }
+    val completedTasks = knownTasks.filter { it.isEffectivelyDone && it.id !in emittedIds }
 
     // On expanded screens, constrain max content width for readability
     val contentModifier =
@@ -1040,7 +1177,7 @@ private fun TasksContent(
                 bottom = 16.dp,
             ),
     ) {
-        if (openTasks.isEmpty() && completedTasks.isEmpty()) {
+        if (openListIds.isEmpty() && completedTasks.isEmpty()) {
             item {
                 Box(
                     modifier =
@@ -1060,8 +1197,8 @@ private fun TasksContent(
             }
         } else {
             // Offene Tasks gruppiert nach Listen
-            if (openTasks.isNotEmpty()) {
-                openTasksByList.forEach { (listId, listTasks) ->
+            if (openListIds.isNotEmpty()) {
+                openListIds.forEach { listId ->
                     // Get list info from map
                     val taskList = taskListMap[listId]
 
@@ -1071,7 +1208,7 @@ private fun TasksContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier =
                                 Modifier.padding(
-                                    top = if (openTasksByList.keys.first() != listId) 16.dp else 0.dp,
+                                    top = if (openListIds.first() != listId) 16.dp else 0.dp,
                                     bottom = 8.dp,
                                 ),
                         ) {
@@ -1099,14 +1236,25 @@ private fun TasksContent(
                         }
                     }
 
-                    items(listTasks, key = { it.id }) { task ->
+                    val rows = treeByList.getValue(listId)
+
+                    items(rows, key = { it.task.id }) { row ->
+                        val task = row.task
                         val taskIsReadOnly =
                             taskListMap[task.listId]?.shareAccess == ShareAccess.READ
                         SimpleAnimatedTaskCard(
                             task = task,
                             isReadOnly = taskIsReadOnly,
                             animateEntry = task.id in animatingEntryTaskIds,
+                            depth = row.depth,
+                            hasChildren = row.hasChildren,
+                            subtaskDone = row.subtaskDone,
+                            subtaskTotal = row.subtaskTotal,
+                            isCollapsed = row.isCollapsed,
+                            isStarred = task.isStarred,
                             onToggleComplete = { onToggleTaskComplete(task) },
+                            onToggleFavorite = { onToggleFavorite(task) },
+                            onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
                             onDelete = { onDeleteTask(task.id) },
                             onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
                             onOpenTask = { onOpenTask(task.id) },
@@ -2040,13 +2188,22 @@ private fun AccountItem(
  * IMPORTANT: Animation must complete BEFORE data changes,
  * otherwise the composable is removed from composition immediately.
  */
+@Suppress("LongParameterList")
 @Composable
 private fun SimpleAnimatedTaskCard(
     task: Task,
     isReadOnly: Boolean = false,
     animateEntry: Boolean = false,
+    depth: Int = 0,
+    hasChildren: Boolean = false,
+    subtaskDone: Int = 0,
+    subtaskTotal: Int = 0,
+    isCollapsed: Boolean = false,
+    isStarred: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
+    onToggleCollapsed: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
     onEntryAnimationComplete: () -> Unit = {},
     onOpenTask: () -> Unit = {},
 ) {
@@ -2089,64 +2246,103 @@ private fun SimpleAnimatedTaskCard(
     ) {
         // Column includes bottom spacing so it animates with shrinkVertically
         Column {
-            TaskCard(
-                task = task.copy(completed = localCompleted),
-                isReadOnly = isReadOnly,
-                onToggleComplete = {
-                    if (!isAnimating) {
-                        isAnimating = true
-                        scope.launch {
-                            // Show checkbox change first
-                            localCompleted = !localCompleted
-                            // Wait for user to see the change
-                            delay(200)
-                            // Then start fade/shrink animation
-                            isVisible = false
-                            // Wait for animation to complete
-                            delay(250)
-                            // Then trigger the data change
-                            onToggleComplete()
-                            // Reset so subsequent toggles on the same card work
-                            isAnimating = false
-                        }
-                    }
-                },
-                onDelete = {
-                    if (!isAnimating) {
-                        isAnimating = true
-                        scope.launch {
-                            // Start fade/shrink animation
-                            isVisible = false
-                            // Wait for animation to complete
-                            delay(250)
-                            // Then delete
-                            onDelete()
-                        }
-                    }
-                },
-                onOpenTask = onOpenTask,
-            )
+            // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
+            // level (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp, then +16 dp each deeper level).
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+            ) {
+                if (depth > 0) {
+                    Spacer(modifier = Modifier.width((9 + (depth - 1) * 16).dp))
+                    Box(
+                        modifier =
+                            Modifier
+                                .width(2.dp)
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.outlineVariant),
+                    )
+                    Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    TaskCard(
+                        task = task.copy(completed = localCompleted),
+                        isReadOnly = isReadOnly,
+                        depth = depth,
+                        hasChildren = hasChildren,
+                        subtaskDone = subtaskDone,
+                        subtaskTotal = subtaskTotal,
+                        isCollapsed = isCollapsed,
+                        isStarred = isStarred,
+                        onToggleComplete = {
+                            if (!isAnimating) {
+                                isAnimating = true
+                                scope.launch {
+                                    // Show checkbox change first
+                                    localCompleted = !localCompleted
+                                    // Wait for user to see the change
+                                    delay(200)
+                                    // Then start fade/shrink animation
+                                    isVisible = false
+                                    // Wait for animation to complete
+                                    delay(250)
+                                    // Then trigger the data change
+                                    onToggleComplete()
+                                    // Reset so subsequent toggles on the same card work
+                                    isAnimating = false
+                                }
+                            }
+                        },
+                        onDelete = {
+                            if (!isAnimating) {
+                                isAnimating = true
+                                scope.launch {
+                                    // Start fade/shrink animation
+                                    isVisible = false
+                                    // Wait for animation to complete
+                                    delay(250)
+                                    // Then delete
+                                    onDelete()
+                                }
+                            }
+                        },
+                        onToggleCollapsed = onToggleCollapsed,
+                        onToggleFavorite = onToggleFavorite,
+                        onOpenTask = onOpenTask,
+                    )
+                }
+            }
             // Bottom spacing - animates with shrinkVertically
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(if (depth > 0) 8.dp else 12.dp))
         }
     }
 }
 
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun TaskCard(
     task: Task,
     isReadOnly: Boolean = false,
+    depth: Int = 0,
+    hasChildren: Boolean = false,
+    subtaskDone: Int = 0,
+    subtaskTotal: Int = 0,
+    isCollapsed: Boolean = false,
+    isStarred: Boolean = false,
     onToggleComplete: () -> Unit,
     onDelete: () -> Unit,
+    onToggleCollapsed: () -> Unit = {},
+    onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
 ) {
-    // Dynamische vertikale Ausrichtung basierend auf Inhalt
-    val hasDescription = task.description != null
+    val isChild = depth > 0
+    val hasDescription = !isChild && task.description != null
     val hasDueOrTags = task.due != null || task.tags.isNotEmpty()
-    val hasAdditionalContent = hasDescription || hasDueOrTags
+    val hasAdditionalContent = hasDescription || hasDueOrTags || hasChildren
     // CANCELLED tasks are treated as completed for display purposes.
     val isCancelledTask = task.status?.uppercase() == "CANCELLED"
     val localCompleted = task.completed || isCancelledTask
+    val titleStyle = if (isChild) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleMedium
+    val starHit = if (isChild) 32.dp else 36.dp
+    val starIconSize = if (isChild) 20.dp else 22.dp
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val shortDateFormatter =
         remember(locale) {
@@ -2171,7 +2367,7 @@ private fun TaskCard(
         shape = MaterialTheme.shapes.medium,
     ) {
         Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            modifier = Modifier.padding(if (isChild) 10.dp else 12.dp).fillMaxWidth(),
             verticalAlignment = if (hasAdditionalContent) Alignment.Top else Alignment.CenterVertically,
         ) {
             // Checkbox — CANCELLED tasks are displayed as checked (like the web UI)
@@ -2187,30 +2383,24 @@ private fun TaskCard(
 
             // Task content
             Column(modifier = Modifier.weight(1f).padding(start = 8.dp, end = 8.dp)) {
-                Row(
+                Text(
+                    text = task.title,
+                    style =
+                        titleStyle.copy(
+                            textDecoration =
+                                if (isCancelledTask) {
+                                    androidx.compose.ui.text.style.TextDecoration.LineThrough
+                                } else {
+                                    androidx.compose.ui.text.style.TextDecoration.None
+                                },
+                        ),
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = task.title,
-                        style =
-                            MaterialTheme.typography.titleMedium.copy(
-                                textDecoration =
-                                    if (isCancelledTask) {
-                                        androidx.compose.ui.text.style.TextDecoration.LineThrough
-                                    } else {
-                                        androidx.compose.ui.text.style.TextDecoration.None
-                                    },
-                            ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                )
 
-                task.description?.let {
+                if (hasDescription) {
                     Text(
-                        text = it,
+                        text = task.description.orEmpty(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp),
@@ -2219,12 +2409,39 @@ private fun TaskCard(
                     )
                 }
 
-                // Show due date and tags only if they exist
-                if (hasDueOrTags) {
+                // Meta row: collapse chip (if the task has sub-tasks), due date, tags
+                if (hasChildren || hasDueOrTags) {
                     Row(
                         modifier = Modifier.padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        if (hasChildren) {
+                            Surface(
+                                onClick = onToggleCollapsed,
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.height(24.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(start = 4.dp, end = 8.dp),
+                                ) {
+                                    Icon(
+                                        imageVector =
+                                            if (isCollapsed) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
+                                        contentDescription = stringResource(R.string.subtasks_label),
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                    Text(
+                                        text = "$subtaskDone/$subtaskTotal",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
+                        }
                         task.due?.let { due ->
                             Text(
                                 text =
@@ -2247,7 +2464,25 @@ private fun TaskCard(
                 }
             }
 
-            // Delete button (hidden for read-only lists, but space is preserved for uniform height)
+            // Favourite star (writes PRIORITY) — vertically centred regardless of row alignment
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.CenterVertically)
+                        .size(starHit)
+                        .clip(CircleShape)
+                        .clickable(enabled = !isReadOnly, onClick = onToggleFavorite),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (isStarred) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    contentDescription = stringResource(R.string.favorite_description),
+                    modifier = Modifier.size(starIconSize),
+                    tint = if (isStarred) NextcloudWarning else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            // Delete button (hidden for read-only lists; moves to swipe/selection in a later change)
             if (!isReadOnly) {
                 IconButton(onClick = onDelete) {
                     Icon(
@@ -2263,52 +2498,225 @@ private fun TaskCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val DUE_DATE_FORMATTER: java.time.format.DateTimeFormatter =
+    java.time.format.DateTimeFormatter
+        .ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+
 @Composable
-private fun CreateTaskDialog(
+private fun sheetFieldColors() =
+    TextFieldDefaults.colors(
+        focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+        unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+        focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+        unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+    )
+
+/**
+ * Bottom sheet for creating a task or sub-task. Title is the only required field; description, due
+ * date, favourite and a parent task are opt-in via the icon row. Picking a parent hides the list row
+ * (the list follows the parent).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod", "CyclomaticComplexMethod")
+@Composable
+private fun CreateTaskOverlay(
     taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
+    tasks: List<Task>,
     initialListId: String,
-    showListSelector: Boolean = false,
     onDismiss: () -> Unit,
-    onCreate: (String, String?, String) -> Unit,
+    onCreate: (NewTaskInput) -> Unit,
 ) {
     val writableLists = taskLists.filter { it.shareAccess != ShareAccess.READ }
+    if (writableLists.isEmpty()) return
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var showDescription by remember { mutableStateOf(false) }
+    var due by remember { mutableStateOf<java.time.Instant?>(null) }
+    var starred by remember { mutableStateOf(false) }
+    var parentUid by remember { mutableStateOf<String?>(null) }
     var selectedListId by remember {
-        mutableStateOf(
-            if (writableLists.any { it.id == initialListId }) {
-                initialListId
-            } else {
-                writableLists.firstOrNull()?.id ?: initialListId
-            },
-        )
+        mutableStateOf(writableLists.firstOrNull { it.id == initialListId }?.id ?: writableLists.first().id)
     }
     var listDropdownExpanded by remember { mutableStateOf(false) }
-    val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.firstOrNull() ?: return
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showParentPicker by remember { mutableStateOf(false) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.create_task_dialog_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (showListSelector) {
+    val parentTask = parentUid?.let { uid -> tasks.firstOrNull { it.uid == uid } }
+    val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.first()
+    val titleFocus = remember { FocusRequester() }
+    // Focus immediately so the sheet and keyboard animate up together. Deferring the focus by a frame
+    // made the sheet rest on the nav bar first and then overshoot, showing a large gap on every open.
+    LaunchedEffect(Unit) { titleFocus.requestFocus() }
+    BackHandler(enabled = true) { onDismiss() }
+
+    // In-window sheet (NOT a ModalBottomSheet): a scrim plus a bottom-pinned Surface with imePadding.
+    // Because it lives in the main window, its vertical position IS the keyboard top, so the sheet and
+    // keyboard rise in a single motion — the separate dialog window of ModalBottomSheet could not.
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        androidx.compose.ui.graphics.Color.Black
+                            .copy(alpha = 0.32f),
+                    ).clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { onDismiss() },
+        )
+        // Sheet-coloured filler under the sheet, exactly as tall as the inset the sheet is lifted
+        // by. When a cancelled hide/show IME animation makes the inset lead the keyboard's visual
+        // position for a few frames, the gap shows this (sheet briefly looks taller) instead of the
+        // black window background.
+        Box(
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .windowInsetsBottomHeight(WindowInsets.ime.union(WindowInsets.navigationBars))
+                    .background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
+        )
+        Surface(
+            // Content-sized sheet pinned to the bottom, lifted by the IME inset so it rides the
+            // keyboard frame-by-frame (requires windowSoftInputMode=adjustResize + edge-to-edge —
+            // without adjustResize the system pans the window and the inset jumps instead of
+            // animating). Union with the nav bar inset so the sheet clears the gesture pill
+            // whenever the keyboard is not (yet) up.
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars)),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 1.dp,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                Box(
+                    modifier =
+                        Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 12.dp, bottom = 4.dp)
+                            .size(width = 32.dp, height = 4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                RoundedCornerShape(2.dp),
+                            ),
+                )
+                parentTask?.let { parent ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier =
+                            Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.SubdirectoryArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.create_subtask_of, parent.title),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).padding(start = 8.dp),
+                        )
+                        IconButton(onClick = { parentUid = null }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.cancel),
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+
+                TextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    placeholder = { Text(stringResource(R.string.task_title_label)) },
+                    singleLine = true,
+                    colors = sheetFieldColors(),
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
+                )
+
+                if (showDescription) {
+                    TextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        placeholder = { Text(stringResource(R.string.task_description_label)) },
+                        colors = sheetFieldColors(),
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                due?.let { dueInstant ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            text = DUE_DATE_FORMATTER.format(dueInstant.atZone(java.time.ZoneId.systemDefault())),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f).padding(start = 12.dp),
+                        )
+                        IconButton(onClick = { due = null }) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.cancel),
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
+                }
+
+                if (parentTask == null) {
                     ExposedDropdownMenuBox(
                         expanded = listDropdownExpanded,
                         onExpandedChange = { listDropdownExpanded = it },
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     ) {
-                        OutlinedTextField(
-                            value = selectedList.name,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text(stringResource(R.string.task_list_label)) },
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(
-                                    expanded = listDropdownExpanded,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier =
+                                Modifier
+                                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                    .fillMaxWidth()
+                                    .padding(vertical = 10.dp),
+                        ) {
+                            selectedList.color?.let { colorHex ->
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(10.dp)
+                                            .background(
+                                                androidx.compose.ui.graphics.Color(
+                                                    android.graphics.Color.parseColor(colorHex),
+                                                ),
+                                                CircleShape,
+                                            ),
                                 )
-                            },
-                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                        )
+                            }
+                            Text(
+                                selectedList.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f).padding(start = 12.dp),
+                            )
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                        }
                         ExposedDropdownMenu(
                             expanded = listDropdownExpanded,
                             onDismissRequest = { listDropdownExpanded = false },
@@ -2326,13 +2734,12 @@ private fun CreateTaskDialog(
                                                 Box(
                                                     modifier =
                                                         Modifier
-                                                            .size(12.dp)
+                                                            .size(10.dp)
                                                             .background(
-                                                                color =
-                                                                    androidx.compose.ui.graphics.Color(
-                                                                        android.graphics.Color.parseColor(colorHex),
-                                                                    ),
-                                                                shape = CircleShape,
+                                                                androidx.compose.ui.graphics.Color(
+                                                                    android.graphics.Color.parseColor(colorHex),
+                                                                ),
+                                                                CircleShape,
                                                             ),
                                                 )
                                             }
@@ -2342,40 +2749,218 @@ private fun CreateTaskDialog(
                         }
                     }
                 }
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(stringResource(R.string.task_title_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    label = { Text(stringResource(R.string.task_description_label)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3,
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (title.isNotBlank()) {
-                        onCreate(title.trim(), description.ifBlank { null }, selectedListId)
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, bottom = 8.dp),
+                ) {
+                    val active = MaterialTheme.colorScheme.primary
+                    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+                    IconButton(onClick = { showDescription = !showDescription }) {
+                        Icon(
+                            Icons.Default.Notes,
+                            contentDescription = stringResource(R.string.task_description_label),
+                            tint = if (showDescription) active else muted,
+                        )
                     }
-                },
-                enabled = title.isNotBlank(),
-            ) {
-                Text(stringResource(R.string.create))
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(
+                            Icons.Default.Schedule,
+                            contentDescription = stringResource(R.string.pick_due_date),
+                            tint = if (due != null) active else muted,
+                        )
+                    }
+                    IconButton(onClick = { starred = !starred }) {
+                        Icon(
+                            if (starred) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = stringResource(R.string.favorite_description),
+                            tint = if (starred) NextcloudWarning else muted,
+                        )
+                    }
+                    IconButton(onClick = { showParentPicker = true }) {
+                        Icon(
+                            Icons.Default.SubdirectoryArrowRight,
+                            contentDescription = stringResource(R.string.select_parent_task),
+                            tint = if (parentTask != null) active else muted,
+                        )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    TextButton(
+                        enabled = title.isNotBlank(),
+                        onClick = {
+                            onCreate(
+                                NewTaskInput(
+                                    title = title.trim(),
+                                    description = if (showDescription) description.ifBlank { null } else null,
+                                    listId = selectedListId,
+                                    parentUid = parentUid,
+                                    due = due,
+                                    starred = starred,
+                                ),
+                            )
+                        },
+                    ) { Text(stringResource(R.string.save)) }
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
+        }
+    }
+
+    if (showDatePicker) {
+        val dateState = rememberDatePickerState(initialSelectedDateMillis = due?.toEpochMilli())
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDatePicker = false
+                    dateState.selectedDateMillis?.let { millis ->
+                        // DatePickerState reports midnight UTC; convert via UTC so the date can't slip a day.
+                        val localDate =
+                            java.time.Instant
+                                .ofEpochMilli(
+                                    millis,
+                                ).atZone(java.time.ZoneOffset.UTC)
+                                .toLocalDate()
+                        due = localDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                    }
+                }) { Text(stringResource(android.R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDatePicker = false },
+                ) { Text(stringResource(R.string.cancel)) }
+            },
+        ) { DatePicker(state = dateState) }
+    }
+
+    if (showParentPicker) {
+        ParentPickerSheet(
+            taskLists = writableLists,
+            tasks = tasks,
+            selectedParentUid = parentUid,
+            onDismiss = { showParentPicker = false },
+            onSelect = { picked ->
+                parentUid = picked?.uid
+                picked?.let { selectedListId = it.listId }
+                showParentPicker = false
+            },
+        )
+    }
+}
+
+/**
+ * Bottom sheet to pick a parent task. Reuses [buildOpenTaskRows] to order and indent candidates per
+ * list; only open tasks can be parents. "None" clears the parent.
+ * ponytail: no search field — parent lists are short; add one if lists grow large.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ParentPickerSheet(
+    taskLists: List<com.nextcloud.tasks.domain.model.TaskList>,
+    tasks: List<Task>,
+    selectedParentUid: String?,
+    onDismiss: () -> Unit,
+    onSelect: (Task?) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val perList =
+        remember(tasks, taskLists) {
+            taskLists
+                .map { list ->
+                    list to
+                        buildOpenTaskRows(tasks.filter { it.listId == list.id }, emptyMap(), emptySet())
+                            .filter { !it.task.isEffectivelyDone && it.task.uid != null }
+                }.filter { it.second.isNotEmpty() }
+        }
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 480.dp).padding(bottom = 16.dp)) {
+            item {
+                Text(
+                    stringResource(R.string.select_parent_task),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                )
             }
-        },
-    )
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelect(
+                                    null,
+                                )
+                            }.padding(horizontal = 20.dp, vertical = 14.dp),
+                ) {
+                    Text(
+                        stringResource(R.string.parent_none),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (selectedParentUid == null) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+            perList.forEach { (list, rows) ->
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 4.dp),
+                    ) {
+                        list.color?.let { colorHex ->
+                            Box(
+                                modifier =
+                                    Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            androidx.compose.ui.graphics.Color(
+                                                android.graphics.Color.parseColor(colorHex),
+                                            ),
+                                            CircleShape,
+                                        ),
+                            )
+                        }
+                        Text(
+                            list.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
+                }
+                items(rows, key = { it.task.id }) { row ->
+                    val candidate = row.task
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(candidate) }
+                                .padding(start = (20 + row.depth * 16).dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
+                    ) {
+                        Text(
+                            candidate.title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (candidate.uid == selectedParentUid) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 private val TASK_LIST_COLORS =
@@ -2788,6 +3373,16 @@ class TaskListViewModel
             _animatingEntryTaskIds.update { it - taskId }
         }
 
+        // UIDs of parent tasks whose sub-tasks are collapsed in the list.
+        // ponytail: kept in the ViewModel — survives config changes and in-session navigation, but
+        // not process death. Persist to Room/DataStore if that matters (tracked as a follow-up issue).
+        private val _collapsedIds = MutableStateFlow<Set<String>>(emptySet())
+        val collapsedIds = _collapsedIds.asStateFlow()
+
+        fun toggleCollapsed(taskUid: String) {
+            _collapsedIds.update { if (taskUid in it) it - taskUid else it + taskUid }
+        }
+
         // Network status and pending changes
         val isOnline =
             tasksRepository
@@ -3030,21 +3625,19 @@ class TaskListViewModel
             }
         }
 
-        fun createTask(
-            title: String,
-            description: String? = null,
-            listId: String,
-        ) {
+        fun createTask(input: NewTaskInput) {
             viewModelScope.launch {
                 try {
                     val draft =
                         com.nextcloud.tasks.domain.model.TaskDraft(
-                            listId = listId,
-                            title = title,
-                            description = description,
+                            listId = input.listId,
+                            title = input.title,
+                            description = input.description,
                             completed = false,
-                            due = null,
+                            due = input.due,
                             tagIds = emptyList(),
+                            parentUid = input.parentUid,
+                            priority = if (input.starred) STARRED_PRIORITY else null,
                         )
                     tasksRepository.createTask(draft)
                     timber.log.Timber.d("Task created successfully")
@@ -3059,35 +3652,84 @@ class TaskListViewModel
             _animatingEntryTaskIds.update { it + task.id }
             viewModelScope.launch {
                 try {
-                    val isCancelled = task.status?.uppercase() == "CANCELLED"
-                    val updated =
-                        when {
-                            // COMPLETED → NEEDS-ACTION (uncheck)
-                            task.completed ->
-                                task.copy(
-                                    completed = false,
-                                    completedAt = null,
-                                    status = "NEEDS-ACTION",
-                                )
-                            // CANCELLED → NEEDS-ACTION (uncheck / reopen)
-                            isCancelled ->
-                                task.copy(
-                                    status = "NEEDS-ACTION",
-                                )
-                            // NEEDS-ACTION / IN-PROCESS → COMPLETED (check)
-                            else ->
-                                task.copy(
-                                    completed = true,
-                                    completedAt = java.time.Instant.now(),
-                                    status = "COMPLETED",
-                                )
-                        }
-                    tasksRepository.updateTask(updated)
-                    timber.log.Timber.d("Task completion toggled")
+                    val all = allTasks.value
+                    val readOnlyListIds =
+                        taskLists.value
+                            .filter { it.shareAccess == ShareAccess.READ }
+                            .map { it.id }
+                            .toSet()
+                    val wasDone = task.isEffectivelyDone
+                    // Checking a parent cascades down to its descendants; re-opening a child
+                    // cascades up to its ancestors — matching Todoist/Reminders/Google Tasks.
+                    val affected =
+                        if (wasDone) {
+                            collectAncestors(task, all)
+                        } else {
+                            collectDescendants(task, all)
+                        }.filter { it.listId !in readOnlyListIds }
+                    affected.forEach { t ->
+                        // Skip tasks already in the target state (no write amplification).
+                        if (t.isEffectivelyDone == !wasDone) return@forEach
+                        val updated =
+                            if (wasDone) {
+                                t.copy(completed = false, completedAt = null, status = "NEEDS-ACTION")
+                            } else {
+                                t.copy(completed = true, completedAt = java.time.Instant.now(), status = "COMPLETED")
+                            }
+                        tasksRepository.updateTask(updated)
+                    }
+                    timber.log.Timber.d("Task completion toggled (${affected.size} affected)")
                 } catch (ignored: Exception) {
                     timber.log.Timber.e(ignored, "Failed to toggle task completion")
                 }
             }
+        }
+
+        fun toggleFavorite(task: Task) {
+            viewModelScope.launch {
+                try {
+                    val newPriority = if (task.isStarred) null else STARRED_PRIORITY
+                    tasksRepository.updateTask(task.copy(priority = newPriority))
+                } catch (ignored: Exception) {
+                    timber.log.Timber.e(ignored, "Failed to toggle favorite for task ${task.id}")
+                }
+            }
+        }
+
+        /** [root] plus every descendant, walking parentUid→uid links and breaking cycles. */
+        private fun collectDescendants(
+            root: Task,
+            all: List<Task>,
+        ): List<Task> {
+            val byParentUid = all.groupBy { it.parentUid }
+            val result = mutableListOf<Task>()
+            val visited = mutableSetOf<String>()
+
+            fun visit(task: Task) {
+                if (!visited.add(task.id)) return
+                result.add(task)
+                task.uid?.let { byParentUid[it] }?.forEach(::visit)
+            }
+            visit(root)
+            return result
+        }
+
+        /** [leaf] plus every ancestor, walking parentUid→uid links and breaking cycles. */
+        private fun collectAncestors(
+            leaf: Task,
+            all: List<Task>,
+        ): List<Task> {
+            val byUid = all.mapNotNull { t -> t.uid?.let { it to t } }.toMap()
+            val result = mutableListOf(leaf)
+            val visited = mutableSetOf(leaf.id)
+            var parentUid = leaf.parentUid
+            while (parentUid != null) {
+                val parent = byUid[parentUid] ?: break
+                if (!visited.add(parent.id)) break
+                result.add(parent)
+                parentUid = parent.parentUid
+            }
+            return result
         }
 
         fun deleteTask(taskId: String) {

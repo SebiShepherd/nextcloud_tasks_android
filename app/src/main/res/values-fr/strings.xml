@@ -202,4 +202,10 @@
     <string name="settings_reset_trusted_certs">Réinitialiser les certificats approuvés</string>
     <string name="settings_reset_trusted_certs_summary">Oublier tous les certificats que vous avez approuvés manuellement</string>
     <string name="settings_reset_trusted_certs_done">Certificats approuvés effacés</string>
+    <string name="favorite_description">Favori</string>
+    <string name="subtasks_label">Sous-tâches</string>
+    <string name="create_subtask_of">Sous-tâche de « %1$s »</string>
+    <string name="select_parent_task">Tâche parente</string>
+    <string name="parent_none">Aucune</string>
+    <string name="pick_due_date">Date d’échéance</string>
 </resources>

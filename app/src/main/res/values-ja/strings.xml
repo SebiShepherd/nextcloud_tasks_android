@@ -202,4 +202,10 @@
     <string name="settings_reset_trusted_certs">信頼済み証明書をリセット</string>
     <string name="settings_reset_trusted_certs_summary">手動で信頼したすべての証明書を破棄します</string>
     <string name="settings_reset_trusted_certs_done">信頼済み証明書を消去しました</string>
+    <string name="favorite_description">お気に入り</string>
+    <string name="subtasks_label">サブタスク</string>
+    <string name="create_subtask_of">「%1$s」のサブタスク</string>
+    <string name="select_parent_task">親タスク</string>
+    <string name="parent_none">なし</string>
+    <string name="pick_due_date">期限</string>
 </resources>

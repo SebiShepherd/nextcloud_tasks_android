@@ -202,4 +202,10 @@
     <string name="settings_reset_trusted_certs">Restablecer certificados de confianza</string>
     <string name="settings_reset_trusted_certs_summary">Olvidar todos los certificados en los que has confiado manualmente</string>
     <string name="settings_reset_trusted_certs_done">Certificados de confianza borrados</string>
+    <string name="favorite_description">Favorito</string>
+    <string name="subtasks_label">Subtareas</string>
+    <string name="create_subtask_of">Subtarea de «%1$s»</string>
+    <string name="select_parent_task">Tarea principal</string>
+    <string name="parent_none">Ninguna</string>
+    <string name="pick_due_date">Fecha de vencimiento</string>
 </resources>
