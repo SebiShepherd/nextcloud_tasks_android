@@ -10,12 +10,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -243,7 +237,6 @@ fun NextcloudTasksApp(
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
     val refreshError by taskListViewModel.refreshError.collectAsState()
     val refreshErrorDetail by taskListViewModel.refreshErrorDetail.collectAsState()
-    val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
     val collapsedIds by taskListViewModel.collapsedIds.collectAsState()
     val createListError by taskListViewModel.createListError.collectAsState()
     val editListError by taskListViewModel.editListError.collectAsState()
@@ -317,7 +310,6 @@ fun NextcloudTasksApp(
             searchQuery = searchQuery,
             isOnline = isOnline,
             hasPendingChanges = hasPendingChanges,
-            animatingEntryTaskIds = animatingEntryTaskIds,
             collapsedIds = collapsedIds,
             showCreateDialog = showCreateDialog,
             isExpandedScreen = isExpandedScreen,
@@ -341,7 +333,6 @@ fun NextcloudTasksApp(
             onStageDelete = taskListViewModel::stageDelete,
             onUndoDelete = taskListViewModel::undoDelete,
             onCommitDelete = taskListViewModel::commitDelete,
-            onClearAnimatingEntryTaskId = taskListViewModel::clearAnimatingEntryTaskId,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
             refreshError = refreshError,
@@ -408,7 +399,6 @@ fun AuthenticatedHome(
     searchQuery: String,
     isOnline: Boolean,
     hasPendingChanges: Boolean,
-    animatingEntryTaskIds: Set<String>,
     collapsedIds: Set<String>,
     showCreateDialog: Boolean,
     isExpandedScreen: Boolean = false,
@@ -429,7 +419,6 @@ fun AuthenticatedHome(
     onStageDelete: (Task, Boolean) -> Deletion,
     onUndoDelete: (Deletion) -> Unit,
     onCommitDelete: (Deletion) -> Unit,
-    onClearAnimatingEntryTaskId: (String) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
     refreshError: RefreshError? = null,
@@ -580,7 +569,6 @@ fun AuthenticatedHome(
                                 taskSort = taskSort,
                                 searchQuery = searchQuery,
                                 isOnline = isOnline,
-                                animatingEntryTaskIds = animatingEntryTaskIds,
                                 collapsedIds = collapsedIds,
                                 isExpandedScreen = isExpandedScreen,
                                 onSetFilter = onSetFilter,
@@ -603,7 +591,6 @@ fun AuthenticatedHome(
                                 },
                                 onToggleTaskCollapsed = onToggleTaskCollapsed,
                                 onSwipeDelete = onSwipeDelete,
-                                onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
                                 onShowCreateListDialog = onShowCreateListDialog,
                                 onOpenTask = { taskId -> navController.navigate("task/$taskId") },
                             )
@@ -1183,7 +1170,6 @@ private fun TasksContent(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     searchQuery: String,
     isOnline: Boolean,
-    animatingEntryTaskIds: Set<String>,
     collapsedIds: Set<String>,
     isExpandedScreen: Boolean = false,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
@@ -1192,7 +1178,6 @@ private fun TasksContent(
     onToggleFavorite: (Task) -> Unit,
     onToggleTaskCollapsed: (String) -> Unit,
     onSwipeDelete: (Task, Boolean) -> Unit,
-    onClearAnimatingEntryTaskId: (String) -> Unit,
     onShowCreateListDialog: () -> Unit = {},
     onOpenTask: (String) -> Unit = {},
 ) {
@@ -1313,11 +1298,11 @@ private fun TasksContent(
                             bottomInset = if (row.depth > 0) 8.dp else 12.dp,
                             onComplete = { onToggleTaskComplete(task) },
                             onDelete = { hasChildren -> onSwipeDelete(task, hasChildren) },
+                            modifier = Modifier.animateItem(),
                         ) {
                             SimpleAnimatedTaskCard(
                                 task = task,
                                 isReadOnly = taskIsReadOnly,
-                                animateEntry = task.id in animatingEntryTaskIds,
                                 depth = row.depth,
                                 hasChildren = row.hasChildren,
                                 subtaskDone = row.subtaskDone,
@@ -1327,7 +1312,6 @@ private fun TasksContent(
                                 onToggleComplete = { onToggleTaskComplete(task) },
                                 onToggleFavorite = { onToggleFavorite(task) },
                                 onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
-                                onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
                                 onOpenTask = { onOpenTask(task.id) },
                             )
                         }
@@ -1364,13 +1348,12 @@ private fun TasksContent(
                             bottomInset = 12.dp,
                             onComplete = { onToggleTaskComplete(task) },
                             onDelete = { onSwipeDelete(task, false) },
+                            modifier = Modifier.animateItem(),
                         ) {
                             SimpleAnimatedTaskCard(
                                 task = task,
                                 isReadOnly = taskIsReadOnly,
-                                animateEntry = task.id in animatingEntryTaskIds,
                                 onToggleComplete = { onToggleTaskComplete(task) },
-                                onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
                                 onOpenTask = { onOpenTask(task.id) },
                             )
                         }
@@ -2260,19 +2243,16 @@ private fun AccountItem(
 }
 
 /**
- * Simple animated wrapper for TaskCard.
- * - Toggle complete: Fade out animation, then update
- * - Delete: Fade out animation, then delete
- *
- * IMPORTANT: Animation must complete BEFORE data changes,
- * otherwise the composable is removed from composition immediately.
+ * A task row: sub-task indent rail + [TaskCard] + bottom spacing. Add/remove/move is animated by the
+ * enclosing LazyColumn via Modifier.animateItem() — this composable must NOT run its own size
+ * animation, because collapsing to height 0 inside a SwipeToDismissBox makes the swipe anchors settle
+ * and fire a spurious dismiss (was double-firing delete on a plain checkbox tap).
  */
 @Suppress("LongParameterList")
 @Composable
 private fun SimpleAnimatedTaskCard(
     task: Task,
     isReadOnly: Boolean = false,
-    animateEntry: Boolean = false,
     depth: Int = 0,
     hasChildren: Boolean = false,
     subtaskDone: Int = 0,
@@ -2282,102 +2262,43 @@ private fun SimpleAnimatedTaskCard(
     onToggleComplete: () -> Unit,
     onToggleCollapsed: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
-    onEntryAnimationComplete: () -> Unit = {},
     onOpenTask: () -> Unit = {},
 ) {
-    // Only start invisible if this task should animate entry (recently toggled)
-    var isVisible by remember { mutableStateOf(!animateEntry) }
-    var isAnimating by remember { mutableStateOf(false) }
-    // Local checkbox state to show change before animation.
-    // CANCELLED tasks are treated as completed for display purposes.
-    val isCancelledTask = task.status?.uppercase() == "CANCELLED"
-    var localCompleted by remember(task.id) { mutableStateOf(task.completed || isCancelledTask) }
-    val scope = rememberCoroutineScope()
-
-    // Trigger entry animation only for recently toggled tasks
-    LaunchedEffect(animateEntry) {
-        if (animateEntry && !isVisible) {
-            isVisible = true
-            // Clear the animating flag after a short delay so it doesn't retrigger
-            delay(250)
-            onEntryAnimationComplete()
-        }
-    }
-
-    // Sync local state when task changes (e.g., from server sync)
-    LaunchedEffect(task.completed, task.status) {
-        if (!isAnimating) {
-            localCompleted = task.completed || task.status?.uppercase() == "CANCELLED"
-        }
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter =
-            expandVertically(
-                animationSpec = tween(durationMillis = 200),
-            ) + fadeIn(animationSpec = tween(durationMillis = 200)),
-        exit =
-            shrinkVertically(
-                animationSpec = tween(durationMillis = 200),
-            ) + fadeOut(animationSpec = tween(durationMillis = 150)),
-    ) {
-        // Column includes bottom spacing so it animates with shrinkVertically
-        Column {
-            // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
-            // level (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp, then +16 dp each deeper level).
-            Row(
-                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-            ) {
-                if (depth > 0) {
-                    Spacer(modifier = Modifier.width((9 + (depth - 1) * 16).dp))
-                    Box(
-                        modifier =
-                            Modifier
-                                .width(2.dp)
-                                .fillMaxHeight()
-                                .background(MaterialTheme.colorScheme.outlineVariant),
-                    )
-                    Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    TaskCard(
-                        task = task.copy(completed = localCompleted),
-                        isReadOnly = isReadOnly,
-                        depth = depth,
-                        hasChildren = hasChildren,
-                        subtaskDone = subtaskDone,
-                        subtaskTotal = subtaskTotal,
-                        isCollapsed = isCollapsed,
-                        isStarred = isStarred,
-                        onToggleComplete = {
-                            if (!isAnimating) {
-                                isAnimating = true
-                                scope.launch {
-                                    // Show checkbox change first
-                                    localCompleted = !localCompleted
-                                    // Wait for user to see the change
-                                    delay(200)
-                                    // Then start fade/shrink animation
-                                    isVisible = false
-                                    // Wait for animation to complete
-                                    delay(250)
-                                    // Then trigger the data change
-                                    onToggleComplete()
-                                    // Reset so subsequent toggles on the same card work
-                                    isAnimating = false
-                                }
-                            }
-                        },
-                        onToggleCollapsed = onToggleCollapsed,
-                        onToggleFavorite = onToggleFavorite,
-                        onOpenTask = onOpenTask,
-                    )
-                }
+    Column {
+        // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
+        // level (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp, then +16 dp each deeper level).
+        Row(
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        ) {
+            if (depth > 0) {
+                Spacer(modifier = Modifier.width((9 + (depth - 1) * 16).dp))
+                Box(
+                    modifier =
+                        Modifier
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.outlineVariant),
+                )
+                Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
             }
-            // Bottom spacing - animates with shrinkVertically
-            Spacer(modifier = Modifier.height(if (depth > 0) 8.dp else 12.dp))
+            Box(modifier = Modifier.weight(1f)) {
+                TaskCard(
+                    task = task,
+                    isReadOnly = isReadOnly,
+                    depth = depth,
+                    hasChildren = hasChildren,
+                    subtaskDone = subtaskDone,
+                    subtaskTotal = subtaskTotal,
+                    isCollapsed = isCollapsed,
+                    isStarred = isStarred,
+                    onToggleComplete = onToggleComplete,
+                    onToggleCollapsed = onToggleCollapsed,
+                    onToggleFavorite = onToggleFavorite,
+                    onOpenTask = onOpenTask,
+                )
+            }
         }
+        Spacer(modifier = Modifier.height(if (depth > 0) 8.dp else 12.dp))
     }
 }
 
@@ -2561,10 +2482,11 @@ private fun SwipeableTaskRow(
     bottomInset: androidx.compose.ui.unit.Dp,
     onComplete: () -> Unit,
     onDelete: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     if (!enabled) {
-        content()
+        Box(modifier = modifier) { content() }
         return
     }
     // Accept the dismissal (return true): the action itself removes the row (complete → moves to the
@@ -2583,6 +2505,7 @@ private fun SwipeableTaskRow(
         )
     SwipeToDismissBox(
         state = state,
+        modifier = modifier,
         // dismissDirection follows the drag offset immediately, so the colour + icon reveal as the
         // row moves (targetValue only flips past the settle threshold, leaving a blank gap on a
         // partial swipe).
@@ -3527,14 +3450,6 @@ class TaskListViewModel
         // Frozen tasks during sync to prevent UI flicker
         private val frozenTasksForSync = MutableStateFlow<List<Task>?>(null)
 
-        // Track task IDs that were recently toggled and should animate entry in their new section
-        private val _animatingEntryTaskIds = MutableStateFlow<Set<String>>(emptySet())
-        val animatingEntryTaskIds = _animatingEntryTaskIds.asStateFlow()
-
-        fun clearAnimatingEntryTaskId(taskId: String) {
-            _animatingEntryTaskIds.update { it - taskId }
-        }
-
         // UIDs of parent tasks whose sub-tasks are collapsed in the list.
         // ponytail: kept in the ViewModel — survives config changes and in-session navigation, but
         // not process death. Persist to Room/DataStore if that matters (tracked as a follow-up issue).
@@ -3823,7 +3738,6 @@ class TaskListViewModel
          * undo snackbar can reverse it precisely.
          */
         fun applyCompletion(task: Task): CompletionChange {
-            _animatingEntryTaskIds.update { it + task.id }
             val all = allTasks.value
             val readOnlyListIds =
                 taskLists.value

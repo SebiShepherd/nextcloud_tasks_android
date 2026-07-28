@@ -33,7 +33,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TaskListViewModelTest {
@@ -566,23 +565,6 @@ class TaskListViewModelTest {
                 val deletion = vm.stageDelete(task, keepChildren = false)
                 vm.undoDelete(deletion)
                 coVerify(exactly = 0) { repo.deleteTask(any()) }
-            }
-        }
-
-    // --- animatingEntryTaskIds ---
-
-    @Test
-    fun `clearAnimatingEntryTaskId removes task id`() =
-        runTest(testDispatcher) {
-            withViewModelAndRepo { vm, repo ->
-                val task = createTask(id = "task-1")
-                coEvery { repo.updateTask(any()) } returns task
-
-                vm.toggleTaskComplete(task)
-                assertTrue(vm.animatingEntryTaskIds.value.contains("task-1"))
-
-                vm.clearAnimatingEntryTaskId("task-1")
-                assertFalse(vm.animatingEntryTaskIds.value.contains("task-1"))
             }
         }
 
