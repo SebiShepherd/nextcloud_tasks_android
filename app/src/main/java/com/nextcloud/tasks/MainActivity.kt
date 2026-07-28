@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -172,6 +173,11 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Edge-to-edge so the ModalBottomSheet window animates IME insets in sync with the keyboard
+        // (without it the sheet lags behind and the keyboard briefly covers it). Scaffold applies the
+        // system-bar insets to content, so the rest of the layout is unaffected.
+        enableEdgeToEdge()
 
         // Pre-initialize AppCompatDelegate to prevent first-time recreation
         // This reads any saved locale without triggering a configuration change
@@ -2656,6 +2662,22 @@ private fun CreateTaskSheet(
                                     selectedListId = list.id
                                     listDropdownExpanded = false
                                 },
+                                leadingIcon =
+                                    list.color?.let { colorHex ->
+                                        {
+                                            Box(
+                                                modifier =
+                                                    Modifier
+                                                        .size(10.dp)
+                                                        .background(
+                                                            androidx.compose.ui.graphics.Color(
+                                                                android.graphics.Color.parseColor(colorHex),
+                                                            ),
+                                                            CircleShape,
+                                                        ),
+                                            )
+                                        }
+                                    },
                             )
                         }
                     }
