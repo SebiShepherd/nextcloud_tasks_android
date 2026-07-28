@@ -4,10 +4,8 @@ package com.nextcloud.tasks
 
 import android.content.res.Configuration
 import android.os.Bundle
-import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -31,7 +29,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -122,7 +119,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -131,8 +127,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.compose.NavHost
@@ -177,11 +171,6 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Edge-to-edge so the ModalBottomSheet window animates IME insets in sync with the keyboard
-        // (without it the sheet lags behind and the keyboard briefly covers it). Scaffold applies the
-        // system-bar insets to content, so the rest of the layout is unaffected.
-        enableEdgeToEdge()
 
         // Pre-initialize AppCompatDelegate to prevent first-time recreation
         // This reads any saved locale without triggering a configuration change
@@ -2539,21 +2528,12 @@ private fun CreateTaskSheet(
     val parentTask = parentUid?.let { uid -> tasks.firstOrNull { it.uid == uid } }
     val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.first()
     val titleFocus = remember { FocusRequester() }
-    val sheetView = LocalView.current
-    LaunchedEffect(Unit) {
-        // The sheet lives in its own Dialog window, which by default does NOT dispatch animated IME
-        // insets — so imePadding jumped only after the keyboard was fully open ("sheet covered, then
-        // snaps up"). Tell that window to lay out edge-to-edge and resize for the IME; now the inset
-        // animates and the content rides the keyboard up in lockstep. Then focus so it opens at once.
-        (sheetView.parent as? DialogWindowProvider)?.window?.let { window ->
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        }
-        titleFocus.requestFocus()
-    }
+    LaunchedEffect(Unit) { titleFocus.requestFocus() }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
-        Column(modifier = Modifier.fillMaxWidth().imePadding().padding(bottom = 8.dp)) {
+        // No imePadding here: ModalBottomSheet already applies it to its own container, so adding a
+        // second one made the content lift twice and out of sync (the "sheet covered, then jumps up").
+        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
             parentTask?.let { parent ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
