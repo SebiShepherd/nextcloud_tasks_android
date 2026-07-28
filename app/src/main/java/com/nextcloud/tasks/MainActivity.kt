@@ -26,20 +26,16 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -120,7 +116,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -2544,14 +2539,9 @@ private fun CreateTaskOverlay(
     val parentTask = parentUid?.let { uid -> tasks.firstOrNull { it.uid == uid } }
     val selectedList = writableLists.firstOrNull { it.id == selectedListId } ?: writableLists.first()
     val titleFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        // Let the sheet lay out once with IME = 0 (resting on the nav bar) BEFORE opening the keyboard.
-        // Requesting focus in the same frame sometimes made the very first layout snap to the final IME
-        // inset, leaving a brief gap ("black stripe") until it settled. One frame later, the keyboard
-        // animates the sheet up smoothly and consistently.
-        withFrameNanos {}
-        titleFocus.requestFocus()
-    }
+    // Focus immediately so the sheet and keyboard animate up together. Deferring the focus by a frame
+    // made the sheet rest on the nav bar first and then overshoot, showing a large gap on every open.
+    LaunchedEffect(Unit) { titleFocus.requestFocus() }
     BackHandler(enabled = true) { onDismiss() }
 
     // In-window sheet (NOT a ModalBottomSheet): a scrim plus a bottom-pinned Surface with imePadding.
@@ -2571,23 +2561,16 @@ private fun CreateTaskOverlay(
                     ) { onDismiss() },
         )
         Surface(
-            // The Surface fills all the way to the screen bottom (behind the keyboard); the inset is
-            // applied to the CONTENT below instead. So if the content's inset animation briefly lags
-            // the keyboard (fast open/close), the gap is filled by the sheet's own colour, not the
-            // black window background — no "black stripe". Inset = max(nav bar, IME): sits on the
-            // keyboard when open, on the nav bar when closed.
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+            // Content-sized sheet pinned to the bottom; imePadding lifts the whole sheet with the
+            // keyboard so at rest it sits exactly on the keyboard (no tall sheet-coloured gap). The
+            // brief position wobble on very fast open/close is the OS IME inset leading the keyboard
+            // render — Google Tasks shows the same and it can't be removed app-side.
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().imePadding(),
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 1.dp,
         ) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
-                        .padding(bottom = 8.dp),
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                 Box(
                     modifier =
                         Modifier
