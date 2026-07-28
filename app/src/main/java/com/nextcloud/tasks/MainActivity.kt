@@ -26,16 +26,21 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -104,6 +109,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -2560,12 +2566,29 @@ private fun CreateTaskOverlay(
                         indication = null,
                     ) { onDismiss() },
         )
+        // Sheet-coloured filler under the sheet, exactly as tall as the inset the sheet is lifted
+        // by. When a cancelled hide/show IME animation makes the inset lead the keyboard's visual
+        // position for a few frames, the gap shows this (sheet briefly looks taller) instead of the
+        // black window background.
+        Box(
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .windowInsetsBottomHeight(WindowInsets.ime.union(WindowInsets.navigationBars))
+                    .background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
+        )
         Surface(
-            // Content-sized sheet pinned to the bottom; imePadding lifts the whole sheet with the
-            // keyboard so at rest it sits exactly on the keyboard (no tall sheet-coloured gap). The
-            // brief position wobble on very fast open/close is the OS IME inset leading the keyboard
-            // render — Google Tasks shows the same and it can't be removed app-side.
-            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().imePadding(),
+            // Content-sized sheet pinned to the bottom, lifted by the IME inset so it rides the
+            // keyboard frame-by-frame (requires windowSoftInputMode=adjustResize + edge-to-edge —
+            // without adjustResize the system pans the window and the inset jumps instead of
+            // animating). Union with the nav bar inset so the sheet clears the gesture pill
+            // whenever the keyboard is not (yet) up.
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars)),
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 1.dp,
