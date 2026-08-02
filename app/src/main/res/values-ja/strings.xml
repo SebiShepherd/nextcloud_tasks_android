@@ -223,4 +223,5 @@
     <string name="more_options">その他のオプション</string>
     <string name="add_subtask">サブタスクを追加</string>
     <string name="move_to_list">リストに移動</string>
+    <string name="task_detail_parent_label">親タスク</string>
 </resources>

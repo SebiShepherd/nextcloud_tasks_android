@@ -223,4 +223,5 @@
     <string name="more_options">更多选项</string>
     <string name="add_subtask">添加子任务</string>
     <string name="move_to_list">移动到列表</string>
+    <string name="task_detail_parent_label">父任务</string>
 </resources>

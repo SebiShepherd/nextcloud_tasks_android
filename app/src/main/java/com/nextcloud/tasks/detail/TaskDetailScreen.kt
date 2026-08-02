@@ -1,4 +1,4 @@
-@file:Suppress("TooManyFunctions", "LongMethod")
+@file:Suppress("TooManyFunctions", "LongMethod", "ImportOrdering")
 
 package com.nextcloud.tasks.detail
 
@@ -36,8 +36,10 @@ import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.PriorityHigh
+import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -49,6 +51,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -88,6 +91,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nextcloud.tasks.R
@@ -106,12 +110,15 @@ private val TIME_FORMATTER = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT
 @Composable
 fun TaskDetailScreen(
     onNavigateBack: () -> Unit,
+    onOpenTask: (String) -> Unit,
     viewModel: TaskDetailViewModel = hiltViewModel(),
 ) {
     val task by viewModel.task.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val availableTags by viewModel.availableTags.collectAsState()
     val isReadOnly by viewModel.isReadOnly.collectAsState()
+    val subtasks by viewModel.subtasks.collectAsState()
+    val parentTask by viewModel.parentTask.collectAsState()
 
     // Navigate back when task is null (not yet loaded) or after deletion
     BackHandler { onNavigateBack() }
@@ -154,6 +161,11 @@ fun TaskDetailScreen(
                 task = task!!,
                 availableTags = availableTags,
                 isReadOnly = isReadOnly,
+                subtasks = subtasks,
+                parentTask = parentTask,
+                onOpenTask = onOpenTask,
+                onToggleSubtask = viewModel::toggleSubtaskComplete,
+                onAddSubtask = viewModel::addSubtask,
                 modifier = Modifier.padding(padding),
                 onUpdateTitle = viewModel::updateTitle,
                 onUpdateDescription = viewModel::updateDescription,
@@ -204,6 +216,11 @@ private fun TaskDetailContent(
     task: Task,
     availableTags: List<Tag>,
     isReadOnly: Boolean,
+    subtasks: List<Task>,
+    parentTask: Task?,
+    onOpenTask: (String) -> Unit,
+    onToggleSubtask: (Task) -> Unit,
+    onAddSubtask: (String) -> Unit,
     modifier: Modifier = Modifier,
     onUpdateTitle: (String) -> Unit,
     onUpdateDescription: (String?) -> Unit,
@@ -261,6 +278,11 @@ private fun TaskDetailContent(
                     task = task,
                     availableTags = availableTags,
                     isReadOnly = isReadOnly,
+                    subtasks = subtasks,
+                    parentTask = parentTask,
+                    onOpenTask = onOpenTask,
+                    onToggleSubtask = onToggleSubtask,
+                    onAddSubtask = onAddSubtask,
                     onUpdateStartDate = onUpdateStartDate,
                     onUpdateDueDate = onUpdateDueDate,
                     onUpdateStatus = onUpdateStatus,
@@ -348,6 +370,11 @@ private fun DetailsTab(
     task: Task,
     availableTags: List<Tag>,
     isReadOnly: Boolean,
+    subtasks: List<Task>,
+    parentTask: Task?,
+    onOpenTask: (String) -> Unit,
+    onToggleSubtask: (Task) -> Unit,
+    onAddSubtask: (String) -> Unit,
     onUpdateStartDate: (Instant?) -> Unit,
     onUpdateDueDate: (Instant?) -> Unit,
     onUpdateStatus: (String?) -> Unit,
@@ -359,6 +386,12 @@ private fun DetailsTab(
     onRequestSync: () -> Unit,
 ) {
     Column {
+        // Back-link to the parent task when this task is itself a sub-task.
+        parentTask?.let { parent ->
+            ParentBacklinkRow(parent = parent, onOpenTask = onOpenTask)
+            HorizontalDivider()
+        }
+
         // Status
         StatusRow(
             status = task.status,
@@ -459,6 +492,154 @@ private fun DetailsTab(
         )
 
         HorizontalDivider()
+
+        // Sub-tasks: progress, the children themselves, and an inline add field.
+        SubtasksSection(
+            subtasks = subtasks,
+            isReadOnly = isReadOnly,
+            onOpenTask = onOpenTask,
+            onToggleSubtask = onToggleSubtask,
+            onAddSubtask = onAddSubtask,
+        )
+    }
+}
+
+@Composable
+private fun ParentBacklinkRow(
+    parent: Task,
+    onOpenTask: (String) -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onOpenTask(parent.id) }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Icon(
+            Icons.Default.SubdirectoryArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
+        )
+        Column {
+            Text(
+                text = stringResource(R.string.task_detail_parent_label),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = parent.title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SubtasksSection(
+    subtasks: List<Task>,
+    isReadOnly: Boolean,
+    onOpenTask: (String) -> Unit,
+    onToggleSubtask: (Task) -> Unit,
+    onAddSubtask: (String) -> Unit,
+) {
+    val done = subtasks.count { it.completed || it.status?.uppercase() == "CANCELLED" }
+    val total = subtasks.size
+
+    Row(
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            Icons.Default.SubdirectoryArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = stringResource(R.string.subtasks_label),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        if (total > 0) {
+            Text(
+                text = "$done/$total",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+
+    if (total > 0) {
+        LinearProgressIndicator(
+            progress = { if (total == 0) 0f else done.toFloat() / total },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+    }
+
+    subtasks.forEach { child ->
+        val childDone = child.completed || child.status?.uppercase() == "CANCELLED"
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenTask(child.id) }
+                    .padding(end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked = childDone,
+                onCheckedChange = if (isReadOnly) null else ({ onToggleSubtask(child) }),
+            )
+            Text(
+                text = child.title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (childDone) TextDecoration.LineThrough else TextDecoration.None,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+
+    if (!isReadOnly) {
+        AddSubtaskField(onAdd = onAddSubtask)
+    }
+
+    HorizontalDivider()
+}
+
+@Composable
+private fun AddSubtaskField(onAdd: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val submit = {
+        if (text.isNotBlank()) {
+            onAdd(text)
+            text = ""
+        }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            placeholder = { Text(stringResource(R.string.add_subtask)) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { submit() }),
+        )
+        IconButton(onClick = submit, enabled = text.isNotBlank()) {
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_subtask))
+        }
     }
 }
 

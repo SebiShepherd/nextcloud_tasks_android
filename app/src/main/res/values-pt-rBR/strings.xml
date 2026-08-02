@@ -223,4 +223,5 @@
     <string name="more_options">Mais opções</string>
     <string name="add_subtask">Adicionar subtarefa</string>
     <string name="move_to_list">Mover para a lista</string>
+    <string name="task_detail_parent_label">Tarefa principal</string>
 </resources>

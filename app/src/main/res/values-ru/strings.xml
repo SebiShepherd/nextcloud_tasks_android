@@ -223,4 +223,5 @@
     <string name="more_options">Дополнительно</string>
     <string name="add_subtask">Добавить подзадачу</string>
     <string name="move_to_list">Переместить в список</string>
+    <string name="task_detail_parent_label">Родительская задача</string>
 </resources>

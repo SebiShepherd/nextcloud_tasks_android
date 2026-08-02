@@ -223,4 +223,5 @@
     <string name="more_options">Weitere Optionen</string>
     <string name="add_subtask">Unteraufgabe hinzufügen</string>
     <string name="move_to_list">In Liste verschieben</string>
+    <string name="task_detail_parent_label">Übergeordnete Aufgabe</string>
 </resources>

@@ -223,4 +223,5 @@
     <string name="more_options">Altre opzioni</string>
     <string name="add_subtask">Aggiungi attività secondaria</string>
     <string name="move_to_list">Sposta nell’elenco</string>
+    <string name="task_detail_parent_label">Attività principale</string>
 </resources>

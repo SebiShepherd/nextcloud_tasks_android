@@ -224,4 +224,5 @@
     <string name="more_options">More options</string>
     <string name="add_subtask">Add sub-task</string>
     <string name="move_to_list">Move to list</string>
+    <string name="task_detail_parent_label">Parent task</string>
 </resources>

@@ -656,6 +656,7 @@ fun AuthenticatedHome(
             composable("task/{taskId}") {
                 TaskDetailScreen(
                     onNavigateBack = { navController.navigateUp() },
+                    onOpenTask = { taskId -> navController.navigate("task/$taskId") },
                 )
             }
         }
