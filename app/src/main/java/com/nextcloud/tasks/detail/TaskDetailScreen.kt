@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -244,7 +245,9 @@ private fun TaskDetailContent(
         )
 
     Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        // imePadding so the keyboard shrinks the scroll area instead of covering it — the focused
+        // "add sub-task" field then auto-scrolls into the visible region.
+        modifier = modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()),
     ) {
         // Editable title (read-only if shared with read access)
         if (isReadOnly) {
