@@ -1109,14 +1109,16 @@ internal fun buildOpenTaskRows(
     listTasks: List<Task>,
     childCounts: Map<String, Pair<Int, Int>>,
     collapsedUids: Set<String>,
+    done: Boolean = false,
 ): List<TaskRow> {
     val byParentUid = listTasks.groupBy { it.parentUid }
     val uidsInList = listTasks.mapNotNull { it.uid }.toSet()
-    // Open roots: top-level (or orphaned) tasks that aren't done. Their whole subtree renders here,
-    // INCLUDING done children (struck through in place); a done root drops to the completed section.
+    // Roots: top-level (or orphaned) tasks matching the requested done state. An open tree renders its
+    // whole subtree INCLUDING done children (struck through in place); the done tree only nests done
+    // children so an open child of a done parent still surfaces in the open section, not here.
     val roots =
         listTasks.filter {
-            (it.parentUid == null || it.parentUid !in uidsInList) && !it.isEffectivelyDone
+            (it.parentUid == null || it.parentUid !in uidsInList) && it.isEffectivelyDone == done
         }
     val rows = mutableListOf<TaskRow>()
     val visited = mutableSetOf<String>()
@@ -1126,21 +1128,38 @@ internal fun buildOpenTaskRows(
         depth: Int,
     ) {
         if (!visited.add(task.id)) return
-        val (done, total) = task.uid?.let { childCounts[it] } ?: (0 to 0)
+        val (childDone, total) = task.uid?.let { childCounts[it] } ?: (0 to 0)
         val collapsed = task.uid != null && task.uid in collapsedUids
-        rows.add(TaskRow(task, depth.coerceAtMost(MAX_DISPLAY_DEPTH), total > 0, done, total, collapsed))
+        rows.add(TaskRow(task, depth.coerceAtMost(MAX_DISPLAY_DEPTH), total > 0, childDone, total, collapsed))
         if (!collapsed) {
-            task.uid?.let { byParentUid[it] }?.forEach { emit(it, depth + 1) }
+            task.uid
+                ?.let { byParentUid[it] }
+                ?.filter { !done || it.isEffectivelyDone }
+                ?.forEach { emit(it, depth + 1) }
         }
     }
     roots.forEach { emit(it, 0) }
-    // Open tasks stuck in a parent cycle with no reachable root — surface at top level so they aren't
-    // lost. (An unvisited task under a visited parent is just collapsed; done tasks belong below.)
+    // Tasks stuck in a parent cycle with no reachable root — surface at top level so they aren't lost.
     listTasks.forEach {
-        if (!it.isEffectivelyDone && it.id !in visited && it.parentUid !in visited) emit(it, 0)
+        if (it.isEffectivelyDone == done && it.id !in visited && it.parentUid !in visited) emit(it, 0)
     }
     return rows
 }
+
+/** parentUid → (done, total) child counts across [tasks], for the sub-task collapse chip. */
+internal fun subtaskChildCounts(tasks: List<Task>): Map<String, Pair<Int, Int>> =
+    tasks
+        .groupBy { it.parentUid }
+        .entries
+        .mapNotNull { (parentUid, kids) ->
+            parentUid?.let { it to (kids.count(Task::isEffectivelyDone) to kids.size) }
+        }.toMap()
+
+/** Nested rows for the completed section: done parents followed by their done children, indented. */
+internal fun buildCompletedTaskRows(
+    completedTasks: List<Task>,
+    collapsedUids: Set<String>,
+): List<TaskRow> = buildOpenTaskRows(completedTasks, subtaskChildCounts(completedTasks), collapsedUids, done = true)
 
 @Suppress("UnusedParameter", "LongParameterList")
 @Composable
@@ -1178,19 +1197,15 @@ private fun TasksContent(
     // completed section below.
     val treeByList =
         knownTasks.groupBy { it.listId }.mapValues { (_, listTasks) ->
-            val childCounts =
-                listTasks
-                    .groupBy { it.parentUid }
-                    .entries
-                    .mapNotNull { (parentUid, kids) ->
-                        parentUid?.let { it to (kids.count(Task::isEffectivelyDone) to kids.size) }
-                    }.toMap()
-            buildOpenTaskRows(listTasks, childCounts, collapsedIds)
+            buildOpenTaskRows(listTasks, subtaskChildCounts(listTasks), collapsedIds)
         }
     val emittedIds = treeByList.values.flatten().mapTo(mutableSetOf()) { it.task.id }
     // Lists that actually have an open tree, in first-seen order.
     val openListIds = knownTasks.map { it.listId }.distinct().filter { treeByList[it]?.isNotEmpty() == true }
     val completedTasks = knownTasks.filter { it.isEffectivelyDone && it.id !in emittedIds }
+    // Keep the sub-task tree in the completed section too (done parent → done children, indented),
+    // instead of flattening everything to depth 0.
+    val completedRows = buildCompletedTaskRows(completedTasks, collapsedIds)
 
     // On expanded screens, constrain max content width for readability
     val contentModifier =
@@ -1322,21 +1337,30 @@ private fun TasksContent(
 
                 // Erledigte Tasks (wenn aufgeklappt)
                 if (showCompletedTasks) {
-                    items(completedTasks, key = { it.id }) { task ->
+                    items(completedRows, key = { it.task.id }) { row ->
+                        val task = row.task
                         val taskIsReadOnly =
                             taskListMap[task.listId]?.shareAccess == ShareAccess.READ
                         SwipeableTaskRow(
                             enabled = !taskIsReadOnly,
-                            hasChildren = false,
-                            bottomInset = 12.dp,
+                            hasChildren = row.hasChildren,
+                            bottomInset = if (row.depth > 0) 8.dp else 12.dp,
                             onComplete = { onToggleTaskComplete(task) },
-                            onDelete = { onSwipeDelete(task, false) },
+                            onDelete = { hasChildren -> onSwipeDelete(task, hasChildren) },
                             modifier = Modifier.animateItem(),
                         ) {
                             SimpleAnimatedTaskCard(
                                 task = task,
                                 isReadOnly = taskIsReadOnly,
+                                depth = row.depth,
+                                hasChildren = row.hasChildren,
+                                subtaskDone = row.subtaskDone,
+                                subtaskTotal = row.subtaskTotal,
+                                isCollapsed = row.isCollapsed,
+                                isStarred = task.isStarred,
                                 onToggleComplete = { onToggleTaskComplete(task) },
+                                onToggleFavorite = { onToggleFavorite(task) },
+                                onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
                                 onOpenTask = { onOpenTask(task.id) },
                             )
                         }
@@ -2472,18 +2496,20 @@ private fun SwipeableTaskRow(
         Box(modifier = modifier) { content() }
         return
     }
-    // Accept the dismissal (return true): the action itself removes the row (complete → moves to the
-    // done section, delete → hidden until commit), so the swipe fires exactly once and slides off
-    // cleanly. Returning false would snap the row back while it still exists, re-firing the gesture.
+    // Always snap back (return false): the action drives removal itself — complete moves the row to
+    // the done section, delete hides it via the pending set — and the LazyColumn animates it out with
+    // animateItem(). Returning true would leave the box in a dismissed state showing its coloured
+    // background; on the delete-with-children path (which only opens a dialog) that background then
+    // sticks forever if the dialog is cancelled.
     val state =
         rememberSwipeToDismissBoxState(
             confirmValueChange = { value ->
                 when (value) {
                     SwipeToDismissBoxValue.StartToEnd -> onComplete()
                     SwipeToDismissBoxValue.EndToStart -> onDelete(hasChildren)
-                    SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState false
+                    SwipeToDismissBoxValue.Settled -> Unit
                 }
-                true
+                false
             },
         )
     SwipeToDismissBox(
