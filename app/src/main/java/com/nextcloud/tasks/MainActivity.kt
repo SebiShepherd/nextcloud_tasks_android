@@ -2752,11 +2752,17 @@ private fun SelectionTopBar(
                 IconButton(onClick = onExit) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.close))
                 }
+                // Per the reference design the bar shows just the number; the full "N selected"
+                // stays as the accessibility label so TalkBack still announces the context.
+                val countLabel = stringResource(R.string.selection_count, count)
                 Text(
-                    text = stringResource(R.string.selection_count, count),
+                    text = count.toString(),
                     style = MaterialTheme.typography.titleMedium,
-                    // end padding so the count never touches the first action icon as it grows
-                    modifier = Modifier.weight(1f).padding(start = 4.dp, end = 8.dp),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .padding(start = 4.dp, end = 8.dp)
+                            .semantics { contentDescription = countLabel },
                 )
                 IconButton(onClick = onComplete) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = stringResource(R.string.mark_complete))
