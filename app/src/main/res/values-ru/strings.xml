@@ -215,4 +215,10 @@
     <string name="delete_subtasks_all">Удалить все</string>
     <string name="delete_subtasks_keep">Сохранить подзадачи</string>
     <string name="swipe_complete">Готово</string>
+    <!-- Selection mode -->
+    <string name="selection_count">Выбрано: %1$d</string>
+    <string name="select_all">Выбрать все</string>
+    <string name="selection_detach">Открепить от родительской</string>
+    <string name="mark_complete">Отметить выполненной</string>
+    <string name="more_options">Дополнительно</string>
 </resources>

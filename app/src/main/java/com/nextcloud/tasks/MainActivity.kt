@@ -10,8 +10,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,12 +48,15 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notes
@@ -238,6 +243,8 @@ fun NextcloudTasksApp(
     val refreshError by taskListViewModel.refreshError.collectAsState()
     val refreshErrorDetail by taskListViewModel.refreshErrorDetail.collectAsState()
     val collapsedIds by taskListViewModel.collapsedIds.collectAsState()
+    val selectionMode by taskListViewModel.selectionMode.collectAsState()
+    val selectedIds by taskListViewModel.selectedIds.collectAsState()
     val createListError by taskListViewModel.createListError.collectAsState()
     val editListError by taskListViewModel.editListError.collectAsState()
     val deleteListError by taskListViewModel.deleteListError.collectAsState()
@@ -311,6 +318,16 @@ fun NextcloudTasksApp(
             isOnline = isOnline,
             hasPendingChanges = hasPendingChanges,
             collapsedIds = collapsedIds,
+            selectionMode = selectionMode,
+            selectedIds = selectedIds,
+            onEnterSelection = taskListViewModel::enterSelection,
+            onToggleSelection = taskListViewModel::toggleSelection,
+            onClearSelection = taskListViewModel::clearSelection,
+            onSelectAll = taskListViewModel::selectAll,
+            onCompleteSelected = taskListViewModel::completeSelected,
+            onDetachSelected = taskListViewModel::detachSelected,
+            onStageDeleteSelected = taskListViewModel::stageDeleteSelected,
+            anySelectedIsChild = taskListViewModel::anySelectedIsChild,
             showCreateDialog = showCreateDialog,
             isExpandedScreen = isExpandedScreen,
             onLogout = loginFlowViewModel::onLogout,
@@ -399,6 +416,16 @@ fun AuthenticatedHome(
     isOnline: Boolean,
     hasPendingChanges: Boolean,
     collapsedIds: Set<String>,
+    selectionMode: Boolean,
+    selectedIds: Set<String>,
+    onEnterSelection: (String) -> Unit,
+    onToggleSelection: (String) -> Unit,
+    onClearSelection: () -> Unit,
+    onSelectAll: (Collection<String>) -> Unit,
+    onCompleteSelected: () -> Unit,
+    onDetachSelected: () -> Unit,
+    onStageDeleteSelected: () -> Deletion,
+    anySelectedIsChild: () -> Boolean,
     showCreateDialog: Boolean,
     isExpandedScreen: Boolean = false,
     onLogout: (String) -> Unit,
@@ -496,6 +523,17 @@ fun AuthenticatedHome(
     val onSwipeDelete: (Task, Boolean) -> Unit = { task, hasChildren ->
         if (hasChildren) deleteDialogTask = task else performDelete(task, false)
     }
+    // Bulk delete from selection mode: no per-task dialog (children are freed automatically), one undo.
+    val performBulkDelete: () -> Unit = {
+        val deletion = onStageDeleteSelected()
+        if (deletion.deleteIds.isNotEmpty()) {
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(deletedMsg, undoLabel, duration = SnackbarDuration.Short)
+                if (result == SnackbarResult.ActionPerformed) onUndoDelete(deletion) else onCommitDelete(deletion)
+            }
+        }
+    }
+    BackHandler(enabled = selectionMode) { onClearSelection() }
     // Unified completion for both the checkbox and the swipe: mark done/reopen (cascading).
     // No snackbar — re-tapping the checkbox already undoes it, so a toast would just be noise.
     val completeWithUndo: (Task) -> Unit = { task -> onApplyCompletion(task) }
@@ -532,17 +570,30 @@ fun AuthenticatedHome(
                     },
                 ) { padding ->
                     Column(modifier = Modifier.padding(padding)) {
-                        UnifiedSearchBar(
-                            state = state,
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = onSetSearchQuery,
-                            onOpenDrawer = if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
-                            onSwitchAccount = onSwitchAccount,
-                            onLogout = onLogout,
-                            taskSort = taskSort,
-                            onSetSort = onSetSort,
-                            onAddAccount = onAddAccount,
-                        )
+                        if (selectionMode) {
+                            SelectionTopBar(
+                                count = selectedIds.size,
+                                canDetach = anySelectedIsChild(),
+                                onExit = onClearSelection,
+                                onComplete = onCompleteSelected,
+                                onSelectAll = { onSelectAll(tasks.map { it.id }) },
+                                onDetach = onDetachSelected,
+                                onDelete = performBulkDelete,
+                            )
+                        } else {
+                            UnifiedSearchBar(
+                                state = state,
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = onSetSearchQuery,
+                                onOpenDrawer =
+                                    if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
+                                onSwitchAccount = onSwitchAccount,
+                                onLogout = onLogout,
+                                taskSort = taskSort,
+                                onSetSort = onSetSort,
+                                onAddAccount = onAddAccount,
+                            )
+                        }
 
                         PullToRefreshBox(
                             isRefreshing = isRefreshing,
@@ -559,6 +610,10 @@ fun AuthenticatedHome(
                                 searchQuery = searchQuery,
                                 isOnline = isOnline,
                                 collapsedIds = collapsedIds,
+                                selectionMode = selectionMode,
+                                selectedIds = selectedIds,
+                                onEnterSelection = onEnterSelection,
+                                onToggleSelection = onToggleSelection,
                                 isExpandedScreen = isExpandedScreen,
                                 onSetFilter = onSetFilter,
                                 onSetSort = onSetSort,
@@ -1173,6 +1228,10 @@ private fun TasksContent(
     searchQuery: String,
     isOnline: Boolean,
     collapsedIds: Set<String>,
+    selectionMode: Boolean,
+    selectedIds: Set<String>,
+    onEnterSelection: (String) -> Unit,
+    onToggleSelection: (String) -> Unit,
     isExpandedScreen: Boolean = false,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
@@ -1287,32 +1346,20 @@ private fun TasksContent(
                     val rows = treeByList.getValue(listId)
 
                     items(rows, key = { it.task.id }) { row ->
-                        val task = row.task
-                        val taskIsReadOnly =
-                            taskListMap[task.listId]?.shareAccess == ShareAccess.READ
-                        SwipeableTaskRow(
-                            enabled = !taskIsReadOnly,
-                            hasChildren = row.hasChildren,
-                            bottomInset = if (row.depth > 0) 8.dp else 12.dp,
-                            onComplete = { onToggleTaskComplete(task) },
-                            onDelete = { hasChildren -> onSwipeDelete(task, hasChildren) },
+                        TaskRowItem(
+                            row = row,
+                            taskListMap = taskListMap,
+                            selectionMode = selectionMode,
+                            isSelected = row.task.id in selectedIds,
+                            onToggleTaskComplete = onToggleTaskComplete,
+                            onSwipeDelete = onSwipeDelete,
+                            onToggleFavorite = onToggleFavorite,
+                            onToggleTaskCollapsed = onToggleTaskCollapsed,
+                            onOpenTask = onOpenTask,
+                            onEnterSelection = onEnterSelection,
+                            onToggleSelection = onToggleSelection,
                             modifier = Modifier.animateItem(),
-                        ) {
-                            SimpleAnimatedTaskCard(
-                                task = task,
-                                isReadOnly = taskIsReadOnly,
-                                depth = row.depth,
-                                hasChildren = row.hasChildren,
-                                subtaskDone = row.subtaskDone,
-                                subtaskTotal = row.subtaskTotal,
-                                isCollapsed = row.isCollapsed,
-                                isStarred = task.isStarred,
-                                onToggleComplete = { onToggleTaskComplete(task) },
-                                onToggleFavorite = { onToggleFavorite(task) },
-                                onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
-                                onOpenTask = { onOpenTask(task.id) },
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -1338,32 +1385,20 @@ private fun TasksContent(
                 // Erledigte Tasks (wenn aufgeklappt)
                 if (showCompletedTasks) {
                     items(completedRows, key = { it.task.id }) { row ->
-                        val task = row.task
-                        val taskIsReadOnly =
-                            taskListMap[task.listId]?.shareAccess == ShareAccess.READ
-                        SwipeableTaskRow(
-                            enabled = !taskIsReadOnly,
-                            hasChildren = row.hasChildren,
-                            bottomInset = if (row.depth > 0) 8.dp else 12.dp,
-                            onComplete = { onToggleTaskComplete(task) },
-                            onDelete = { hasChildren -> onSwipeDelete(task, hasChildren) },
+                        TaskRowItem(
+                            row = row,
+                            taskListMap = taskListMap,
+                            selectionMode = selectionMode,
+                            isSelected = row.task.id in selectedIds,
+                            onToggleTaskComplete = onToggleTaskComplete,
+                            onSwipeDelete = onSwipeDelete,
+                            onToggleFavorite = onToggleFavorite,
+                            onToggleTaskCollapsed = onToggleTaskCollapsed,
+                            onOpenTask = onOpenTask,
+                            onEnterSelection = onEnterSelection,
+                            onToggleSelection = onToggleSelection,
                             modifier = Modifier.animateItem(),
-                        ) {
-                            SimpleAnimatedTaskCard(
-                                task = task,
-                                isReadOnly = taskIsReadOnly,
-                                depth = row.depth,
-                                hasChildren = row.hasChildren,
-                                subtaskDone = row.subtaskDone,
-                                subtaskTotal = row.subtaskTotal,
-                                isCollapsed = row.isCollapsed,
-                                isStarred = task.isStarred,
-                                onToggleComplete = { onToggleTaskComplete(task) },
-                                onToggleFavorite = { onToggleFavorite(task) },
-                                onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
-                                onOpenTask = { onOpenTask(task.id) },
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -2266,10 +2301,12 @@ private fun SimpleAnimatedTaskCard(
     subtaskTotal: Int = 0,
     isCollapsed: Boolean = false,
     isStarred: Boolean = false,
+    isSelected: Boolean = false,
     onToggleComplete: () -> Unit,
     onToggleCollapsed: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
+    onLongPress: () -> Unit = {},
 ) {
     Column {
         // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
@@ -2298,10 +2335,12 @@ private fun SimpleAnimatedTaskCard(
                     subtaskTotal = subtaskTotal,
                     isCollapsed = isCollapsed,
                     isStarred = isStarred,
+                    isSelected = isSelected,
                     onToggleComplete = onToggleComplete,
                     onToggleCollapsed = onToggleCollapsed,
                     onToggleFavorite = onToggleFavorite,
                     onOpenTask = onOpenTask,
+                    onLongPress = onLongPress,
                 )
             }
         }
@@ -2309,6 +2348,7 @@ private fun SimpleAnimatedTaskCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun TaskCard(
@@ -2320,10 +2360,12 @@ private fun TaskCard(
     subtaskTotal: Int = 0,
     isCollapsed: Boolean = false,
     isStarred: Boolean = false,
+    isSelected: Boolean = false,
     onToggleComplete: () -> Unit,
     onToggleCollapsed: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
+    onLongPress: () -> Unit = {},
 ) {
     val isChild = depth > 0
     val hasDescription = !isChild && task.description != null
@@ -2345,18 +2387,21 @@ private fun TaskCard(
                 .ofPattern(pattern, locale)
         }
 
+    val borderColor =
+        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val containerColor =
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     Card(
-        onClick = onOpenTask,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 0.dp,
-            ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(if (isSelected) 2.dp else 1.dp, borderColor),
         shape = MaterialTheme.shapes.medium,
+        // Long-press enters selection mode; a tap opens the task or toggles selection (decided by caller).
+        modifier =
+            Modifier.combinedClickable(
+                onClick = onOpenTask,
+                onLongClick = onLongPress,
+            ),
     ) {
         Row(
             modifier = Modifier.padding(if (isChild) 10.dp else 12.dp).fillMaxWidth(),
@@ -2478,6 +2523,55 @@ private fun TaskCard(
 }
 
 /**
+ * One list row: the swipe wrapper plus the card. Swipe is disabled in selection mode; a tap then
+ * toggles selection instead of opening, and a long-press enters selection mode.
+ */
+@Suppress("LongParameterList")
+@Composable
+private fun TaskRowItem(
+    row: TaskRow,
+    taskListMap: Map<String, com.nextcloud.tasks.domain.model.TaskList>,
+    selectionMode: Boolean,
+    isSelected: Boolean,
+    onToggleTaskComplete: (Task) -> Unit,
+    onSwipeDelete: (Task, Boolean) -> Unit,
+    onToggleFavorite: (Task) -> Unit,
+    onToggleTaskCollapsed: (String) -> Unit,
+    onOpenTask: (String) -> Unit,
+    onEnterSelection: (String) -> Unit,
+    onToggleSelection: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val task = row.task
+    val taskIsReadOnly = taskListMap[task.listId]?.shareAccess == ShareAccess.READ
+    SwipeableTaskRow(
+        enabled = !taskIsReadOnly && !selectionMode,
+        hasChildren = row.hasChildren,
+        bottomInset = if (row.depth > 0) 8.dp else 12.dp,
+        onComplete = { onToggleTaskComplete(task) },
+        onDelete = { hasChildren -> onSwipeDelete(task, hasChildren) },
+        modifier = modifier,
+    ) {
+        SimpleAnimatedTaskCard(
+            task = task,
+            isReadOnly = taskIsReadOnly,
+            depth = row.depth,
+            hasChildren = row.hasChildren,
+            subtaskDone = row.subtaskDone,
+            subtaskTotal = row.subtaskTotal,
+            isCollapsed = row.isCollapsed,
+            isStarred = task.isStarred,
+            isSelected = isSelected,
+            onToggleComplete = { onToggleTaskComplete(task) },
+            onToggleFavorite = { onToggleFavorite(task) },
+            onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
+            onOpenTask = { if (selectionMode) onToggleSelection(task.id) else onOpenTask(task.id) },
+            onLongPress = { onEnterSelection(task.id) },
+        )
+    }
+}
+
+/**
  * Wraps a task row so swiping right completes it and swiping left deletes it. The gesture fires the
  * action and snaps back (returns false from confirmValueChange) — the action removes the row itself,
  * which keeps the swipe reusable if an undo brings the row back. Disabled on read-only lists.
@@ -2590,6 +2684,91 @@ private fun DeleteWithChildrenDialog(
             }
         },
     )
+}
+
+/**
+ * Contextual top bar shown while the selection mode is active — replaces the search bar. Back exits,
+ * the count sits left, then bulk-complete and an overflow (select all, detach, delete).
+ */
+@Composable
+private fun SelectionTopBar(
+    count: Int,
+    canDetach: Boolean,
+    onExit: () -> Unit,
+    onComplete: () -> Unit,
+    onSelectAll: () -> Unit,
+    onDetach: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+            ) {
+                IconButton(onClick = onExit) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.close))
+                }
+                Text(
+                    text = stringResource(R.string.selection_count, count),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f).padding(start = 4.dp),
+                )
+                IconButton(onClick = onComplete) {
+                    Icon(Icons.Filled.CheckCircle, contentDescription = stringResource(R.string.mark_complete))
+                }
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options))
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.select_all)) },
+                            leadingIcon = { Icon(Icons.Filled.Checklist, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                onSelectAll()
+                            },
+                        )
+                        if (canDetach) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.selection_detach)) },
+                                leadingIcon = { Icon(Icons.Filled.LinkOff, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    onDetach()
+                                },
+                            )
+                        }
+                        androidx.compose.material3.HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 private val DUE_DATE_FORMATTER: java.time.format.DateTimeFormatter =
@@ -3467,6 +3646,74 @@ class TaskListViewModel
 
         fun toggleCollapsed(taskUid: String) {
             _collapsedIds.update { if (taskUid in it) it - taskUid else it + taskUid }
+        }
+
+        // --- Selection mode (long-press) --- ponytail: in-VM, survives config change; process death
+        // is an acceptable loss for a transient selection.
+        private val _selectionMode = MutableStateFlow(false)
+        val selectionMode = _selectionMode.asStateFlow()
+        private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
+        val selectedIds = _selectedIds.asStateFlow()
+
+        fun enterSelection(taskId: String) {
+            _selectedIds.value = setOf(taskId)
+            _selectionMode.value = true
+        }
+
+        fun toggleSelection(taskId: String) {
+            _selectedIds.update { if (taskId in it) it - taskId else it + taskId }
+            if (_selectedIds.value.isEmpty()) _selectionMode.value = false
+        }
+
+        fun selectAll(ids: Collection<String>) {
+            _selectedIds.value = ids.toSet()
+        }
+
+        fun clearSelection() {
+            _selectedIds.value = emptySet()
+            _selectionMode.value = false
+        }
+
+        /** True if any selected task is still nested under a parent (enables "detach"). */
+        fun anySelectedIsChild(): Boolean {
+            val byId = allTasks.value.associateBy { it.id }
+            return _selectedIds.value.any { byId[it]?.parentUid != null }
+        }
+
+        /** Bulk-complete every still-open selected task (cascading like the single toggle), then exit. */
+        fun completeSelected() {
+            val byId = allTasks.value.associateBy { it.id }
+            _selectedIds.value
+                .mapNotNull { byId[it] }
+                .filter { !it.isEffectivelyDone }
+                .forEach { applyCompletion(it) }
+            clearSelection()
+        }
+
+        /** Detach every selected task from its parent (parentUid=null), then exit. */
+        fun detachSelected() {
+            val byId = allTasks.value.associateBy { it.id }
+            val toDetach = _selectedIds.value.mapNotNull { byId[it] }.filter { it.parentUid != null }
+            clearSelection()
+            viewModelScope.launch {
+                toDetach.forEach { runCatching { tasksRepository.updateTask(it.copy(parentUid = null)) } }
+            }
+        }
+
+        /**
+         * Stage a bulk delete of the selection: delete each selected task, freeing any direct child
+         * that isn't itself selected. Hidden immediately (undo window); committed via [commitDelete].
+         */
+        fun stageDeleteSelected(): Deletion {
+            val all = allTasks.value
+            val byId = all.associateBy { it.id }
+            val deleteIds = _selectedIds.value.mapNotNull { byId[it]?.id }.toSet()
+            val deletedUids = deleteIds.mapNotNull { byId[it]?.uid }.toSet()
+            val freeIds = all.filter { it.parentUid in deletedUids && it.id !in deleteIds }.map { it.id }
+            val deletion = Deletion(hiddenIds = deleteIds, deleteIds = deleteIds.toList(), freeIds = freeIds)
+            pendingDeleteIds.update { it + deletion.hiddenIds }
+            clearSelection()
+            return deletion
         }
 
         // Ids of tasks swipe-deleted but not yet committed (undo window). Hidden from the list.

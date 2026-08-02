@@ -215,4 +215,10 @@
     <string name="delete_subtasks_all">Alle löschen</string>
     <string name="delete_subtasks_keep">Unteraufgaben behalten</string>
     <string name="swipe_complete">Erledigt</string>
+    <!-- Selection mode -->
+    <string name="selection_count">%1$d ausgewählt</string>
+    <string name="select_all">Alle auswählen</string>
+    <string name="selection_detach">Aus Unteraufgabe lösen</string>
+    <string name="mark_complete">Als erledigt markieren</string>
+    <string name="more_options">Weitere Optionen</string>
 </resources>

@@ -215,4 +215,10 @@
     <string name="delete_subtasks_all">Alles verwijderen</string>
     <string name="delete_subtasks_keep">Subtaken behouden</string>
     <string name="swipe_complete">Klaar</string>
+    <!-- Selection mode -->
+    <string name="selection_count">%1$d geselecteerd</string>
+    <string name="select_all">Alles selecteren</string>
+    <string name="selection_detach">Loskoppelen van bovenliggende taak</string>
+    <string name="mark_complete">Als voltooid markeren</string>
+    <string name="more_options">Meer opties</string>
 </resources>

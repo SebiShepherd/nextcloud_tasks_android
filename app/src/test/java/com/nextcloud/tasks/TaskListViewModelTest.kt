@@ -22,6 +22,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -33,6 +34,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TaskListViewModelTest {
@@ -58,6 +60,8 @@ class TaskListViewModelTest {
         completed: Boolean = false,
         due: Instant? = null,
         priority: Int? = null,
+        uid: String? = null,
+        parentUid: String? = null,
     ) = Task(
         id = id,
         listId = listId,
@@ -67,6 +71,8 @@ class TaskListViewModelTest {
         due = due,
         updatedAt = now,
         priority = priority,
+        uid = uid,
+        parentUid = parentUid,
     )
 
     private suspend fun withViewModel(
@@ -565,6 +571,40 @@ class TaskListViewModelTest {
                 val deletion = vm.stageDelete(task, keepChildren = false)
                 vm.undoDelete(deletion)
                 coVerify(exactly = 0) { repo.deleteTask(any()) }
+            }
+        }
+
+    // --- selection mode ---
+
+    @Test
+    fun `toggleSelection exits mode when the last item is removed`() =
+        runTest(testDispatcher) {
+            withViewModel { vm ->
+                vm.enterSelection("a")
+                vm.toggleSelection("b")
+                assertTrue(vm.selectionMode.value)
+                vm.toggleSelection("a")
+                vm.toggleSelection("b")
+                assertFalse(vm.selectionMode.value)
+                assertTrue(vm.selectedIds.value.isEmpty())
+            }
+        }
+
+    @Test
+    fun `stageDeleteSelected deletes the selected task and frees its non-selected child`() =
+        runTest(testDispatcher) {
+            val parent = createTask(id = "p", uid = "p")
+            val child = createTask(id = "c", uid = "c", parentUid = "p")
+            withViewModelAndRepo(tasks = listOf(parent, child)) { vm, repo ->
+                val job = launch { vm.tasks.collect {} }
+                vm.enterSelection("p")
+                val deletion = vm.stageDeleteSelected()
+                assertEquals(listOf("p"), deletion.deleteIds)
+                assertEquals(listOf("c"), deletion.freeIds)
+                vm.commitDelete(deletion)
+                coVerify { repo.deleteTask("p") }
+                coVerify { repo.updateTask(match { it.id == "c" && it.parentUid == null }) }
+                job.cancel()
             }
         }
 
