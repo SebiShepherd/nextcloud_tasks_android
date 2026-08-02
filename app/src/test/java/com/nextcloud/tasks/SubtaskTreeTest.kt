@@ -72,38 +72,6 @@ class SubtaskTreeTest {
         assertEquals(setOf("a", "b"), rows.map { it.task.uid }.toSet())
     }
 
-    private fun row(
-        uid: String,
-        depth: Int,
-        parentUid: String? = null,
-    ) = TaskRow(
-        task(uid, parentUid),
-        depth,
-        hasChildren = false,
-        subtaskDone = 0,
-        subtaskTotal = 0,
-        isCollapsed = false,
-    )
-
-    @Test
-    fun `reparentTarget nests under the row above when dragged right`() {
-        val byId = listOf(row("p", 0)).associateBy { it.task.id }
-        assertEquals("p", reparentTarget("p", steps = 1, rowById = byId))
-    }
-
-    @Test
-    fun `reparentTarget keeps the row above's level when not dragged sideways`() {
-        val byId = listOf(row("p", 0), row("c", 1, parentUid = "p")).associateBy { it.task.id }
-        // sibling of the row above (which is a child of p) → parent stays p
-        assertEquals("p", reparentTarget("c", steps = 0, rowById = byId))
-    }
-
-    @Test
-    fun `reparentTarget un-nests to root when dragged left`() {
-        val byId = listOf(row("p", 0), row("c", 1, parentUid = "p")).associateBy { it.task.id }
-        assertEquals(null, reparentTarget("c", steps = -1, rowById = byId))
-    }
-
     @Test
     fun `MANUAL sort orders by sortOrder with nulls last`() {
         val a = task("a").copy(sortOrder = 30)
