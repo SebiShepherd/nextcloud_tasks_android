@@ -33,6 +33,7 @@
     <string name="no_search_results_title">結果が見つかりません</string>
     <string name="no_search_results_hint">検索キーワードを変更してみてください。</string>
     <string name="sort_dialog_title">並べ替え</string>
+    <string name="sort_by_manual">自分の順序</string>
     <string name="sort_by_due_date">期日</string>
     <string name="sort_by_priority">優先度</string>
     <string name="sort_by_title">タイトル</string>

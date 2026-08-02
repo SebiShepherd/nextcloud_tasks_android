@@ -22,9 +22,10 @@ class VTodoGenerator
     @Inject
     constructor() {
         /**
-         * Generate a complete iCalendar with VTODO for a task
+         * Generate a complete iCalendar with VTODO for a task.
+         * Flat property-builder; extracting helpers adds indirection without clarity.
          */
-        @Suppress("LongMethod") // flat property-builder; extracting helpers adds indirection without clarity
+        @Suppress("LongMethod", "CyclomaticComplexMethod")
         fun generateVTodo(task: Task): String {
             val calendar = Calendar()
             calendar.properties.add(ProdId("-//Nextcloud Tasks Android//EN"))
@@ -143,6 +144,14 @@ class VTodoGenerator
                 vtodo.properties.add(
                     net.fortuna.ical4j.model.property
                         .PercentComplete(pct),
+                )
+            }
+
+            // X-APPLE-SORT-ORDER (manual sort position; Reminders-compatible)
+            task.sortOrder?.let { order ->
+                vtodo.properties.add(
+                    net.fortuna.ical4j.model.property
+                        .XProperty("X-APPLE-SORT-ORDER", order.toString()),
                 )
             }
 

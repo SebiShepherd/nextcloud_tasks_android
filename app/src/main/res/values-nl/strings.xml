@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Geen resultaten gevonden</string>
     <string name="no_search_results_hint">Pas je zoekopdracht aan.</string>
     <string name="sort_dialog_title">Sorteren op</string>
+    <string name="sort_by_manual">Mijn volgorde</string>
     <string name="sort_by_due_date">Vervaldatum</string>
     <string name="sort_by_priority">Prioriteit</string>
     <string name="sort_by_title">Titel</string>

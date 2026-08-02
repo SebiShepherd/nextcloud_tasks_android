@@ -4,6 +4,9 @@ package com.nextcloud.tasks.domain.model
  * Sort options for displaying tasks
  */
 enum class TaskSort {
+    /** Manual order (drag & drop), backed by X-APPLE-SORT-ORDER */
+    MANUAL,
+
     /** Sort by due date (earliest first) */
     DUE_DATE,
 

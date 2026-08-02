@@ -39,4 +39,6 @@ data class TaskEntity(
     val url: String? = null,
     @ColumnInfo(name = "percent_complete", defaultValue = "NULL")
     val percentComplete: Int? = null,
+    @ColumnInfo(name = "sort_order", defaultValue = "NULL")
+    val sortOrder: Long? = null,
 )

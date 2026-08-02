@@ -1082,6 +1082,14 @@ private fun SortDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SortOption(
+                    text = stringResource(R.string.sort_by_manual),
+                    isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL,
+                    onClick = {
+                        onSetSort(com.nextcloud.tasks.domain.model.TaskSort.MANUAL)
+                        onDismiss()
+                    },
+                )
+                SortOption(
                     text = stringResource(R.string.sort_by_due_date),
                     isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE,
                     onClick = {
@@ -1231,6 +1239,17 @@ internal fun buildOpenTaskRows(
     }
     return rows
 }
+
+/** Comparator for the active [sort]; MANUAL orders by the drag-assigned sortOrder (nulls last). */
+internal fun taskComparator(sort: com.nextcloud.tasks.domain.model.TaskSort): Comparator<Task> =
+    when (sort) {
+        com.nextcloud.tasks.domain.model.TaskSort.MANUAL ->
+            compareBy(nullsLast()) { t: Task -> t.sortOrder }.thenByDescending { t: Task -> t.updatedAt }
+        com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE -> compareBy(nullsLast()) { t: Task -> t.due }
+        com.nextcloud.tasks.domain.model.TaskSort.PRIORITY -> compareBy(nullsLast()) { t: Task -> t.priority }
+        com.nextcloud.tasks.domain.model.TaskSort.TITLE -> compareBy { t: Task -> t.title }
+        com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT -> compareByDescending { t: Task -> t.updatedAt }
+    }
 
 /** parentUid → (done, total) child counts across [tasks], for the sub-task collapse chip. */
 internal fun subtaskChildCounts(tasks: List<Task>): Map<String, Pair<Int, Int>> =
@@ -3944,23 +3963,7 @@ class TaskListViewModel
                             task.title.lowercase().contains(searchLower) ||
                                 task.description?.lowercase()?.contains(searchLower) == true
                         }
-                    }.sortedWith(
-                        when (sort) {
-                            com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE ->
-                                compareBy(
-                                    nullsLast(),
-                                ) { it.due }
-                            com.nextcloud.tasks.domain.model.TaskSort.PRIORITY ->
-                                compareBy(
-                                    nullsLast(),
-                                ) { it.priority }
-                            com.nextcloud.tasks.domain.model.TaskSort.TITLE -> compareBy { it.title }
-                            com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT ->
-                                compareByDescending {
-                                    it.updatedAt
-                                }
-                        },
-                    )
+                    }.sortedWith(taskComparator(sort))
             }
 
         // Public tasks flow that respects freezing during sync and hides pending swipe-deletes

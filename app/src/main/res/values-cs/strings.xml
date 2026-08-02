@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Nebyly nalezeny žádné výsledky</string>
     <string name="no_search_results_hint">Zkuste upravit svůj dotaz.</string>
     <string name="sort_dialog_title">Seřadit podle</string>
+    <string name="sort_by_manual">Moje pořadí</string>
     <string name="sort_by_due_date">Termín splnění</string>
     <string name="sort_by_priority">Priorita</string>
     <string name="sort_by_title">Název</string>

@@ -195,6 +195,7 @@ class DefaultTasksRepository
                         location = taskEntity.location,
                         url = taskEntity.url,
                         percentComplete = taskEntity.percentComplete,
+                        sortOrder = taskEntity.sortOrder,
                     )
 
                 // Generate iCalendar VTODO
@@ -265,6 +266,7 @@ class DefaultTasksRepository
                         location = task.location,
                         url = task.url,
                         percentComplete = task.percentComplete,
+                        sortOrder = task.sortOrder ?: currentDbTask?.sortOrder,
                     )
 
                 database.withTransaction {

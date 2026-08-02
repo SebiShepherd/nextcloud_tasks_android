@@ -60,6 +60,7 @@ class TaskMapper
                 location = taskWithRelations.task.location,
                 url = taskWithRelations.task.url,
                 percentComplete = taskWithRelations.task.percentComplete,
+                sortOrder = taskWithRelations.task.sortOrder,
             )
         }
 

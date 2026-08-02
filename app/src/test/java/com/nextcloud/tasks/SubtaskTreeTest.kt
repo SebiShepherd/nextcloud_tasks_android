@@ -73,6 +73,18 @@ class SubtaskTreeTest {
     }
 
     @Test
+    fun `MANUAL sort orders by sortOrder with nulls last`() {
+        val a = task("a").copy(sortOrder = 30)
+        val b = task("b").copy(sortOrder = 10)
+        val c = task("c").copy(sortOrder = null)
+        val sorted =
+            listOf(a, c, b).sortedWith(
+                taskComparator(com.nextcloud.tasks.domain.model.TaskSort.MANUAL),
+            )
+        assertEquals(listOf("b", "a", "c"), sorted.map { it.uid })
+    }
+
+    @Test
     fun `completed rows nest a done child under its done parent`() {
         val tasks =
             listOf(

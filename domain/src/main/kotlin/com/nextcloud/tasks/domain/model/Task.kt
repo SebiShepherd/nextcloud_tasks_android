@@ -22,4 +22,6 @@ data class Task(
     val location: String? = null,
     val url: String? = null,
     val percentComplete: Int? = null,
+    /** Manual sort position (X-APPLE-SORT-ORDER). Null = unsorted; ordered ascending when present. */
+    val sortOrder: Long? = null,
 )

@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Nessun risultato trovato</string>
     <string name="no_search_results_hint">Prova a modificare la tua ricerca.</string>
     <string name="sort_dialog_title">Ordina per</string>
+    <string name="sort_by_manual">Il mio ordine</string>
     <string name="sort_by_due_date">Data di scadenza</string>
     <string name="sort_by_priority">Priorità</string>
     <string name="sort_by_title">Titolo</string>

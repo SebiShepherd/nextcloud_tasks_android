@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Ничего не найдено</string>
     <string name="no_search_results_hint">Попробуйте изменить запрос.</string>
     <string name="sort_dialog_title">Сортировать по</string>
+    <string name="sort_by_manual">Мой порядок</string>
     <string name="sort_by_due_date">Сроку выполнения</string>
     <string name="sort_by_priority">Приоритету</string>
     <string name="sort_by_title">Названию</string>
