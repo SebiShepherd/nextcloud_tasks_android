@@ -52,6 +52,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -326,6 +327,7 @@ fun NextcloudTasksApp(
             onSelectAll = taskListViewModel::selectAll,
             onCompleteSelected = taskListViewModel::completeSelected,
             onDetachSelected = taskListViewModel::detachSelected,
+            onMoveSelectedToList = taskListViewModel::moveSelectedToList,
             onStageDeleteSelected = taskListViewModel::stageDeleteSelected,
             anySelectedIsChild = taskListViewModel::anySelectedIsChild,
             showCreateDialog = showCreateDialog,
@@ -424,6 +426,7 @@ fun AuthenticatedHome(
     onSelectAll: (Collection<String>) -> Unit,
     onCompleteSelected: () -> Unit,
     onDetachSelected: () -> Unit,
+    onMoveSelectedToList: (String) -> Unit,
     onStageDeleteSelected: () -> Deletion,
     anySelectedIsChild: () -> Boolean,
     showCreateDialog: Boolean,
@@ -512,6 +515,7 @@ fun AuthenticatedHome(
     val undoLabel = stringResource(R.string.action_undo)
     val deletedMsg = stringResource(R.string.task_deleted)
     var deleteDialogTask by remember { mutableStateOf<Task?>(null) }
+    var subtaskParent by remember { mutableStateOf<Task?>(null) }
 
     val performDelete: (Task, Boolean) -> Unit = { task, keepChildren ->
         val deletion = onStageDelete(task, keepChildren)
@@ -574,8 +578,15 @@ fun AuthenticatedHome(
                             SelectionTopBar(
                                 count = selectedIds.size,
                                 canDetach = anySelectedIsChild(),
+                                canAddSubtask = selectedIds.size == 1,
+                                lists = taskLists.filter { it.shareAccess != ShareAccess.READ },
                                 onExit = onClearSelection,
                                 onComplete = onCompleteSelected,
+                                onAddSubtask = {
+                                    subtaskParent = tasks.firstOrNull { it.id in selectedIds }
+                                    onClearSelection()
+                                },
+                                onMove = onMoveSelectedToList,
                                 onSelectAll = { onSelectAll(tasks.map { it.id }) },
                                 onDetach = onDetachSelected,
                                 onDelete = performBulkDelete,
@@ -709,6 +720,24 @@ fun AuthenticatedHome(
                 onDismiss = onDismissCreateDialog,
                 onCreate = { input ->
                     onCreateTask(input)
+                    if (!isOnline) {
+                        showOfflineSnackbar = true
+                    }
+                },
+            )
+        }
+
+        // Add-sub-task from the selection bar: the create sheet opens with the parent pre-set.
+        subtaskParent?.let { parent ->
+            CreateTaskOverlay(
+                taskLists = taskLists,
+                tasks = tasks,
+                initialListId = parent.listId,
+                initialParentUid = parent.uid,
+                onDismiss = { subtaskParent = null },
+                onCreate = { input ->
+                    onCreateTask(input)
+                    subtaskParent = null
                     if (!isOnline) {
                         showOfflineSnackbar = true
                     }
@@ -2690,17 +2719,23 @@ private fun DeleteWithChildrenDialog(
  * Contextual top bar shown while the selection mode is active — replaces the search bar. Back exits,
  * the count sits left, then bulk-complete and an overflow (select all, detach, delete).
  */
+@Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun SelectionTopBar(
     count: Int,
     canDetach: Boolean,
+    canAddSubtask: Boolean,
+    lists: List<com.nextcloud.tasks.domain.model.TaskList>,
     onExit: () -> Unit,
     onComplete: () -> Unit,
+    onAddSubtask: () -> Unit,
+    onMove: (String) -> Unit,
     onSelectAll: () -> Unit,
     onDetach: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showMoveMenu by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
         Surface(
             color = MaterialTheme.colorScheme.primaryContainer,
@@ -2722,6 +2757,32 @@ private fun SelectionTopBar(
                 )
                 IconButton(onClick = onComplete) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = stringResource(R.string.mark_complete))
+                }
+                // Add sub-task — only meaningful for a single selection; dimmed otherwise.
+                IconButton(onClick = onAddSubtask, enabled = canAddSubtask) {
+                    Icon(
+                        Icons.Filled.SubdirectoryArrowRight,
+                        contentDescription = stringResource(R.string.add_subtask),
+                    )
+                }
+                Box {
+                    IconButton(onClick = { showMoveMenu = true }) {
+                        Icon(Icons.Filled.DriveFileMove, contentDescription = stringResource(R.string.move_to_list))
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showMoveMenu,
+                        onDismissRequest = { showMoveMenu = false },
+                    ) {
+                        lists.forEach { list ->
+                            DropdownMenuItem(
+                                text = { Text(list.name) },
+                                onClick = {
+                                    showMoveMenu = false
+                                    onMove(list.id)
+                                },
+                            )
+                        }
+                    }
                 }
                 Box {
                     IconButton(onClick = { showMenu = true }) {
@@ -2798,6 +2859,7 @@ private fun CreateTaskOverlay(
     initialListId: String,
     onDismiss: () -> Unit,
     onCreate: (NewTaskInput) -> Unit,
+    initialParentUid: String? = null,
 ) {
     val writableLists = taskLists.filter { it.shareAccess != ShareAccess.READ }
     if (writableLists.isEmpty()) return
@@ -2807,9 +2869,12 @@ private fun CreateTaskOverlay(
     var showDescription by remember { mutableStateOf(false) }
     var due by remember { mutableStateOf<java.time.Instant?>(null) }
     var starred by remember { mutableStateOf(false) }
-    var parentUid by remember { mutableStateOf<String?>(null) }
+    var parentUid by remember { mutableStateOf(initialParentUid) }
+    // A pre-set parent forces the list to follow it (a sub-task lives in its parent's list).
+    val parentListId = initialParentUid?.let { uid -> tasks.firstOrNull { it.uid == uid }?.listId }
     var selectedListId by remember {
-        mutableStateOf(writableLists.firstOrNull { it.id == initialListId }?.id ?: writableLists.first().id)
+        val start = parentListId ?: initialListId
+        mutableStateOf(writableLists.firstOrNull { it.id == start }?.id ?: writableLists.first().id)
     }
     var listDropdownExpanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -3688,6 +3753,17 @@ class TaskListViewModel
                 .filter { !it.isEffectivelyDone }
                 .forEach { applyCompletion(it) }
             clearSelection()
+        }
+
+        /** Move the selection (whole subtrees, so nesting stays valid) to [targetListId], then exit. */
+        fun moveSelectedToList(targetListId: String) {
+            val all = allTasks.value
+            val selected = _selectedIds.value.mapNotNull { id -> all.firstOrNull { it.id == id } }
+            val toMove = selected.flatMap { collectDescendants(it, all) }.distinctBy { it.id }
+            clearSelection()
+            viewModelScope.launch {
+                toMove.forEach { runCatching { tasksRepository.moveTask(it.id, targetListId) } }
+            }
         }
 
         /** Detach every selected task from its parent (parentUid=null), then exit. */

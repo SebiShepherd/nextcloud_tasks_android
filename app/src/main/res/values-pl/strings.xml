@@ -221,4 +221,6 @@
     <string name="selection_detach">Odłącz od zadania nadrzędnego</string>
     <string name="mark_complete">Oznacz jako ukończone</string>
     <string name="more_options">Więcej opcji</string>
+    <string name="add_subtask">Dodaj podzadanie</string>
+    <string name="move_to_list">Przenieś do listy</string>
 </resources>

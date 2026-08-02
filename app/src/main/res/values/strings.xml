@@ -222,4 +222,6 @@
     <string name="selection_detach">Detach from parent</string>
     <string name="mark_complete">Mark complete</string>
     <string name="more_options">More options</string>
+    <string name="add_subtask">Add sub-task</string>
+    <string name="move_to_list">Move to list</string>
 </resources>

@@ -366,6 +366,77 @@ class DefaultTasksRepository
             }
 
         /**
+         * Moves a task to another list by re-uploading its VTODO (same UID) into the target collection
+         * and deleting the copy in the source collection. Optimistic: the local row relocates at once;
+         * href/etag clear until the re-upload returns. Online only — callers guard against offline.
+         */
+        override suspend fun moveTask(
+            taskId: String,
+            targetListId: String,
+        ): Unit =
+            withContext(ioDispatcher) {
+                val entity = tasksDao.getTaskEntity(taskId) ?: return@withContext
+                if (entity.listId == targetListId) return@withContext
+                val oldHref = entity.href
+                val oldEtag = entity.etag
+                val moved = entity.copy(listId = targetListId, href = null, etag = null, updatedAt = Instant.now())
+                database.withTransaction { tasksDao.upsertTask(moved) }
+                Timber.d("Task $taskId moved locally to $targetListId (optimistic)")
+
+                if (networkMonitor.isCurrentlyOnline()) {
+                    backgroundScope.launch { syncMoveToServer(taskId, targetListId, oldHref, oldEtag) }
+                } else {
+                    // ponytail: online-only move. The offline queue keys one op per taskId, so a
+                    // CREATE-in-B + DELETE-in-A pair would collide; a dedicated MOVE op is the upgrade
+                    // path. The UI blocks moves while offline, so this only re-queues the create.
+                    pendingOperationsManager.queueCreateOperation(moved, targetListId)
+                }
+            }
+
+        private suspend fun syncMoveToServer(
+            taskId: String,
+            targetListId: String,
+            oldHref: String?,
+            oldEtag: String?,
+        ) {
+            try {
+                val baseUrl = authTokenProvider.activeServerUrl() ?: return
+                val task = getTask(taskId) ?: return
+                val icalData = vTodoGenerator.generateVTodo(task)
+                val filename = vTodoGenerator.generateFilename(task.uid ?: task.id)
+                val createResult = calDavService.createTodo(baseUrl, targetListId, filename, icalData)
+                if (createResult.isSuccess) {
+                    val etag = createResult.getOrThrow()
+                    val href = "$targetListId/$filename"
+                    val current = tasksDao.getTaskEntity(taskId) ?: return
+                    val synced = current.copy(etag = etag, href = href)
+                    database.withTransaction {
+                        tasksDao.upsertTask(synced.copy(baseSnapshot = taskFieldMerger.createSnapshot(synced)))
+                    }
+                    // Remove the old copy from the source collection (404 = already gone, treated as ok).
+                    if (oldHref != null) calDavService.deleteTodo(baseUrl, oldHref, oldEtag)
+                    Timber.d("Task $taskId move synced to $targetListId")
+                } else {
+                    Timber.w(createResult.exceptionOrNull(), "Failed to move task $taskId, queuing")
+                    queueMoveRetry(taskId, targetListId)
+                }
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
+                Timber.e(e, "Error moving task $taskId")
+                queueMoveRetry(taskId, targetListId)
+            }
+        }
+
+        private suspend fun queueMoveRetry(
+            taskId: String,
+            targetListId: String,
+        ) {
+            val entity = tasksDao.getTaskEntity(taskId) ?: return
+            pendingOperationsManager.queueCreateOperation(entity, targetListId)
+        }
+
+        /**
          * Syncs a delete operation to the server.
          */
         private suspend fun syncDeleteToServer(

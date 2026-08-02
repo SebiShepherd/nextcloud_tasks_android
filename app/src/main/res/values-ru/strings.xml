@@ -221,4 +221,6 @@
     <string name="selection_detach">Открепить от родительской</string>
     <string name="mark_complete">Отметить выполненной</string>
     <string name="more_options">Дополнительно</string>
+    <string name="add_subtask">Добавить подзадачу</string>
+    <string name="move_to_list">Переместить в список</string>
 </resources>

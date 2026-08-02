@@ -221,4 +221,6 @@
     <string name="selection_detach">Aus Unteraufgabe lösen</string>
     <string name="mark_complete">Als erledigt markieren</string>
     <string name="more_options">Weitere Optionen</string>
+    <string name="add_subtask">Unteraufgabe hinzufügen</string>
+    <string name="move_to_list">In Liste verschieben</string>
 </resources>

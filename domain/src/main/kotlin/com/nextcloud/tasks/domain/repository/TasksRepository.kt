@@ -43,6 +43,12 @@ interface TasksRepository {
 
     suspend fun deleteTask(taskId: String)
 
+    /** Moves a task's VTODO to another list/collection, preserving its UID and fields. Online only. */
+    suspend fun moveTask(
+        taskId: String,
+        targetListId: String,
+    )
+
     suspend fun refresh()
 
     suspend fun syncOnAppStart()

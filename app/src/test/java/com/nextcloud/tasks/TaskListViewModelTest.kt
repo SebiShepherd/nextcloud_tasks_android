@@ -608,6 +608,21 @@ class TaskListViewModelTest {
             }
         }
 
+    @Test
+    fun `moveSelectedToList moves the whole selected subtree`() =
+        runTest(testDispatcher) {
+            val parent = createTask(id = "p", uid = "p")
+            val child = createTask(id = "c", uid = "c", parentUid = "p")
+            withViewModelAndRepo(tasks = listOf(parent, child)) { vm, repo ->
+                val job = launch { vm.tasks.collect {} }
+                vm.enterSelection("p")
+                vm.moveSelectedToList("list-2")
+                coVerify { repo.moveTask("p", "list-2") }
+                coVerify { repo.moveTask("c", "list-2") }
+                job.cancel()
+            }
+        }
+
     // --- account switching resets selected list ---
 
     @Test

@@ -221,4 +221,6 @@
     <string name="selection_detach">Détacher de la tâche parente</string>
     <string name="mark_complete">Marquer comme terminée</string>
     <string name="more_options">Plus d’options</string>
+    <string name="add_subtask">Ajouter une sous-tâche</string>
+    <string name="move_to_list">Déplacer vers la liste</string>
 </resources>
