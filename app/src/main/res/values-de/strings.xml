@@ -226,4 +226,6 @@
     <string name="move_to_list">In Liste verschieben</string>
     <string name="task_detail_parent_label">Übergeordnete Aufgabe</string>
     <string name="reorder_handle">Neu anordnen</string>
+    <string name="settings_per_list_sort">Sortierung pro Liste merken</string>
+    <string name="settings_per_list_sort_summary">Jede Liste behält ihre eigene Sortierung statt einer globalen</string>
 </resources>

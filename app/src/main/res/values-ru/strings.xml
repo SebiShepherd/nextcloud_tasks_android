@@ -226,4 +226,6 @@
     <string name="move_to_list">Переместить в список</string>
     <string name="task_detail_parent_label">Родительская задача</string>
     <string name="reorder_handle">Изменить порядок</string>
+    <string name="settings_per_list_sort">Запоминать сортировку для каждого списка</string>
+    <string name="settings_per_list_sort_summary">Каждый список сохраняет свою сортировку вместо общей</string>
 </resources>

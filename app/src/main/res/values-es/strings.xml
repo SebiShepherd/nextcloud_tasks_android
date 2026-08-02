@@ -226,4 +226,6 @@
     <string name="move_to_list">Mover a la lista</string>
     <string name="task_detail_parent_label">Tarea principal</string>
     <string name="reorder_handle">Reordenar</string>
+    <string name="settings_per_list_sort">Recordar orden por lista</string>
+    <string name="settings_per_list_sort_summary">Cada lista mantiene su propio orden en lugar de uno global</string>
 </resources>

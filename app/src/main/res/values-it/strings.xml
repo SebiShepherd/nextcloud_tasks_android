@@ -226,4 +226,6 @@
     <string name="move_to_list">Sposta nell’elenco</string>
     <string name="task_detail_parent_label">Attività principale</string>
     <string name="reorder_handle">Riordina</string>
+    <string name="settings_per_list_sort">Ricorda l’ordinamento per elenco</string>
+    <string name="settings_per_list_sort_summary">Ogni elenco mantiene il proprio ordinamento invece di uno globale</string>
 </resources>

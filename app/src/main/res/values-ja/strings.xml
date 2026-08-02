@@ -226,4 +226,6 @@
     <string name="move_to_list">リストに移動</string>
     <string name="task_detail_parent_label">親タスク</string>
     <string name="reorder_handle">並べ替え</string>
+    <string name="settings_per_list_sort">リストごとに並び順を記憶</string>
+    <string name="settings_per_list_sort_summary">各リストが共通ではなく独自の並び順を保持します</string>
 </resources>

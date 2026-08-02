@@ -226,4 +226,6 @@
     <string name="move_to_list">Přesunout do seznamu</string>
     <string name="task_detail_parent_label">Nadřazený úkol</string>
     <string name="reorder_handle">Změnit pořadí</string>
+    <string name="settings_per_list_sort">Zapamatovat řazení pro každý seznam</string>
+    <string name="settings_per_list_sort_summary">Každý seznam si zachová vlastní řazení místo jednoho globálního</string>
 </resources>

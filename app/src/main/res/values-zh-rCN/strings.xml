@@ -226,4 +226,6 @@
     <string name="move_to_list">移动到列表</string>
     <string name="task_detail_parent_label">父任务</string>
     <string name="reorder_handle">重新排序</string>
+    <string name="settings_per_list_sort">按列表记住排序</string>
+    <string name="settings_per_list_sort_summary">每个列表保留自己的排序，而不是使用统一排序</string>
 </resources>

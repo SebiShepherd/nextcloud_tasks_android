@@ -226,4 +226,6 @@
     <string name="move_to_list">Déplacer vers la liste</string>
     <string name="task_detail_parent_label">Tâche parente</string>
     <string name="reorder_handle">Réordonner</string>
+    <string name="settings_per_list_sort">Mémoriser le tri par liste</string>
+    <string name="settings_per_list_sort_summary">Chaque liste garde son propre tri au lieu d’un tri global</string>
 </resources>

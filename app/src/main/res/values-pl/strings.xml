@@ -226,4 +226,6 @@
     <string name="move_to_list">Przenieś do listy</string>
     <string name="task_detail_parent_label">Zadanie nadrzędne</string>
     <string name="reorder_handle">Zmień kolejność</string>
+    <string name="settings_per_list_sort">Zapamiętaj sortowanie dla każdej listy</string>
+    <string name="settings_per_list_sort_summary">Każda lista zachowuje własne sortowanie zamiast jednego globalnego</string>
 </resources>

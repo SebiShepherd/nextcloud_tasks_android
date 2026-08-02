@@ -226,4 +226,6 @@
     <string name="move_to_list">Naar lijst verplaatsen</string>
     <string name="task_detail_parent_label">Bovenliggende taak</string>
     <string name="reorder_handle">Herschikken</string>
+    <string name="settings_per_list_sort">Sortering per lijst onthouden</string>
+    <string name="settings_per_list_sort_summary">Elke lijst houdt zijn eigen sortering aan in plaats van één globale</string>
 </resources>

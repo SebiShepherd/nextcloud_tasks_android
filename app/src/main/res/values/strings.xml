@@ -98,6 +98,8 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_per_list_sort">Remember sort per list</string>
+    <string name="settings_per_list_sort_summary">Each list keeps its own sort order instead of a single global one</string>
 
     <!-- No Lists Empty State -->
     <string name="no_task_lists_title">No task lists yet</string>

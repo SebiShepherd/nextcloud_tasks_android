@@ -178,6 +178,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -3877,7 +3879,7 @@ internal fun withErrorDetail(
 ): String = if (detail.isNullOrBlank()) base else "$base ($detail)"
 
 @HiltViewModel
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "LargeClass")
 class TaskListViewModel
     @Inject
     constructor(
@@ -3888,6 +3890,7 @@ class TaskListViewModel
         private val shareListUseCase: ShareListUseCase,
         private val unshareListUseCase: UnshareListUseCase,
         private val searchShareesUseCase: SearchShareesUseCase,
+        private val appPreferences: com.nextcloud.tasks.data.AppPreferences,
     ) : ViewModel() {
         // Raw tasks from repository
         private val allTasks =
@@ -3907,8 +3910,28 @@ class TaskListViewModel
         private val _taskFilter = MutableStateFlow(com.nextcloud.tasks.domain.model.TaskFilter.ALL)
         val taskFilter = _taskFilter.asStateFlow()
 
-        private val _taskSort = MutableStateFlow(com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE)
-        val taskSort = _taskSort.asStateFlow()
+        val perListSortEnabled =
+            appPreferences.perListSortEnabled
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+        // Active sort, persisted: per selected list when the "remember per list" toggle is on (falling
+        // back to the global sort), otherwise the global sort.
+        @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+        val taskSort =
+            combine(_selectedListId, appPreferences.perListSortEnabled) { listId, perList -> listId to perList }
+                .flatMapLatest { (listId, perList) ->
+                    if (perList && listId != null) {
+                        combine(appPreferences.listSort(listId), appPreferences.globalSort) { forList, global ->
+                            forList ?: global
+                        }
+                    } else {
+                        appPreferences.globalSort
+                    }
+                }.stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5_000),
+                    com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE,
+                )
 
         private val _isRefreshing = MutableStateFlow(false)
         val isRefreshing = _isRefreshing.asStateFlow()
@@ -4148,7 +4171,7 @@ class TaskListViewModel
                 allTasks,
                 _selectedListId,
                 _taskFilter,
-                _taskSort,
+                taskSort,
                 _searchQuery,
             ) { tasks, listId, filter, sort, query ->
                 tasks
@@ -4210,7 +4233,18 @@ class TaskListViewModel
         }
 
         fun setSort(sort: com.nextcloud.tasks.domain.model.TaskSort) {
-            _taskSort.value = sort
+            viewModelScope.launch {
+                val listId = _selectedListId.value
+                if (appPreferences.perListSortEnabled.first() && listId != null) {
+                    appPreferences.setListSort(listId, sort)
+                } else {
+                    appPreferences.setGlobalSort(sort)
+                }
+            }
+        }
+
+        fun setPerListSortEnabled(enabled: Boolean) {
+            viewModelScope.launch { appPreferences.setPerListSortEnabled(enabled) }
         }
 
         fun setSearchQuery(query: String) {
