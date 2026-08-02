@@ -209,12 +209,10 @@
     <string name="parent_none">なし</string>
     <string name="pick_due_date">期限</string>
     <string name="task_deleted">タスクを削除しました</string>
-    <string name="task_completed">タスクを完了しました</string>
     <string name="action_undo">元に戻す</string>
     <string name="delete_subtasks_title">サブタスクごと削除しますか？</string>
     <string name="delete_subtasks_message">このタスクにはサブタスクがあります。どうしますか？</string>
     <string name="delete_subtasks_all">すべて削除</string>
     <string name="delete_subtasks_keep">サブタスクを残す</string>
     <string name="swipe_complete">完了</string>
-    <string name="task_reopened">タスクを再開しました</string>
 </resources>

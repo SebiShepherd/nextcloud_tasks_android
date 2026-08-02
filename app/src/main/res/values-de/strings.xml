@@ -209,12 +209,10 @@
     <string name="parent_none">Keine</string>
     <string name="pick_due_date">Fälligkeitsdatum</string>
     <string name="task_deleted">Aufgabe gelöscht</string>
-    <string name="task_completed">Aufgabe erledigt</string>
     <string name="action_undo">Rückgängig</string>
     <string name="delete_subtasks_title">Aufgabe mit Unteraufgaben löschen?</string>
     <string name="delete_subtasks_message">Diese Aufgabe hat Unteraufgaben. Was soll damit geschehen?</string>
     <string name="delete_subtasks_all">Alle löschen</string>
     <string name="delete_subtasks_keep">Unteraufgaben behalten</string>
     <string name="swipe_complete">Erledigt</string>
-    <string name="task_reopened">Aufgabe wieder geöffnet</string>
 </resources>

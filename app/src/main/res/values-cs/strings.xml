@@ -209,12 +209,10 @@
     <string name="parent_none">Žádný</string>
     <string name="pick_due_date">Datum splnění</string>
     <string name="task_deleted">Úkol smazán</string>
-    <string name="task_completed">Úkol dokončen</string>
     <string name="action_undo">Zpět</string>
     <string name="delete_subtasks_title">Smazat úkol s podúkoly?</string>
     <string name="delete_subtasks_message">Tento úkol má podúkoly. Co se s nimi má stát?</string>
     <string name="delete_subtasks_all">Smazat vše</string>
     <string name="delete_subtasks_keep">Ponechat podúkoly</string>
     <string name="swipe_complete">Hotovo</string>
-    <string name="task_reopened">Úkol znovu otevřen</string>
 </resources>

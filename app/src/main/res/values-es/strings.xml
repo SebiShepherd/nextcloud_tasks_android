@@ -209,12 +209,10 @@
     <string name="parent_none">Ninguna</string>
     <string name="pick_due_date">Fecha de vencimiento</string>
     <string name="task_deleted">Tarea eliminada</string>
-    <string name="task_completed">Tarea completada</string>
     <string name="action_undo">Deshacer</string>
     <string name="delete_subtasks_title">¿Eliminar tarea con subtareas?</string>
     <string name="delete_subtasks_message">Esta tarea tiene subtareas. ¿Qué debe pasar con ellas?</string>
     <string name="delete_subtasks_all">Eliminar todo</string>
     <string name="delete_subtasks_keep">Conservar subtareas</string>
     <string name="swipe_complete">Hecho</string>
-    <string name="task_reopened">Tarea reabierta</string>
 </resources>

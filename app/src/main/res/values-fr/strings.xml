@@ -209,12 +209,10 @@
     <string name="parent_none">Aucune</string>
     <string name="pick_due_date">Date d’échéance</string>
     <string name="task_deleted">Tâche supprimée</string>
-    <string name="task_completed">Tâche terminée</string>
     <string name="action_undo">Annuler</string>
     <string name="delete_subtasks_title">Supprimer la tâche avec ses sous-tâches ?</string>
     <string name="delete_subtasks_message">Cette tâche a des sous-tâches. Que faut-il en faire ?</string>
     <string name="delete_subtasks_all">Tout supprimer</string>
     <string name="delete_subtasks_keep">Conserver les sous-tâches</string>
     <string name="swipe_complete">Terminé</string>
-    <string name="task_reopened">Tâche rouverte</string>
 </resources>

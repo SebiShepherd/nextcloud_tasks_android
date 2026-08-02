@@ -329,7 +329,6 @@ fun NextcloudTasksApp(
             onToggleFavorite = taskListViewModel::toggleFavorite,
             onToggleTaskCollapsed = taskListViewModel::toggleCollapsed,
             onApplyCompletion = taskListViewModel::applyCompletion,
-            onUndoCompletion = taskListViewModel::undoCompletion,
             onStageDelete = taskListViewModel::stageDelete,
             onUndoDelete = taskListViewModel::undoDelete,
             onCommitDelete = taskListViewModel::commitDelete,
@@ -414,8 +413,7 @@ fun AuthenticatedHome(
     onCreateTask: (NewTaskInput) -> Unit,
     onToggleFavorite: (Task) -> Unit,
     onToggleTaskCollapsed: (String) -> Unit,
-    onApplyCompletion: (Task) -> CompletionChange,
-    onUndoCompletion: (CompletionChange) -> Unit,
+    onApplyCompletion: (Task) -> Unit,
     onStageDelete: (Task, Boolean) -> Deletion,
     onUndoDelete: (Deletion) -> Unit,
     onCommitDelete: (Deletion) -> Unit,
@@ -486,8 +484,6 @@ fun AuthenticatedHome(
     // first asks whether to delete the whole subtree or free the children.
     val undoLabel = stringResource(R.string.action_undo)
     val deletedMsg = stringResource(R.string.task_deleted)
-    val completedMsg = stringResource(R.string.task_completed)
-    val reopenedMsg = stringResource(R.string.task_reopened)
     var deleteDialogTask by remember { mutableStateOf<Task?>(null) }
 
     val performDelete: (Task, Boolean) -> Unit = { task, keepChildren ->
@@ -500,16 +496,9 @@ fun AuthenticatedHome(
     val onSwipeDelete: (Task, Boolean) -> Unit = { task, hasChildren ->
         if (hasChildren) deleteDialogTask = task else performDelete(task, false)
     }
-    // Unified completion for both the checkbox and the swipe: mark done/reopen (cascading) and offer
-    // one undo. Same handler → identical behaviour and message no matter how the user triggers it.
-    val completeWithUndo: (Task) -> Unit = { task ->
-        val change = onApplyCompletion(task)
-        val message = if (change.nowDone) completedMsg else reopenedMsg
-        scope.launch {
-            val result = snackbarHostState.showSnackbar(message, undoLabel, duration = SnackbarDuration.Short)
-            if (result == SnackbarResult.ActionPerformed) onUndoCompletion(change)
-        }
-    }
+    // Unified completion for both the checkbox and the swipe: mark done/reopen (cascading).
+    // No snackbar — re-tapping the checkbox already undoes it, so a toast would just be noise.
+    val completeWithUndo: (Task) -> Unit = { task -> onApplyCompletion(task) }
 
     // Share errors and success are shown in the bottom sheet only (no duplicate snackbar)
 
@@ -1092,12 +1081,6 @@ data class Deletion(
     val hiddenIds: Set<String>,
     val deleteIds: List<String>,
     val freeIds: List<String>,
-)
-
-/** A completed/reopened cascade, captured so an undo snackbar can flip exactly the same tasks back. */
-data class CompletionChange(
-    val ids: List<String>,
-    val nowDone: Boolean,
 )
 
 /** A flattened sub-task tree row: the task plus its display depth and sub-task chip data. */
@@ -3727,17 +3710,15 @@ class TaskListViewModel
             }
         }
 
-        /** Checkbox path — fire and forget; the swipe path uses [applyCompletion] for its undo token. */
         fun toggleTaskComplete(task: Task) {
             applyCompletion(task)
         }
 
         /**
          * Toggle [task]'s completion, cascading down to descendants (complete) or up to ancestors
-         * (reopen) — matching Todoist/Reminders/Google Tasks. Returns the exact set flipped so an
-         * undo snackbar can reverse it precisely.
+         * (reopen) — matching Todoist/Reminders/Google Tasks. Undo is a second tap, so nothing to return.
          */
-        fun applyCompletion(task: Task): CompletionChange {
+        fun applyCompletion(task: Task) {
             val all = allTasks.value
             val readOnlyListIds =
                 taskLists.value
@@ -3749,13 +3730,6 @@ class TaskListViewModel
                 (if (wasDone) collectAncestors(task, all) else collectDescendants(task, all))
                     .filter { it.listId !in readOnlyListIds && it.isEffectivelyDone == wasDone }
             setCompletion(affected, done = !wasDone)
-            return CompletionChange(affected.map { it.id }, nowDone = !wasDone)
-        }
-
-        /** Reverse an [applyCompletion] on exactly the tasks it flipped. */
-        fun undoCompletion(change: CompletionChange) {
-            val byId = allTasks.value.associateBy { it.id }
-            setCompletion(change.ids.mapNotNull { byId[it] }, done = !change.nowDone)
         }
 
         private fun setCompletion(
