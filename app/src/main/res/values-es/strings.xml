@@ -225,4 +225,5 @@
     <string name="add_subtask">Añadir subtarea</string>
     <string name="move_to_list">Mover a la lista</string>
     <string name="task_detail_parent_label">Tarea principal</string>
+    <string name="reorder_handle">Reordenar</string>
 </resources>

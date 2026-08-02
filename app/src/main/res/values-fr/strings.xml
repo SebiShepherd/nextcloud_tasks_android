@@ -225,4 +225,5 @@
     <string name="add_subtask">Ajouter une sous-tâche</string>
     <string name="move_to_list">Déplacer vers la liste</string>
     <string name="task_detail_parent_label">Tâche parente</string>
+    <string name="reorder_handle">Réordonner</string>
 </resources>

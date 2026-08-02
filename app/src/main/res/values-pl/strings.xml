@@ -225,4 +225,5 @@
     <string name="add_subtask">Dodaj podzadanie</string>
     <string name="move_to_list">Przenieś do listy</string>
     <string name="task_detail_parent_label">Zadanie nadrzędne</string>
+    <string name="reorder_handle">Zmień kolejność</string>
 </resources>

@@ -623,6 +623,20 @@ class TaskListViewModelTest {
             }
         }
 
+    @Test
+    fun `reorderTasks writes sequential sortOrder for the new order`() =
+        runTest(testDispatcher) {
+            val a = createTask(id = "a", uid = "a")
+            val b = createTask(id = "b", uid = "b")
+            withViewModelAndRepo(tasks = listOf(a, b)) { vm, repo ->
+                val job = launch { vm.tasks.collect {} }
+                vm.reorderTasks(listOf("b" to null, "a" to null))
+                coVerify { repo.updateTask(match { it.id == "b" && it.sortOrder == 0L }) }
+                coVerify { repo.updateTask(match { it.id == "a" && it.sortOrder == 1L }) }
+                job.cancel()
+            }
+        }
+
     // --- account switching resets selected list ---
 
     @Test

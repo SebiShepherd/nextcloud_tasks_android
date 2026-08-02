@@ -225,4 +225,5 @@
     <string name="add_subtask">サブタスクを追加</string>
     <string name="move_to_list">リストに移動</string>
     <string name="task_detail_parent_label">親タスク</string>
+    <string name="reorder_handle">並べ替え</string>
 </resources>
