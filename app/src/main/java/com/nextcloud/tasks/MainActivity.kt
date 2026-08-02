@@ -14,6 +14,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,7 +55,6 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
@@ -123,6 +123,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -131,12 +132,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -145,6 +150,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.compose.NavHost
@@ -181,9 +187,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -338,6 +343,7 @@ fun NextcloudTasksApp(
             onMoveSelectedToList = taskListViewModel::moveSelectedToList,
             onStageDeleteSelected = taskListViewModel::stageDeleteSelected,
             onReorderTasks = taskListViewModel::reorderTasks,
+            onReparentTask = taskListViewModel::reparentTask,
             anySelectedIsChild = taskListViewModel::anySelectedIsChild,
             showCreateDialog = showCreateDialog,
             isExpandedScreen = isExpandedScreen,
@@ -438,6 +444,7 @@ fun AuthenticatedHome(
     onMoveSelectedToList: (String) -> Unit,
     onStageDeleteSelected: () -> Deletion,
     onReorderTasks: (List<Pair<String, String?>>) -> Unit,
+    onReparentTask: (String, String?) -> Unit,
     anySelectedIsChild: () -> Boolean,
     showCreateDialog: Boolean,
     isExpandedScreen: Boolean = false,
@@ -636,6 +643,7 @@ fun AuthenticatedHome(
                                 onEnterSelection = onEnterSelection,
                                 onToggleSelection = onToggleSelection,
                                 onReorder = onReorderTasks,
+                                onReparent = onReparentTask,
                                 isExpandedScreen = isExpandedScreen,
                                 onSetFilter = onSetFilter,
                                 onSetSort = onSetSort,
@@ -1093,14 +1101,6 @@ private fun SortDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SortOption(
-                    text = stringResource(R.string.sort_by_manual),
-                    isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL,
-                    onClick = {
-                        onSetSort(com.nextcloud.tasks.domain.model.TaskSort.MANUAL)
-                        onDismiss()
-                    },
-                )
-                SortOption(
                     text = stringResource(R.string.sort_by_due_date),
                     isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE,
                     onClick = {
@@ -1129,6 +1129,14 @@ private fun SortDialog(
                     isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT,
                     onClick = {
                         onSetSort(com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT)
+                        onDismiss()
+                    },
+                )
+                SortOption(
+                    text = stringResource(R.string.sort_by_manual),
+                    isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL,
+                    onClick = {
+                        onSetSort(com.nextcloud.tasks.domain.model.TaskSort.MANUAL)
                         onDismiss()
                     },
                 )
@@ -1262,55 +1270,120 @@ internal fun taskComparator(sort: com.nextcloud.tasks.domain.model.TaskSort): Co
         com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT -> compareByDescending { t: Task -> t.updatedAt }
     }
 
-/** Live drag-reorder state for the open list, produced by [rememberManualReorder]. */
+/**
+ * Hand-rolled drag state for the open list. One long-press drag lets the row float; the row it is
+ * dropped onto (found via the list layout) plus the horizontal travel decide the new parent — drag
+ * right to nest under that row, left to un-nest. Works in every sort (nesting is sort-independent);
+ * only "My order" also persists the new position. On release the change is written back.
+ */
+@Suppress("LongParameterList")
 internal class ManualReorder(
     val enabled: Boolean,
+    val isManual: Boolean,
     val lazyListState: androidx.compose.foundation.lazy.LazyListState,
-    val reorderState: sh.calvin.reorderable.ReorderableLazyListState,
-    val manualIds: List<String>,
     val rowById: Map<String, TaskRow>,
-    val persist: () -> Unit,
-)
+    val liveIds: SnapshotStateList<String>,
+    val draggingId: MutableState<String?>,
+    val dragOffset: MutableState<androidx.compose.ui.geometry.Offset>,
+    val stepPx: Float,
+    private val onReorder: (List<Pair<String, String?>>) -> Unit,
+    private val onReparent: (String, String?) -> Unit,
+) {
+    private var startPointerY = 0f
 
-/**
- * Builds the drag-reorder state: a live id order the drag mutates, kept in sync with [rows] while not
- * dragging, plus a [persist] that writes the new order (id → parentUid) back through [onReorder].
- */
+    fun start(
+        id: String,
+        localOffset: androidx.compose.ui.geometry.Offset,
+    ) {
+        draggingId.value = id
+        dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
+        val rowTop =
+            lazyListState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.key == id }
+                ?.offset ?: 0
+        startPointerY = rowTop + localOffset.y
+    }
+
+    fun dragBy(amount: androidx.compose.ui.geometry.Offset) {
+        dragOffset.value += amount
+        // In "My order" the siblings shift live as the dragged row passes over them.
+        if (isManual) moveToFinger()
+    }
+
+    private fun moveToFinger() {
+        val id = draggingId.value ?: return
+        val target = itemUnderFinger(id) ?: return
+        val from = liveIds.indexOf(id)
+        val to = liveIds.indexOf(target)
+        if (from in liveIds.indices && to in liveIds.indices) {
+            liveIds.add(to, liveIds.removeAt(from))
+        }
+    }
+
+    fun clear() {
+        draggingId.value = null
+        dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
+    }
+
+    /** Key of the row under the finger, excluding the dragged row. */
+    private fun itemUnderFinger(draggedId: String?): String? {
+        val pointerY = (startPointerY + dragOffset.value.y).toInt()
+        return lazyListState.layoutInfo.visibleItemsInfo
+            .firstOrNull { it.key != draggedId && pointerY in it.offset..(it.offset + it.size) }
+            ?.key as? String
+    }
+
+    fun drop() {
+        val id = draggingId.value ?: return
+        val steps = (dragOffset.value.x / stepPx).roundToInt()
+        if (isManual) {
+            // liveIds already reflects the live moves; the row above the dragged one is the nest anchor.
+            val order = liveIds.toList()
+            val idx = order.indexOf(id)
+            val aboveId = if (idx > 0) order[idx - 1] else null
+            val newParent = reparentTarget(aboveId, steps, rowById)
+            onReorder(order.map { rid -> rid to if (rid == id) newParent else rowById[rid]?.task?.parentUid })
+        } else {
+            onReparent(id, reparentTarget(itemUnderFinger(id), steps, rowById))
+        }
+    }
+}
+
 @Composable
 private fun rememberManualReorder(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     openListIds: List<String>,
-    selectionMode: Boolean,
     treeByList: Map<String, List<TaskRow>>,
     onReorder: (List<Pair<String, String?>>) -> Unit,
+    onReparent: (String, String?) -> Unit,
 ): ManualReorder {
-    // Drag & drop only in "My order" while a single list is shown and not selecting — reordering across
-    // list sections or against a field sort has no meaning.
-    val enabled =
-        taskSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL && openListIds.size == 1 && !selectionMode
+    // Drag whenever a single list is shown (nesting works in any sort); only MANUAL also persists order.
+    val enabled = openListIds.size == 1
     val rows = if (enabled) openListIds.firstOrNull()?.let { treeByList[it] }.orEmpty() else emptyList()
     val lazyListState = rememberLazyListState()
     val rowById = remember(rows) { rows.associateBy { it.task.id } }
-    val manualIds = remember { mutableStateListOf<String>() }
+    val draggingId = remember { mutableStateOf<String?>(null) }
+    val dragOffset = remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val liveIds = remember { mutableStateListOf<String>() }
     LaunchedEffect(rows.map { it.task.id }) {
-        manualIds.clear()
-        manualIds.addAll(rows.map { it.task.id })
-    }
-    val reorderState =
-        rememberReorderableLazyListState(lazyListState) { from, to ->
-            val f = manualIds.indexOf(from.key)
-            val t = manualIds.indexOf(to.key)
-            if (f in manualIds.indices && t in manualIds.indices) {
-                manualIds.add(t, manualIds.removeAt(f))
-            }
+        // Keep the live order in sync with the data while not dragging.
+        if (draggingId.value == null) {
+            liveIds.clear()
+            liveIds.addAll(rows.map { it.task.id })
         }
+    }
+    val stepPx = with(androidx.compose.ui.platform.LocalDensity.current) { 40.dp.toPx() }
     return ManualReorder(
         enabled = enabled,
+        isManual = taskSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL,
         lazyListState = lazyListState,
-        reorderState = reorderState,
-        manualIds = manualIds,
         rowById = rowById,
-        persist = { onReorder(manualIds.map { id -> id to rowById[id]?.task?.parentUid }) },
+        liveIds = liveIds,
+        draggingId = draggingId,
+        dragOffset = dragOffset,
+        stepPx = stepPx,
+        onReorder = onReorder,
+        onReparent = onReparent,
     )
 }
 
@@ -1325,6 +1398,22 @@ class TaskRowCallbacks(
     val onEnterSelection: (String) -> Unit,
     val onToggleSelection: (String) -> Unit,
 )
+
+/** Parent uid for a row dropped just below [aboveId], shifted [steps] nesting levels (right = +). */
+internal fun reparentTarget(
+    aboveId: String?,
+    steps: Int,
+    rowById: Map<String, TaskRow>,
+): String? {
+    val above = aboveId?.let { rowById[it] } ?: return null
+    val targetDepth = (above.depth + steps).coerceIn(0, above.depth + 1)
+    if (targetDepth == above.depth + 1) return above.task.uid
+    var current: TaskRow? = above
+    while (current != null && current.depth >= targetDepth) {
+        current = current.task.parentUid?.let { p -> rowById.values.firstOrNull { it.task.uid == p } }
+    }
+    return current?.task?.uid
+}
 
 /** parentUid → (done, total) child counts across [tasks], for the sub-task collapse chip. */
 internal fun subtaskChildCounts(tasks: List<Task>): Map<String, Pair<Int, Int>> =
@@ -1358,6 +1447,7 @@ private fun TasksContent(
     onEnterSelection: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
     onReorder: (List<Pair<String, String?>>) -> Unit,
+    onReparent: (String, String?) -> Unit,
     isExpandedScreen: Boolean = false,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
@@ -1404,9 +1494,9 @@ private fun TasksContent(
         rememberManualReorder(
             taskSort = taskSort,
             openListIds = openListIds,
-            selectionMode = selectionMode,
             treeByList = treeByList,
             onReorder = onReorder,
+            onReparent = onReparent,
         )
     val rowCallbacks =
         TaskRowCallbacks(
@@ -1490,12 +1580,8 @@ private fun TasksContent(
                     }
 
                     openListRows(
-                        reorderable = reorder.enabled,
+                        reorder = reorder,
                         rows = treeByList.getValue(listId),
-                        manualIds = reorder.manualIds,
-                        rowById = reorder.rowById,
-                        reorderState = reorder.reorderState,
-                        persistOrder = reorder.persist,
                         taskListMap = taskListMap,
                         selectionMode = selectionMode,
                         selectedIds = selectedIds,
@@ -2441,7 +2527,6 @@ private fun SimpleAnimatedTaskCard(
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
     onLongPress: () -> Unit = {},
-    dragHandle: (@Composable () -> Unit)? = null,
 ) {
     Column {
         // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
@@ -2476,7 +2561,6 @@ private fun SimpleAnimatedTaskCard(
                     onToggleFavorite = onToggleFavorite,
                     onOpenTask = onOpenTask,
                     onLongPress = onLongPress,
-                    dragHandle = dragHandle,
                 )
             }
         }
@@ -2502,7 +2586,6 @@ private fun TaskCard(
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
     onLongPress: () -> Unit = {},
-    dragHandle: (@Composable () -> Unit)? = null,
 ) {
     val isChild = depth > 0
     val hasDescription = !isChild && task.description != null
@@ -2655,16 +2738,6 @@ private fun TaskCard(
                     tint = if (isStarred) NextcloudWarning else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
-            // Drag handle (My order only) — provided by the reorderable item scope.
-            dragHandle?.let { handle ->
-                Box(
-                    modifier = Modifier.align(Alignment.CenterVertically).padding(start = 4.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    handle()
-                }
-            }
         }
     }
 }
@@ -2681,12 +2754,13 @@ private fun TaskRowItem(
     isSelected: Boolean,
     callbacks: TaskRowCallbacks,
     modifier: Modifier = Modifier,
-    dragHandle: (@Composable () -> Unit)? = null,
+    reorderable: Boolean = false,
 ) {
     val task = row.task
     val taskIsReadOnly = taskListMap[task.listId]?.shareAccess == ShareAccess.READ
     SwipeableTaskRow(
-        enabled = !taskIsReadOnly && !selectionMode,
+        // No swipe while draggable — the long-press there starts a drag instead.
+        enabled = !taskIsReadOnly && !selectionMode && !reorderable,
         hasChildren = row.hasChildren,
         bottomInset = if (row.depth > 0) 8.dp else 12.dp,
         onComplete = { callbacks.onToggleTaskComplete(task) },
@@ -2709,58 +2783,73 @@ private fun TaskRowItem(
             onOpenTask = {
                 if (selectionMode) callbacks.onToggleSelection(task.id) else callbacks.onOpenTask(task.id)
             },
-            onLongPress = { callbacks.onEnterSelection(task.id) },
-            dragHandle = dragHandle,
+            // When draggable the long-press starts the drag (which enters selection itself).
+            onLongPress = { if (!reorderable) callbacks.onEnterSelection(task.id) },
         )
     }
 }
 
-/** Renders one list's open rows — draggable (My order) or plain. */
+/** Renders one list's open rows. When [reorder] is enabled each row can be long-press dragged. */
 @Suppress("LongParameterList")
 private fun LazyListScope.openListRows(
-    reorderable: Boolean,
+    reorder: ManualReorder,
     rows: List<TaskRow>,
-    manualIds: List<String>,
-    rowById: Map<String, TaskRow>,
-    reorderState: sh.calvin.reorderable.ReorderableLazyListState,
-    persistOrder: () -> Unit,
     taskListMap: Map<String, com.nextcloud.tasks.domain.model.TaskList>,
     selectionMode: Boolean,
     selectedIds: Set<String>,
     callbacks: TaskRowCallbacks,
 ) {
-    if (reorderable) {
-        items(manualIds, key = { it }) { id ->
-            val row = rowById[id] ?: return@items
-            ReorderableItem(reorderState, key = id) { _ ->
-                TaskRowItem(
-                    row = row,
-                    taskListMap = taskListMap,
-                    selectionMode = selectionMode,
-                    isSelected = row.task.id in selectedIds,
-                    callbacks = callbacks,
-                    dragHandle = {
-                        Icon(
-                            imageVector = Icons.Filled.DragIndicator,
-                            contentDescription = stringResource(R.string.reorder_handle),
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.draggableHandle(onDragStopped = { persistOrder() }),
+    // In "My order" render the live (dragged) order so siblings shift; otherwise the plain rows.
+    val displayRows =
+        if (reorder.enabled && reorder.isManual) {
+            reorder.liveIds.mapNotNull { reorder.rowById[it] }
+        } else {
+            rows
+        }
+    items(displayRows, key = { it.task.id }) { row ->
+        val id = row.task.id
+        val dragging = reorder.draggingId.value == id
+        val dragModifier =
+            if (reorder.enabled) {
+                Modifier
+                    .animateItem()
+                    .zIndex(if (dragging) 1f else 0f)
+                    .graphicsLayer {
+                        if (dragging) {
+                            translationX = reorder.dragOffset.value.x
+                            // In My order the row snaps between slots (animateItem); elsewhere it floats.
+                            translationY = if (reorder.isManual) 0f else reorder.dragOffset.value.y
+                            shadowElevation = 8f
+                        }
+                    }.pointerInput(id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { offset ->
+                                reorder.start(id, offset)
+                                callbacks.onEnterSelection(id)
+                            },
+                            onDrag = { change, amount ->
+                                change.consume()
+                                reorder.dragBy(amount)
+                            },
+                            onDragEnd = {
+                                reorder.drop()
+                                reorder.clear()
+                            },
+                            onDragCancel = { reorder.clear() },
                         )
-                    },
-                )
+                    }
+            } else {
+                Modifier.animateItem()
             }
-        }
-    } else {
-        items(rows, key = { it.task.id }) { row ->
-            TaskRowItem(
-                row = row,
-                taskListMap = taskListMap,
-                selectionMode = selectionMode,
-                isSelected = row.task.id in selectedIds,
-                callbacks = callbacks,
-                modifier = Modifier.animateItem(),
-            )
-        }
+        TaskRowItem(
+            row = row,
+            taskListMap = taskListMap,
+            selectionMode = selectionMode,
+            isSelected = id in selectedIds,
+            callbacks = callbacks,
+            modifier = dragModifier,
+            reorderable = reorder.enabled,
+        )
     }
 }
 
@@ -3903,6 +3992,16 @@ class TaskListViewModel
 
         fun toggleCollapsed(taskUid: String) {
             _collapsedIds.update { if (taskUid in it) it - taskUid else it + taskUid }
+        }
+
+        /** Change only [taskId]'s parent (drag-to-nest in a non-manual sort; order stays field-driven). */
+        fun reparentTask(
+            taskId: String,
+            newParentUid: String?,
+        ) {
+            val task = allTasks.value.firstOrNull { it.id == taskId } ?: return
+            if (task.parentUid == newParentUid) return
+            viewModelScope.launch { runCatching { tasksRepository.updateTask(task.copy(parentUid = newParentUid)) } }
         }
 
         /**

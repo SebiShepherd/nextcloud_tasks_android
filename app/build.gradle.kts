@@ -164,7 +164,6 @@ dependencies {
     implementation(libs.material)
     implementation(libs.timber)
     implementation(libs.coil.compose)
-    implementation(libs.reorderable)
     implementation(libs.androidx.compose.material3.wsc)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.browser)
