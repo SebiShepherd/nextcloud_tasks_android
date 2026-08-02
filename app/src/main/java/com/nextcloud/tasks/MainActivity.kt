@@ -942,7 +942,8 @@ private fun UnifiedSearchBar(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(64.dp), // Fixed total height
+                // 72 dp box with 8 dp vertical padding → 56 dp pill (Material 3 SearchBar input height).
+                .height(72.dp),
     ) {
         // Surface adapts based on search state
         Surface(
@@ -953,7 +954,7 @@ private fun UnifiedSearchBar(
                         horizontal = if (isSearchActive) 0.dp else 16.dp,
                         vertical = if (isSearchActive) 0.dp else 8.dp,
                     ).fillMaxHeight(),
-            shape = RoundedCornerShape(if (isSearchActive) 0.dp else 24.dp),
+            shape = RoundedCornerShape(if (isSearchActive) 0.dp else 28.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
         ) {
             Row(
@@ -2737,12 +2738,12 @@ private fun SelectionTopBar(
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var showMoveMenu by remember { mutableStateOf(false) }
-    Box(modifier = Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Box(modifier = Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
         Surface(
             color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            shape = RoundedCornerShape(24.dp),
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(28.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -2754,7 +2755,8 @@ private fun SelectionTopBar(
                 Text(
                     text = stringResource(R.string.selection_count, count),
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f).padding(start = 4.dp),
+                    // end padding so the count never touches the first action icon as it grows
+                    modifier = Modifier.weight(1f).padding(start = 4.dp, end = 8.dp),
                 )
                 IconButton(onClick = onComplete) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = stringResource(R.string.mark_complete))
