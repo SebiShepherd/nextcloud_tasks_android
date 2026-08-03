@@ -642,6 +642,7 @@ fun AuthenticatedHome(
                                 selectedIds = selectedIds,
                                 onEnterSelection = onEnterSelection,
                                 onToggleSelection = onToggleSelection,
+                                onClearSelectionForDrag = onClearSelection,
                                 onReorder = onReorderTasks,
                                 onReparent = onReparentTask,
                                 isExpandedScreen = isExpandedScreen,
@@ -1286,10 +1287,13 @@ internal class ManualReorder(
     val draggingId: MutableState<String?>,
     val dragOffset: MutableState<androidx.compose.ui.geometry.Offset>,
     val stepPx: Float,
+    val slopPx: Float,
     private val onReorder: (List<Pair<String, String?>>) -> Unit,
     private val onReparent: (String, String?) -> Unit,
+    private val onClearSelection: () -> Unit,
 ) {
     private var startPointerY = 0f
+    private var announcedMove = false
 
     fun start(
         id: String,
@@ -1297,6 +1301,7 @@ internal class ManualReorder(
     ) {
         draggingId.value = id
         dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
+        announcedMove = false
         val rowTop =
             lazyListState.layoutInfo.visibleItemsInfo
                 .firstOrNull { it.key == id }
@@ -1308,6 +1313,12 @@ internal class ManualReorder(
         dragOffset.value += amount
         // In "My order" the siblings shift live as the dragged row passes over them.
         if (isManual) moveToFinger()
+        // Once the finger has really moved (past touch slop) this is a drag, not a long-press-to-select:
+        // drop the selection so the action bar clears — exactly how Tasks.org disambiguates the two.
+        if (!announcedMove && dragOffset.value.getDistance() > slopPx) {
+            announcedMove = true
+            onClearSelection()
+        }
     }
 
     private fun moveToFinger() {
@@ -1356,6 +1367,7 @@ private fun rememberManualReorder(
     treeByList: Map<String, List<TaskRow>>,
     onReorder: (List<Pair<String, String?>>) -> Unit,
     onReparent: (String, String?) -> Unit,
+    onClearSelection: () -> Unit,
 ): ManualReorder {
     // Drag whenever a single list is shown (nesting works in any sort); only MANUAL also persists order.
     val enabled = openListIds.size == 1
@@ -1372,7 +1384,9 @@ private fun rememberManualReorder(
             liveIds.addAll(rows.map { it.task.id })
         }
     }
-    val stepPx = with(androidx.compose.ui.platform.LocalDensity.current) { 40.dp.toPx() }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val stepPx = with(density) { 40.dp.toPx() }
+    val slopPx = with(density) { 24.dp.toPx() }
     return ManualReorder(
         enabled = enabled,
         isManual = taskSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL,
@@ -1382,8 +1396,10 @@ private fun rememberManualReorder(
         draggingId = draggingId,
         dragOffset = dragOffset,
         stepPx = stepPx,
+        slopPx = slopPx,
         onReorder = onReorder,
         onReparent = onReparent,
+        onClearSelection = onClearSelection,
     )
 }
 
@@ -1446,6 +1462,7 @@ private fun TasksContent(
     selectedIds: Set<String>,
     onEnterSelection: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
+    onClearSelectionForDrag: () -> Unit,
     onReorder: (List<Pair<String, String?>>) -> Unit,
     onReparent: (String, String?) -> Unit,
     isExpandedScreen: Boolean = false,
@@ -1497,6 +1514,7 @@ private fun TasksContent(
             treeByList = treeByList,
             onReorder = onReorder,
             onReparent = onReparent,
+            onClearSelection = onClearSelectionForDrag,
         )
     val rowCallbacks =
         TaskRowCallbacks(
@@ -2526,7 +2544,7 @@ private fun SimpleAnimatedTaskCard(
     onToggleCollapsed: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
-    onLongPress: () -> Unit = {},
+    onLongPress: (() -> Unit)? = null,
 ) {
     Column {
         // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
@@ -2585,7 +2603,7 @@ private fun TaskCard(
     onToggleCollapsed: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
-    onLongPress: () -> Unit = {},
+    onLongPress: (() -> Unit)? = null,
 ) {
     val isChild = depth > 0
     val hasDescription = !isChild && task.description != null
@@ -2783,8 +2801,9 @@ private fun TaskRowItem(
             onOpenTask = {
                 if (selectionMode) callbacks.onToggleSelection(task.id) else callbacks.onOpenTask(task.id)
             },
-            // When draggable the long-press starts the drag (which enters selection itself).
-            onLongPress = { if (!reorderable) callbacks.onEnterSelection(task.id) },
+            // When draggable the long-press must reach the drag gesture, so the card registers no
+            // long-click of its own (null) — otherwise it would consume the press.
+            onLongPress = if (reorderable) null else ({ callbacks.onEnterSelection(task.id) }),
         )
     }
 }
@@ -2816,26 +2835,35 @@ private fun LazyListScope.openListRows(
                     .zIndex(if (dragging) 1f else 0f)
                     .graphicsLayer {
                         if (dragging) {
-                            translationX = reorder.dragOffset.value.x
+                            // Snap the horizontal shift to whole indent steps (Tasks.org style) so the
+                            // row clicks between nesting levels instead of floating freely.
+                            val steps = (reorder.dragOffset.value.x / reorder.stepPx).roundToInt()
+                            translationX = steps * reorder.stepPx
                             // In My order the row snaps between slots (animateItem); elsewhere it floats.
                             translationY = if (reorder.isManual) 0f else reorder.dragOffset.value.y
                             shadowElevation = 8f
                         }
                     }.pointerInput(id) {
                         detectDragGesturesAfterLongPress(
+                            // Tasks.org: a drag only starts when nothing is selected yet; long-press then
+                            // shows the bar (onEnterSelection) and moving clears it again.
                             onDragStart = { offset ->
-                                reorder.start(id, offset)
-                                callbacks.onEnterSelection(id)
+                                if (selectedIds.isEmpty()) {
+                                    reorder.start(id, offset)
+                                    callbacks.onEnterSelection(id)
+                                }
                             },
                             onDrag = { change, amount ->
                                 change.consume()
-                                reorder.dragBy(amount)
+                                if (reorder.draggingId.value == id) reorder.dragBy(amount)
                             },
                             onDragEnd = {
-                                reorder.drop()
-                                reorder.clear()
+                                if (reorder.draggingId.value == id) {
+                                    reorder.drop()
+                                    reorder.clear()
+                                }
                             },
-                            onDragCancel = { reorder.clear() },
+                            onDragCancel = { if (reorder.draggingId.value == id) reorder.clear() },
                         )
                     }
             } else {
