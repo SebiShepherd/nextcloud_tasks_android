@@ -1284,6 +1284,7 @@ internal class ManualReorder(
     val lazyListState: androidx.compose.foundation.lazy.LazyListState,
     val rowById: Map<String, TaskRow>,
     val liveIds: SnapshotStateList<String>,
+    val baseOrder: List<String>,
     val draggingId: MutableState<String?>,
     val dragOffset: MutableState<androidx.compose.ui.geometry.Offset>,
     val stepPx: Float,
@@ -1344,18 +1345,52 @@ internal class ManualReorder(
             ?.key as? String
     }
 
+    /** Live indent change (in whole levels) for the current horizontal travel, clamped to what's legal. */
+    fun indentDelta(): Int {
+        val id = draggingId.value ?: return 0
+        return resolveTarget(id).first - (rowById[id]?.depth ?: 0)
+    }
+
+    /**
+     * Target nesting depth + parent for the drag, mirroring Tasks.org: the depth is the dragged row's
+     * OWN current depth plus the horizontal steps, clamped to [0, (row above).depth + 1] so it can never
+     * land at an impossible level. The parent is the nearest preceding row one level shallower.
+     */
+    private fun resolveTarget(id: String): Pair<Int, String?> {
+        val currentDepth = rowById[id]?.depth ?: 0
+        val steps = (dragOffset.value.x / stepPx).roundToInt()
+        val order: List<String>
+        val aboveIdx: Int
+        if (isManual) {
+            order = liveIds
+            aboveIdx = liveIds.indexOf(id) - 1
+        } else {
+            order = baseOrder
+            aboveIdx = itemUnderFinger(id)?.let { baseOrder.indexOf(it) } ?: -1
+        }
+        val aboveDepth = order.getOrNull(aboveIdx)?.let { rowById[it]?.depth } ?: -1
+        val maxIndent = (aboveDepth + 1).coerceAtLeast(0)
+        val targetDepth = (currentDepth + steps).coerceIn(0, maxIndent)
+        if (targetDepth == 0) return 0 to null
+        var i = aboveIdx
+        while (i >= 0) {
+            val d = order.getOrNull(i)?.let { rowById[it]?.depth }
+            if (d != null) {
+                if (d == targetDepth - 1) return targetDepth to rowById[order[i]]?.task?.uid
+                if (d < targetDepth - 1) break
+            }
+            i--
+        }
+        return targetDepth to null
+    }
+
     fun drop() {
         val id = draggingId.value ?: return
-        val steps = (dragOffset.value.x / stepPx).roundToInt()
+        val newParent = resolveTarget(id).second
         if (isManual) {
-            // liveIds already reflects the live moves; the row above the dragged one is the nest anchor.
-            val order = liveIds.toList()
-            val idx = order.indexOf(id)
-            val aboveId = if (idx > 0) order[idx - 1] else null
-            val newParent = reparentTarget(aboveId, steps, rowById)
-            onReorder(order.map { rid -> rid to if (rid == id) newParent else rowById[rid]?.task?.parentUid })
+            onReorder(liveIds.map { rid -> rid to if (rid == id) newParent else rowById[rid]?.task?.parentUid })
         } else {
-            onReparent(id, reparentTarget(itemUnderFinger(id), steps, rowById))
+            onReparent(id, newParent)
         }
     }
 }
@@ -1393,6 +1428,7 @@ private fun rememberManualReorder(
         lazyListState = lazyListState,
         rowById = rowById,
         liveIds = liveIds,
+        baseOrder = rows.map { it.task.id },
         draggingId = draggingId,
         dragOffset = dragOffset,
         stepPx = stepPx,
@@ -1414,22 +1450,6 @@ class TaskRowCallbacks(
     val onEnterSelection: (String) -> Unit,
     val onToggleSelection: (String) -> Unit,
 )
-
-/** Parent uid for a row dropped just below [aboveId], shifted [steps] nesting levels (right = +). */
-internal fun reparentTarget(
-    aboveId: String?,
-    steps: Int,
-    rowById: Map<String, TaskRow>,
-): String? {
-    val above = aboveId?.let { rowById[it] } ?: return null
-    val targetDepth = (above.depth + steps).coerceIn(0, above.depth + 1)
-    if (targetDepth == above.depth + 1) return above.task.uid
-    var current: TaskRow? = above
-    while (current != null && current.depth >= targetDepth) {
-        current = current.task.parentUid?.let { p -> rowById.values.firstOrNull { it.task.uid == p } }
-    }
-    return current?.task?.uid
-}
 
 /** parentUid → (done, total) child counts across [tasks], for the sub-task collapse chip. */
 internal fun subtaskChildCounts(tasks: List<Task>): Map<String, Pair<Int, Int>> =
@@ -2835,10 +2855,9 @@ private fun LazyListScope.openListRows(
                     .zIndex(if (dragging) 1f else 0f)
                     .graphicsLayer {
                         if (dragging) {
-                            // Snap the horizontal shift to whole indent steps (Tasks.org style) so the
-                            // row clicks between nesting levels instead of floating freely.
-                            val steps = (reorder.dragOffset.value.x / reorder.stepPx).roundToInt()
-                            translationX = steps * reorder.stepPx
+                            // Snap the horizontal shift to whole, legal indent steps (Tasks.org style) so
+                            // the row clicks between nesting levels and can't reach an impossible one.
+                            translationX = reorder.indentDelta() * reorder.stepPx
                             // In My order the row snaps between slots (animateItem); elsewhere it floats.
                             translationY = if (reorder.isManual) 0f else reorder.dragOffset.value.y
                             shadowElevation = 8f
