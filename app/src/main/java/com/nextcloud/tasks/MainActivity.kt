@@ -1,4 +1,4 @@
-@file:Suppress("TooManyFunctions")
+@file:Suppress("TooManyFunctions", "ImportOrdering")
 
 package com.nextcloud.tasks
 
@@ -126,11 +126,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -640,6 +643,7 @@ fun AuthenticatedHome(
                                 selectedIds = selectedIds,
                                 onEnterSelection = onEnterSelection,
                                 onToggleSelection = onToggleSelection,
+                                onClearSelectionForDrag = onClearSelection,
                                 onReorder = onReorderTasks,
                                 onReparent = onReparentTask,
                                 isExpandedScreen = isExpandedScreen,
@@ -1280,36 +1284,69 @@ internal class ManualReorder(
     val isManual: Boolean,
     val lazyListState: androidx.compose.foundation.lazy.LazyListState,
     val rows: List<TaskRow>,
+    val liveIds: SnapshotStateList<String>,
     val draggingId: MutableState<String?>,
     val dragOffset: MutableState<androidx.compose.ui.geometry.Offset>,
     val stepPx: Float,
     val slopPx: Float,
     private val onReorder: (List<Pair<String, String?>>) -> Unit,
     private val onReparent: (String, String?) -> Unit,
+    private val onClearSelection: () -> Unit,
 ) {
-    private var startPointerY = 0f
+    val rowById: Map<String, TaskRow> = rows.associateBy { it.task.id }
+    private var grabTop = 0f
+    private var itemSize = 0
     private var moved = false
 
     /** True once the finger has travelled past touch slop — i.e. a real drag, not a long-press-to-select. */
     fun movedEnough(): Boolean = moved
 
-    fun start(
-        id: String,
-        localOffset: androidx.compose.ui.geometry.Offset,
-    ) {
+    fun start(id: String) {
         draggingId.value = id
         dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
         moved = false
-        val rowTop =
-            lazyListState.layoutInfo.visibleItemsInfo
-                .firstOrNull { it.key == id }
-                ?.offset ?: 0
-        startPointerY = rowTop + localOffset.y
+        val info = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == id }
+        grabTop = (info?.offset ?: 0).toFloat()
+        itemSize = info?.size ?: 0
     }
 
     fun dragBy(amount: androidx.compose.ui.geometry.Offset) {
         dragOffset.value += amount
-        if (!moved && dragOffset.value.getDistance() > slopPx) moved = true
+        if (!moved && dragOffset.value.getDistance() > slopPx) {
+            moved = true
+            // Long-press just became a drag (Tasks.org finishActionMode): drop the selection it flashed.
+            onClearSelection()
+        }
+        if (moved) updateLivePosition()
+    }
+
+    /** Shift the dragged id in [liveIds] to the slot whose row the finger centre now overlaps. */
+    private fun updateLivePosition() {
+        val id = draggingId.value ?: return
+        val centerY = grabTop + itemSize / 2f + dragOffset.value.y
+        val targetKey =
+            lazyListState.layoutInfo.visibleItemsInfo
+                .filter { it.key != id }
+                .firstOrNull { centerY >= it.offset && centerY <= it.offset + it.size }
+                ?.key as? String ?: return
+        val from = liveIds.indexOf(id)
+        val to = liveIds.indexOf(targetKey)
+        if (from >= 0 && to >= 0 && from != to) liveIds.add(to, liveIds.removeAt(from))
+    }
+
+    /**
+     * translationY that pins the dragged row under the finger no matter which live slot it now occupies:
+     * finger-absolute top minus the row's current slot top. Keeps the float continuous across shuffles,
+     * so the row never jumps (the bug the old raw-offset version had).
+     */
+    fun draggedTranslationY(): Float {
+        val id = draggingId.value ?: return 0f
+        val slotTop =
+            lazyListState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.key == id }
+                ?.offset
+                ?.toFloat() ?: grabTop
+        return grabTop + dragOffset.value.y - slotTop
     }
 
     fun clear() {
@@ -1317,63 +1354,41 @@ internal class ManualReorder(
         dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
     }
 
-    /** Index in [rows] of the row directly above the finger (excluding the dragged row); -1 at the top. */
-    private fun anchorIndex(draggedId: String): Int {
-        val fingerY = startPointerY + dragOffset.value.y
-        val aboveKey =
-            lazyListState.layoutInfo.visibleItemsInfo
-                .filter { it.key != draggedId && it.offset + it.size / 2f <= fingerY }
-                .maxByOrNull { it.offset }
-                ?.key as? String
-        return aboveKey?.let { key -> rows.indexOfFirst { it.task.id == key } } ?: -1
-    }
-
     /** Live indent change (in whole levels) for the current horizontal travel, clamped to what's legal. */
     fun indentDelta(): Int {
         val id = draggingId.value ?: return 0
-        val ownDepth = rows.firstOrNull { it.task.id == id }?.depth ?: 0
-        return resolveTarget(id).second - ownDepth
+        return resolveTarget(id).first - (rowById[id]?.depth ?: 0)
     }
 
     /**
-     * (targetSlot, targetDepth, parentUid) for the drop, mirroring Tasks.org's onChildDraw/clearView:
-     * slot is the insertion index (row-above + 1); depth is the dragged row's OWN depth plus the
-     * horizontal steps, clamped to [0, (row above).depth + 1] so it can never reach an impossible level;
-     * the parent is the nearest preceding row one level shallower.
+     * (targetDepth, parentUid), mirroring Tasks.org's onChildDraw: depth is the dragged row's OWN depth
+     * plus the horizontal steps, clamped to [0, (live row above).depth + 1] so it can never reach an
+     * impossible level; the parent is the nearest preceding row one level shallower.
      */
-    private fun resolveTarget(id: String): Triple<Int, Int, String?> {
-        val ownDepth = rows.firstOrNull { it.task.id == id }?.depth ?: 0
-        val aboveIdx = anchorIndex(id)
-        val aboveDepth = rows.getOrNull(aboveIdx)?.depth ?: -1
+    private fun resolveTarget(id: String): Pair<Int, String?> {
+        val ownDepth = rowById[id]?.depth ?: 0
+        val aboveIdx = liveIds.indexOf(id) - 1
+        val aboveDepth = liveIds.getOrNull(aboveIdx)?.let { rowById[it]?.depth } ?: -1
         val steps = (dragOffset.value.x / stepPx).roundToInt()
         val targetDepth = (ownDepth + steps).coerceIn(0, (aboveDepth + 1).coerceAtLeast(0))
-        val slot = aboveIdx + 1
-        if (targetDepth == 0) return Triple(slot, 0, null)
+        if (targetDepth == 0) return 0 to null
         var i = aboveIdx
         while (i >= 0) {
-            val d = rows.getOrNull(i)?.depth
+            val d = liveIds.getOrNull(i)?.let { rowById[it]?.depth }
             if (d != null) {
-                if (d == targetDepth - 1) return Triple(slot, targetDepth, rows[i].task.uid)
+                if (d == targetDepth - 1) return targetDepth to rowById[liveIds[i]]?.task?.uid
                 if (d < targetDepth - 1) break
             }
             i--
         }
-        return Triple(slot, targetDepth, null)
+        return targetDepth to null
     }
 
     fun drop() {
         val id = draggingId.value ?: return
-        val (slot, _, newParent) = resolveTarget(id)
+        val newParent = resolveTarget(id).second
         if (isManual) {
-            val ids = rows.map { it.task.id }.toMutableList()
-            val from = ids.indexOf(id)
-            if (from >= 0) {
-                ids.removeAt(from)
-                val insert = (if (from < slot) slot - 1 else slot).coerceIn(0, ids.size)
-                ids.add(insert, id)
-            }
-            val parentById = rows.associate { it.task.id to it.task.parentUid }
-            onReorder(ids.map { rid -> rid to if (rid == id) newParent else parentById[rid] })
+            onReorder(liveIds.map { rid -> rid to if (rid == id) newParent else rowById[rid]?.task?.parentUid })
         } else {
             onReparent(id, newParent)
         }
@@ -1387,6 +1402,7 @@ private fun rememberManualReorder(
     treeByList: Map<String, List<TaskRow>>,
     onReorder: (List<Pair<String, String?>>) -> Unit,
     onReparent: (String, String?) -> Unit,
+    onClearSelection: () -> Unit,
 ): ManualReorder {
     // Drag whenever a single list is shown (nesting works in any sort); only MANUAL also persists order.
     val enabled = openListIds.size == 1
@@ -1394,6 +1410,14 @@ private fun rememberManualReorder(
     val lazyListState = rememberLazyListState()
     val draggingId = remember { mutableStateOf<String?>(null) }
     val dragOffset = remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val liveIds = remember { mutableStateListOf<String>() }
+    LaunchedEffect(rows.map { it.task.id }) {
+        // Keep the live (preview) order in sync with the data while not dragging.
+        if (draggingId.value == null) {
+            liveIds.clear()
+            liveIds.addAll(rows.map { it.task.id })
+        }
+    }
     val density = androidx.compose.ui.platform.LocalDensity.current
     val stepPx = with(density) { 40.dp.toPx() }
     val slopPx = with(density) { 24.dp.toPx() }
@@ -1402,12 +1426,14 @@ private fun rememberManualReorder(
         isManual = taskSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL,
         lazyListState = lazyListState,
         rows = rows,
+        liveIds = liveIds,
         draggingId = draggingId,
         dragOffset = dragOffset,
         stepPx = stepPx,
         slopPx = slopPx,
         onReorder = onReorder,
         onReparent = onReparent,
+        onClearSelection = onClearSelection,
     )
 }
 
@@ -1454,6 +1480,7 @@ private fun TasksContent(
     selectedIds: Set<String>,
     onEnterSelection: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
+    onClearSelectionForDrag: () -> Unit,
     onReorder: (List<Pair<String, String?>>) -> Unit,
     onReparent: (String, String?) -> Unit,
     isExpandedScreen: Boolean = false,
@@ -1505,6 +1532,7 @@ private fun TasksContent(
             treeByList = treeByList,
             onReorder = onReorder,
             onReparent = onReparent,
+            onClearSelection = onClearSelectionForDrag,
         )
     val rowCallbacks =
         TaskRowCallbacks(
@@ -2767,8 +2795,9 @@ private fun TaskRowItem(
     val task = row.task
     val taskIsReadOnly = taskListMap[task.listId]?.shareAccess == ShareAccess.READ
     SwipeableTaskRow(
-        // No swipe while draggable — the long-press there starts a drag instead.
-        enabled = !taskIsReadOnly && !selectionMode && !reorderable,
+        // Swipe (immediate horizontal drag) and reorder (post-long-press drag) coexist: a quick swipe
+        // fires before the long-press timeout, a hold starts the drag. Only disabled in selection mode.
+        enabled = !taskIsReadOnly && !selectionMode,
         hasChildren = row.hasChildren,
         bottomInset = if (row.depth > 0) 8.dp else 12.dp,
         onComplete = { callbacks.onToggleTaskComplete(task) },
@@ -2808,43 +2837,54 @@ private fun LazyListScope.openListRows(
     selectedIds: Set<String>,
     callbacks: TaskRowCallbacks,
 ) {
-    items(rows, key = { it.task.id }) { row ->
+    // While enabled, render the live (preview) order so siblings part to show where the row will land.
+    val displayRows = if (reorder.enabled) reorder.liveIds.mapNotNull { reorder.rowById[it] } else rows
+    items(displayRows, key = { it.task.id }) { row ->
         val id = row.task.id
         val dragging = reorder.draggingId.value == id
+        // Read selection mode without a key on pointerInput, so entering selection mid-long-press
+        // (Tasks.org shows the bar immediately) does not tear down the running gesture.
+        val selMode by rememberUpdatedState(selectionMode)
         val dragModifier =
             if (reorder.enabled) {
                 Modifier
-                    .animateItem()
+                    // The dragged row must NOT animate its slot, so translationY can pin it to the finger;
+                    // the others animate to open a gap — the live preview.
+                    .then(if (dragging) Modifier else Modifier.animateItem())
                     .zIndex(if (dragging) 1f else 0f)
                     .graphicsLayer {
                         if (dragging) {
-                            // Row floats under the finger; the horizontal shift snaps to whole, legal indent
-                            // steps (Tasks.org onChildDraw) so it clicks between nesting levels. It settles on
-                            // release via animateItem once the data re-emits — no live sibling shuffle, which
-                            // is what made rows oscillate.
+                            // Horizontal snaps to whole, legal indent steps (Tasks.org onChildDraw); vertical
+                            // pins the row to the finger across live shuffles.
                             translationX = reorder.indentDelta() * reorder.stepPx
-                            translationY = reorder.dragOffset.value.y
+                            translationY = reorder.draggedTranslationY()
                             shadowElevation = 8f
                         }
-                    }.pointerInput(id, selectionMode) {
-                        // Whole-row long-press. Tasks.org disambiguates select vs drag by MOVEMENT (its
-                        // clearView: still in action mode == never moved -> toggle select; else commit drag).
-                        // We mirror that at release: no movement -> select; moved past slop -> drop the drag.
+                    }.pointerInput(id) {
+                        // Whole-row long-press. Tasks.org shows the selection immediately (onSelectedChanged ->
+                        // startActionMode); the first movement converts it to a drag (finishActionMode); on
+                        // release with no movement it stays selected (clearView -> toggle).
                         detectDragGesturesAfterLongPress(
-                            onDragStart = { offset -> if (!selectionMode) reorder.start(id, offset) },
+                            onDragStart = {
+                                if (!selMode) {
+                                    reorder.start(id)
+                                    callbacks.onEnterSelection(id)
+                                }
+                            },
                             onDrag = { change, amount ->
                                 change.consume()
                                 if (reorder.draggingId.value == id) reorder.dragBy(amount)
                             },
                             onDragEnd = {
                                 when {
+                                    // Moved -> commit drag (selection already cleared at slop); not moved ->
+                                    // the flashed selection simply stays.
                                     reorder.draggingId.value == id -> {
-                                        if (reorder.movedEnough()) reorder.drop() else callbacks.onEnterSelection(id)
+                                        if (reorder.movedEnough()) reorder.drop()
                                         reorder.clear()
                                     }
-                                    // In selection mode a drag never starts (numSelected>0 -> no move): the
-                                    // long-press just toggles this row, like Tasks.org's onLongPress.
-                                    selectionMode -> callbacks.onToggleSelection(id)
+                                    // Already selecting: no drag starts (numSelected>0 -> no move); toggle row.
+                                    selMode -> callbacks.onToggleSelection(id)
                                 }
                             },
                             onDragCancel = { if (reorder.draggingId.value == id) reorder.clear() },
