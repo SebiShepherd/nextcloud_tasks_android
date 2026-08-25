@@ -1327,14 +1327,22 @@ internal class ManualReorder(
     private fun updateLivePosition() {
         val id = draggingId.value ?: return
         val centerY = grabTop.value + itemSize.value / 2f + dragOffset.value.y
-        val targetKey =
+        val target =
             lazyListState.layoutInfo.visibleItemsInfo
                 .filter { it.key != id }
                 .firstOrNull { centerY >= it.offset && centerY <= it.offset + it.size }
-                ?.key as? String ?: return
+                ?: return
         val from = liveIds.indexOf(id)
-        val to = liveIds.indexOf(targetKey)
-        if (from >= 0 && to >= 0 && from != to) liveIds.add(to, liveIds.removeAt(from))
+        val to = (target.key as? String)?.let { liveIds.indexOf(it) } ?: -1
+        // ItemTouchHelper-style hysteresis: only swap once the finger centre has CROSSED the target
+        // row's midpoint. Swapping on first touch oscillated ("flicker") whenever neighbouring rows
+        // have different heights — after the swap the neighbour sat under the finger again.
+        val targetMid = target.offset + target.size / 2f
+        val crossed = if (to > from) centerY >= targetMid else centerY <= targetMid
+        val validMove = from >= 0 && to >= 0 && from != to
+        if (validMove && crossed) {
+            liveIds.add(to, liveIds.removeAt(from))
+        }
     }
 
     /**
