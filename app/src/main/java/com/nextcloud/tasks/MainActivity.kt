@@ -2563,6 +2563,7 @@ private fun SimpleAnimatedTaskCard(
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
     onLongPress: (() -> Unit)? = null,
+    dragGesture: Modifier = Modifier,
 ) {
     Column {
         // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
@@ -2581,7 +2582,9 @@ private fun SimpleAnimatedTaskCard(
                 )
                 Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
             }
-            Box(modifier = Modifier.weight(1f)) {
+            // Long-press drag lives here, INSIDE the swipe box: after the long-press it consumes the
+            // gesture (innermost wins the main pass) so swipe and reorder stop competing.
+            Box(modifier = Modifier.weight(1f).then(dragGesture)) {
                 TaskCard(
                     task = task,
                     isReadOnly = isReadOnly,
@@ -2790,6 +2793,7 @@ private fun TaskRowItem(
     isSelected: Boolean,
     callbacks: TaskRowCallbacks,
     modifier: Modifier = Modifier,
+    dragGesture: Modifier = Modifier,
     reorderable: Boolean = false,
 ) {
     val task = row.task
@@ -2805,6 +2809,7 @@ private fun TaskRowItem(
         modifier = modifier,
     ) {
         SimpleAnimatedTaskCard(
+            dragGesture = dragGesture,
             task = task,
             isReadOnly = taskIsReadOnly,
             depth = row.depth,
@@ -2845,11 +2850,11 @@ private fun LazyListScope.openListRows(
         // Read selection mode without a key on pointerInput, so entering selection mid-long-press
         // (Tasks.org shows the bar immediately) does not tear down the running gesture.
         val selMode by rememberUpdatedState(selectionMode)
-        val dragModifier =
+        // Visual (on the LazyColumn item root): the dragged row must NOT animate its slot so translationY
+        // can pin it to the finger; the others animate to open a gap — the live preview.
+        val visualModifier =
             if (reorder.enabled) {
                 Modifier
-                    // The dragged row must NOT animate its slot, so translationY can pin it to the finger;
-                    // the others animate to open a gap — the live preview.
                     .then(if (dragging) Modifier else Modifier.animateItem())
                     .zIndex(if (dragging) 1f else 0f)
                     .graphicsLayer {
@@ -2860,38 +2865,41 @@ private fun LazyListScope.openListRows(
                             translationY = reorder.draggedTranslationY()
                             shadowElevation = 8f
                         }
-                    }.pointerInput(id) {
-                        // Whole-row long-press. Tasks.org shows the selection immediately (onSelectedChanged ->
-                        // startActionMode); the first movement converts it to a drag (finishActionMode); on
-                        // release with no movement it stays selected (clearView -> toggle).
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = {
-                                if (!selMode) {
-                                    reorder.start(id)
-                                    callbacks.onEnterSelection(id)
-                                }
-                            },
-                            onDrag = { change, amount ->
-                                change.consume()
-                                if (reorder.draggingId.value == id) reorder.dragBy(amount)
-                            },
-                            onDragEnd = {
-                                when {
-                                    // Moved -> commit drag (selection already cleared at slop); not moved ->
-                                    // the flashed selection simply stays.
-                                    reorder.draggingId.value == id -> {
-                                        if (reorder.movedEnough()) reorder.drop()
-                                        reorder.clear()
-                                    }
-                                    // Already selecting: no drag starts (numSelected>0 -> no move); toggle row.
-                                    selMode -> callbacks.onToggleSelection(id)
-                                }
-                            },
-                            onDragCancel = { if (reorder.draggingId.value == id) reorder.clear() },
-                        )
                     }
             } else {
                 Modifier.animateItem()
+            }
+        // Gesture (on the card, inside the swipe box, so it out-competes swipe only after the long-press).
+        // Tasks.org shows the selection immediately (onSelectedChanged -> startActionMode); the first
+        // movement converts it to a drag (finishActionMode); release with no movement stays selected.
+        val gestureModifier =
+            if (reorder.enabled) {
+                Modifier.pointerInput(id) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = {
+                            if (!selMode) {
+                                reorder.start(id)
+                                callbacks.onEnterSelection(id)
+                            }
+                        },
+                        onDrag = { change, amount ->
+                            change.consume()
+                            if (reorder.draggingId.value == id) reorder.dragBy(amount)
+                        },
+                        onDragEnd = {
+                            when {
+                                reorder.draggingId.value == id -> {
+                                    if (reorder.movedEnough()) reorder.drop()
+                                    reorder.clear()
+                                }
+                                selMode -> callbacks.onToggleSelection(id)
+                            }
+                        },
+                        onDragCancel = { if (reorder.draggingId.value == id) reorder.clear() },
+                    )
+                }
+            } else {
+                Modifier
             }
         TaskRowItem(
             row = row,
@@ -2899,7 +2907,8 @@ private fun LazyListScope.openListRows(
             selectionMode = selectionMode,
             isSelected = id in selectedIds,
             callbacks = callbacks,
-            modifier = dragModifier,
+            modifier = visualModifier,
+            dragGesture = gestureModifier,
             reorderable = reorder.enabled,
         )
     }
