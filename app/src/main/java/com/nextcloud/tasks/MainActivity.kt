@@ -2582,7 +2582,6 @@ private fun SimpleAnimatedTaskCard(
     onOpenTask: () -> Unit = {},
     onLongPress: (() -> Unit)? = null,
     dragGesture: Modifier = Modifier,
-    railVisible: Boolean = true,
 ) {
     Column {
         // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
@@ -2597,15 +2596,7 @@ private fun SimpleAnimatedTaskCard(
                         Modifier
                             .width(2.dp)
                             .fillMaxHeight()
-                            // Invisible (not gone) during a swipe so the line doesn't slide across the
-                            // coloured action background; keeping the width avoids a layout jump.
-                            .background(
-                                if (railVisible) {
-                                    MaterialTheme.colorScheme.outlineVariant
-                                } else {
-                                    androidx.compose.ui.graphics.Color.Transparent
-                                },
-                            ),
+                            .background(MaterialTheme.colorScheme.outlineVariant),
                 )
                 Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
             }
@@ -2835,13 +2826,20 @@ private fun TaskRowItem(
         enabled = !taskIsReadOnly && !selectionMode,
         hasChildren = row.hasChildren,
         bottomInset = if (row.depth > 0) 8.dp else 12.dp,
+        // Start the action colour at the card's left edge (rail metrics of SimpleAnimatedTaskCard),
+        // so on nested rows it never crosses the rail line or lingers left of the card on settle.
+        startInset =
+            when {
+                row.depth <= 0 -> 0.dp
+                row.depth == 1 -> 27.dp
+                else -> (23 + (row.depth - 1) * 16).dp
+            },
         onComplete = { callbacks.onToggleTaskComplete(task) },
         onDelete = { hasChildren -> callbacks.onSwipeDelete(task, hasChildren) },
         modifier = modifier,
-    ) { swiping ->
+    ) {
         SimpleAnimatedTaskCard(
             dragGesture = dragGesture,
-            railVisible = !swiping,
             task = task,
             isReadOnly = taskIsReadOnly,
             depth = row.depth,
@@ -2961,10 +2959,11 @@ private fun SwipeableTaskRow(
     enabled: Boolean,
     hasChildren: Boolean,
     bottomInset: androidx.compose.ui.unit.Dp,
+    startInset: androidx.compose.ui.unit.Dp,
     onComplete: () -> Unit,
     onDelete: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable (swiping: Boolean) -> Unit,
+    content: @Composable () -> Unit,
 ) {
     // Always snap back (return false): the action drives removal itself — complete moves the row to
     // the done section, delete hides it via the pending set — and the LazyColumn animates it out with
@@ -2993,10 +2992,8 @@ private fun SwipeableTaskRow(
         // dismissDirection follows the drag offset immediately, so the colour + icon reveal as the
         // row moves (targetValue only flips past the settle threshold, leaving a blank gap on a
         // partial swipe).
-        backgroundContent = { SwipeActionBackground(state.dismissDirection, bottomInset) },
-        // While the row is displaced the sub-task rail line would slide across the coloured
-        // action background — the content hides it for the duration of the swipe.
-        content = { content(state.dismissDirection != SwipeToDismissBoxValue.Settled) },
+        backgroundContent = { SwipeActionBackground(state.dismissDirection, bottomInset, startInset) },
+        content = { content() },
     )
 }
 
@@ -3004,6 +3001,7 @@ private fun SwipeableTaskRow(
 private fun SwipeActionBackground(
     direction: SwipeToDismissBoxValue,
     bottomInset: androidx.compose.ui.unit.Dp,
+    startInset: androidx.compose.ui.unit.Dp,
 ) {
     val completing = direction == SwipeToDismissBoxValue.StartToEnd
     val color =
@@ -3016,9 +3014,11 @@ private fun SwipeActionBackground(
     Box(
         modifier =
             Modifier
-                // Exclude the row's bottom gap so the coloured pill matches the card height exactly.
+                // The background is what the swiped card EXPOSES (M3 semantics), so it covers exactly
+                // the card's footprint: exclude the row's bottom gap and, on nested rows, the indent
+                // rail on the left — the colour never crosses the rail line or lingers there on settle.
                 .fillMaxSize()
-                .padding(bottom = bottomInset)
+                .padding(start = startInset, bottom = bottomInset)
                 .clip(MaterialTheme.shapes.medium)
                 .background(color)
                 .padding(horizontal = 20.dp),
