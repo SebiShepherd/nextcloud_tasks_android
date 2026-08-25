@@ -2929,10 +2929,6 @@ private fun SwipeableTaskRow(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    if (!enabled) {
-        Box(modifier = modifier) { content() }
-        return
-    }
     // Always snap back (return false): the action drives removal itself — complete moves the row to
     // the done section, delete hides it via the pending set — and the LazyColumn animates it out with
     // animateItem(). Returning true would leave the box in a dismissed state showing its coloured
@@ -2949,9 +2945,14 @@ private fun SwipeableTaskRow(
                 false
             },
         )
+    // The box stays mounted even when swipe is off (only the gesture is disabled via the flags). Swapping
+    // to a plain Box when [enabled] flips — e.g. the moment a long-press enters selection mode — would
+    // rebuild this subtree and cancel an in-flight reorder drag.
     SwipeToDismissBox(
         state = state,
         modifier = modifier,
+        enableDismissFromStartToEnd = enabled,
+        enableDismissFromEndToStart = enabled,
         // dismissDirection follows the drag offset immediately, so the colour + icon reveal as the
         // row moves (targetValue only flips past the settle threshold, leaving a blank gap on a
         // partial swipe).
