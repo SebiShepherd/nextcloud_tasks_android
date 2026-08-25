@@ -2558,73 +2558,6 @@ private fun AccountItem(
     }
 }
 
-/**
- * A task row: sub-task indent rail + [TaskCard] + bottom spacing. Add/remove/move is animated by the
- * enclosing LazyColumn via Modifier.animateItem() — this composable must NOT run its own size
- * animation, because collapsing to height 0 inside a SwipeToDismissBox makes the swipe anchors settle
- * and fire a spurious dismiss (was double-firing delete on a plain checkbox tap).
- */
-@Suppress("LongParameterList")
-@Composable
-private fun SimpleAnimatedTaskCard(
-    task: Task,
-    isReadOnly: Boolean = false,
-    depth: Int = 0,
-    hasChildren: Boolean = false,
-    subtaskDone: Int = 0,
-    subtaskTotal: Int = 0,
-    isCollapsed: Boolean = false,
-    isStarred: Boolean = false,
-    isSelected: Boolean = false,
-    onToggleComplete: () -> Unit,
-    onToggleCollapsed: () -> Unit = {},
-    onToggleFavorite: () -> Unit = {},
-    onOpenTask: () -> Unit = {},
-    onLongPress: (() -> Unit)? = null,
-    dragGesture: Modifier = Modifier,
-) {
-    Column {
-        // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
-        // level (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp, then +16 dp each deeper level).
-        Row(
-            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        ) {
-            if (depth > 0) {
-                Spacer(modifier = Modifier.width((9 + (depth - 1) * 16).dp))
-                Box(
-                    modifier =
-                        Modifier
-                            .width(2.dp)
-                            .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.outlineVariant),
-                )
-                Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
-            }
-            // Long-press drag lives here, INSIDE the swipe box: after the long-press it consumes the
-            // gesture (innermost wins the main pass) so swipe and reorder stop competing.
-            Box(modifier = Modifier.weight(1f).then(dragGesture)) {
-                TaskCard(
-                    task = task,
-                    isReadOnly = isReadOnly,
-                    depth = depth,
-                    hasChildren = hasChildren,
-                    subtaskDone = subtaskDone,
-                    subtaskTotal = subtaskTotal,
-                    isCollapsed = isCollapsed,
-                    isStarred = isStarred,
-                    isSelected = isSelected,
-                    onToggleComplete = onToggleComplete,
-                    onToggleCollapsed = onToggleCollapsed,
-                    onToggleFavorite = onToggleFavorite,
-                    onOpenTask = onOpenTask,
-                    onLongPress = onLongPress,
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(if (depth > 0) 8.dp else 12.dp))
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
@@ -2820,45 +2753,65 @@ private fun TaskRowItem(
 ) {
     val task = row.task
     val taskIsReadOnly = taskListMap[task.listId]?.shareAccess == ShareAccess.READ
-    SwipeableTaskRow(
-        // Swipe (immediate horizontal drag) and reorder (post-long-press drag) coexist: a quick swipe
-        // fires before the long-press timeout, a hold starts the drag. Only disabled in selection mode.
-        enabled = !taskIsReadOnly && !selectionMode,
-        hasChildren = row.hasChildren,
-        bottomInset = if (row.depth > 0) 8.dp else 12.dp,
-        // Start the action colour at the card's left edge (rail metrics of SimpleAnimatedTaskCard),
-        // so on nested rows it never crosses the rail line or lingers left of the card on settle.
-        startInset =
-            when {
-                row.depth <= 0 -> 0.dp
-                row.depth == 1 -> 27.dp
-                else -> (23 + (row.depth - 1) * 16).dp
-            },
-        onComplete = { callbacks.onToggleTaskComplete(task) },
-        onDelete = { hasChildren -> callbacks.onSwipeDelete(task, hasChildren) },
-        modifier = modifier,
-    ) {
-        SimpleAnimatedTaskCard(
-            dragGesture = dragGesture,
-            task = task,
-            isReadOnly = taskIsReadOnly,
-            depth = row.depth,
-            hasChildren = row.hasChildren,
-            subtaskDone = row.subtaskDone,
-            subtaskTotal = row.subtaskTotal,
-            isCollapsed = row.isCollapsed,
-            isStarred = task.isStarred,
-            isSelected = isSelected,
-            onToggleComplete = { callbacks.onToggleTaskComplete(task) },
-            onToggleFavorite = { callbacks.onToggleFavorite(task) },
-            onToggleCollapsed = { task.uid?.let(callbacks.onToggleTaskCollapsed) },
-            onOpenTask = {
-                if (selectionMode) callbacks.onToggleSelection(task.id) else callbacks.onOpenTask(task.id)
-            },
-            // When draggable the long-press must reach the drag gesture, so the card registers no
-            // long-click of its own (null) — otherwise it would consume the press.
-            onLongPress = if (reorderable) null else ({ callbacks.onEnterSelection(task.id) }),
-        )
+    Column(modifier = modifier) {
+        // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
+        // level (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp, then +16 dp each deeper level).
+        // The rail sits OUTSIDE the swipe box: it is structural chrome, so only the card swipes and
+        // the line stays put — it never slides across the action colour.
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            if (row.depth > 0) {
+                Spacer(modifier = Modifier.width((9 + (row.depth - 1) * 16).dp))
+                Box(
+                    modifier =
+                        Modifier
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.outlineVariant),
+                )
+                Spacer(modifier = Modifier.width(if (row.depth == 1) 16.dp else 12.dp))
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                SwipeableTaskRow(
+                    // Swipe (immediate horizontal drag) and reorder (post-long-press drag) coexist: a
+                    // quick swipe fires before the long-press timeout, a hold starts the drag. Only
+                    // disabled in selection mode.
+                    enabled = !taskIsReadOnly && !selectionMode,
+                    hasChildren = row.hasChildren,
+                    onComplete = { callbacks.onToggleTaskComplete(task) },
+                    onDelete = { hasChildren -> callbacks.onSwipeDelete(task, hasChildren) },
+                ) {
+                    // Long-press drag lives here, INSIDE the swipe box: after the long-press it consumes
+                    // the gesture (innermost wins the main pass) so swipe and reorder stop competing.
+                    Box(modifier = dragGesture) {
+                        TaskCard(
+                            task = task,
+                            isReadOnly = taskIsReadOnly,
+                            depth = row.depth,
+                            hasChildren = row.hasChildren,
+                            subtaskDone = row.subtaskDone,
+                            subtaskTotal = row.subtaskTotal,
+                            isCollapsed = row.isCollapsed,
+                            isStarred = task.isStarred,
+                            isSelected = isSelected,
+                            onToggleComplete = { callbacks.onToggleTaskComplete(task) },
+                            onToggleFavorite = { callbacks.onToggleFavorite(task) },
+                            onToggleCollapsed = { task.uid?.let(callbacks.onToggleTaskCollapsed) },
+                            onOpenTask = {
+                                if (selectionMode) {
+                                    callbacks.onToggleSelection(task.id)
+                                } else {
+                                    callbacks.onOpenTask(task.id)
+                                }
+                            },
+                            // When draggable the long-press must reach the drag gesture, so the card
+                            // registers no long-click of its own (null) — otherwise it would consume it.
+                            onLongPress = if (reorderable) null else ({ callbacks.onEnterSelection(task.id) }),
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(if (row.depth > 0) 8.dp else 12.dp))
     }
 }
 
@@ -2950,16 +2903,16 @@ private fun LazyListScope.openListRows(
 }
 
 /**
- * Wraps a task row so swiping right completes it and swiping left deletes it. The gesture fires the
- * action and snaps back (returns false from confirmValueChange) — the action removes the row itself,
- * which keeps the swipe reusable if an undo brings the row back. Disabled on read-only lists.
+ * Wraps just the task CARD so swiping right completes it and swiping left deletes it. The gesture
+ * fires the action and snaps back (returns false from confirmValueChange) — the action removes the
+ * row itself, which keeps the swipe reusable if an undo brings the row back. The content must not
+ * run its own size animation: collapsing to height 0 inside a SwipeToDismissBox makes the swipe
+ * anchors settle and fire a spurious dismiss (was double-firing delete on a plain checkbox tap).
  */
 @Composable
 private fun SwipeableTaskRow(
     enabled: Boolean,
     hasChildren: Boolean,
-    bottomInset: androidx.compose.ui.unit.Dp,
-    startInset: androidx.compose.ui.unit.Dp,
     onComplete: () -> Unit,
     onDelete: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -2992,17 +2945,13 @@ private fun SwipeableTaskRow(
         // dismissDirection follows the drag offset immediately, so the colour + icon reveal as the
         // row moves (targetValue only flips past the settle threshold, leaving a blank gap on a
         // partial swipe).
-        backgroundContent = { SwipeActionBackground(state.dismissDirection, bottomInset, startInset) },
+        backgroundContent = { SwipeActionBackground(state.dismissDirection) },
         content = { content() },
     )
 }
 
 @Composable
-private fun SwipeActionBackground(
-    direction: SwipeToDismissBoxValue,
-    bottomInset: androidx.compose.ui.unit.Dp,
-    startInset: androidx.compose.ui.unit.Dp,
-) {
+private fun SwipeActionBackground(direction: SwipeToDismissBoxValue) {
     val completing = direction == SwipeToDismissBoxValue.StartToEnd
     val color =
         when (direction) {
@@ -3014,11 +2963,9 @@ private fun SwipeActionBackground(
     Box(
         modifier =
             Modifier
-                // The background is what the swiped card EXPOSES (M3 semantics), so it covers exactly
-                // the card's footprint: exclude the row's bottom gap and, on nested rows, the indent
-                // rail on the left — the colour never crosses the rail line or lingers there on settle.
+                // The swipe box wraps exactly the card (rail + bottom gap live outside it), so the
+                // colour covers precisely what the swiped card exposes — no insets needed.
                 .fillMaxSize()
-                .padding(start = startInset, bottom = bottomInset)
                 .clip(MaterialTheme.shapes.medium)
                 .background(color)
                 .padding(horizontal = 20.dp),
