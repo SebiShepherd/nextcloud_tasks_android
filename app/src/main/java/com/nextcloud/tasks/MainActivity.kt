@@ -2875,9 +2875,10 @@ private fun LazyListScope.openListRows(
                     .zIndex(if (dragging) 1f else 0f)
                     .graphicsLayer {
                         if (dragging) {
-                            // Vertical pins the row to the finger across live shuffles.
+                            // Vertical pins the row to the finger across live shuffles. No shadow here:
+                            // the item's bounds include the transparent bottom spacer below the card, so
+                            // a layer shadow paints offset under the row with a visible gap.
                             translationY = reorder.draggedTranslationY()
-                            shadowElevation = 8f
                         }
                     }
             } else {
