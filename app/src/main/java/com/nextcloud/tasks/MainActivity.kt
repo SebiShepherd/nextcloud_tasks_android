@@ -2582,6 +2582,7 @@ private fun SimpleAnimatedTaskCard(
     onOpenTask: () -> Unit = {},
     onLongPress: (() -> Unit)? = null,
     dragGesture: Modifier = Modifier,
+    railVisible: Boolean = true,
 ) {
     Column {
         // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
@@ -2596,7 +2597,15 @@ private fun SimpleAnimatedTaskCard(
                         Modifier
                             .width(2.dp)
                             .fillMaxHeight()
-                            .background(MaterialTheme.colorScheme.outlineVariant),
+                            // Invisible (not gone) during a swipe so the line doesn't slide across the
+                            // coloured action background; keeping the width avoids a layout jump.
+                            .background(
+                                if (railVisible) {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                } else {
+                                    androidx.compose.ui.graphics.Color.Transparent
+                                },
+                            ),
                 )
                 Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
             }
@@ -2674,11 +2683,15 @@ private fun TaskCard(
         border = androidx.compose.foundation.BorderStroke(if (isSelected) 2.dp else 1.dp, borderColor),
         shape = MaterialTheme.shapes.medium,
         // Long-press enters selection mode; a tap opens the task or toggles selection (decided by caller).
+        // clip BEFORE the clickable so the press ripple is rounded like the card — unclipped it painted
+        // square corners peeking out as little crescents.
         modifier =
-            Modifier.combinedClickable(
-                onClick = onOpenTask,
-                onLongClick = onLongPress,
-            ),
+            Modifier
+                .clip(MaterialTheme.shapes.medium)
+                .combinedClickable(
+                    onClick = onOpenTask,
+                    onLongClick = onLongPress,
+                ),
     ) {
         Row(
             modifier = Modifier.padding(if (isChild) 10.dp else 12.dp).fillMaxWidth(),
@@ -2825,9 +2838,10 @@ private fun TaskRowItem(
         onComplete = { callbacks.onToggleTaskComplete(task) },
         onDelete = { hasChildren -> callbacks.onSwipeDelete(task, hasChildren) },
         modifier = modifier,
-    ) {
+    ) { swiping ->
         SimpleAnimatedTaskCard(
             dragGesture = dragGesture,
+            railVisible = !swiping,
             task = task,
             isReadOnly = taskIsReadOnly,
             depth = row.depth,
@@ -2950,7 +2964,7 @@ private fun SwipeableTaskRow(
     onComplete: () -> Unit,
     onDelete: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    content: @Composable (swiping: Boolean) -> Unit,
 ) {
     // Always snap back (return false): the action drives removal itself — complete moves the row to
     // the done section, delete hides it via the pending set — and the LazyColumn animates it out with
@@ -2980,7 +2994,9 @@ private fun SwipeableTaskRow(
         // row moves (targetValue only flips past the settle threshold, leaving a blank gap on a
         // partial swipe).
         backgroundContent = { SwipeActionBackground(state.dismissDirection, bottomInset) },
-        content = { content() },
+        // While the row is displaced the sub-task rail line would slide across the coloured
+        // action background — the content hides it for the duration of the swipe.
+        content = { content(state.dismissDirection != SwipeToDismissBoxValue.Settled) },
     )
 }
 
