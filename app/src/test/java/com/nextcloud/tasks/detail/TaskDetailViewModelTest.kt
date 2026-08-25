@@ -40,6 +40,7 @@ class TaskDetailViewModelTest {
             coEvery { getTask(taskId) } returns task
             every { observeTags() } returns flowOf(emptyList())
             every { observeLists() } returns flowOf(emptyList())
+            every { observeTasks() } returns flowOf(emptyList())
             coEvery { updateTask(any()) } returns task
         }
 
@@ -80,5 +81,27 @@ class TaskDetailViewModelTest {
             vm.saveDescriptionNow("edited note")
 
             coVerify(exactly = 1) { repository.updateTask(any()) }
+        }
+
+    @Test
+    fun `addSubtask creates a task in the same list`() =
+        runTest {
+            val repository = repo()
+            val vm = viewModel(repository)
+
+            vm.addSubtask("child")
+
+            coVerify(exactly = 1) { repository.createTask(match { it.title == "child" && it.listId == "l1" }) }
+        }
+
+    @Test
+    fun `addSubtask ignores a blank title`() =
+        runTest {
+            val repository = repo()
+            val vm = viewModel(repository)
+
+            vm.addSubtask("   ")
+
+            coVerify(exactly = 0) { repository.createTask(any()) }
         }
 }

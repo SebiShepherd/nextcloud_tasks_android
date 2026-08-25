@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Aucun résultat trouvé</string>
     <string name="no_search_results_hint">Essayez de modifier votre recherche.</string>
     <string name="sort_dialog_title">Trier par</string>
+    <string name="sort_by_manual">Mon ordre</string>
     <string name="sort_by_due_date">Date d\'échéance</string>
     <string name="sort_by_priority">Priorité</string>
     <string name="sort_by_title">Titre</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">Tâche parente</string>
     <string name="parent_none">Aucune</string>
     <string name="pick_due_date">Date d’échéance</string>
+    <string name="task_deleted">Tâche supprimée</string>
+    <string name="action_undo">Annuler</string>
+    <string name="delete_subtasks_title">Supprimer la tâche avec ses sous-tâches ?</string>
+    <string name="delete_subtasks_message">Cette tâche a des sous-tâches. Que faut-il en faire ?</string>
+    <string name="delete_subtasks_all">Tout supprimer</string>
+    <string name="delete_subtasks_keep">Conserver les sous-tâches</string>
+    <string name="swipe_complete">Terminé</string>
+    <!-- Selection mode -->
+    <string name="selection_count">%1$d sélectionnée(s)</string>
+    <string name="select_all">Tout sélectionner</string>
+    <string name="selection_detach">Détacher de la tâche parente</string>
+    <string name="mark_complete">Marquer comme terminée</string>
+    <string name="more_options">Plus d’options</string>
+    <string name="add_subtask">Ajouter une sous-tâche</string>
+    <string name="move_to_list">Déplacer vers la liste</string>
+    <string name="task_detail_parent_label">Tâche parente</string>
+    <string name="reorder_handle">Réordonner</string>
+    <string name="settings_per_list_sort">Mémoriser le tri par liste</string>
+    <string name="settings_per_list_sort_summary">Chaque liste garde son propre tri au lieu d’un tri global</string>
 </resources>

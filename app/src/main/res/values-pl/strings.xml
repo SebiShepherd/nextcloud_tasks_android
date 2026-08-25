@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Nie znaleziono wyników</string>
     <string name="no_search_results_hint">Spróbuj zmienić zapytanie wyszukiwania.</string>
     <string name="sort_dialog_title">Sortuj według</string>
+    <string name="sort_by_manual">Moja kolejność</string>
     <string name="sort_by_due_date">Termin</string>
     <string name="sort_by_priority">Priorytet</string>
     <string name="sort_by_title">Tytuł</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">Zadanie nadrzędne</string>
     <string name="parent_none">Brak</string>
     <string name="pick_due_date">Termin</string>
+    <string name="task_deleted">Usunięto zadanie</string>
+    <string name="action_undo">Cofnij</string>
+    <string name="delete_subtasks_title">Usunąć zadanie z podzadaniami?</string>
+    <string name="delete_subtasks_message">To zadanie ma podzadania. Co z nimi zrobić?</string>
+    <string name="delete_subtasks_all">Usuń wszystko</string>
+    <string name="delete_subtasks_keep">Zachowaj podzadania</string>
+    <string name="swipe_complete">Gotowe</string>
+    <!-- Selection mode -->
+    <string name="selection_count">Zaznaczono: %1$d</string>
+    <string name="select_all">Zaznacz wszystko</string>
+    <string name="selection_detach">Odłącz od zadania nadrzędnego</string>
+    <string name="mark_complete">Oznacz jako ukończone</string>
+    <string name="more_options">Więcej opcji</string>
+    <string name="add_subtask">Dodaj podzadanie</string>
+    <string name="move_to_list">Przenieś do listy</string>
+    <string name="task_detail_parent_label">Zadanie nadrzędne</string>
+    <string name="reorder_handle">Zmień kolejność</string>
+    <string name="settings_per_list_sort">Zapamiętaj sortowanie dla każdej listy</string>
+    <string name="settings_per_list_sort_summary">Każda lista zachowuje własne sortowanie zamiast jednego globalnego</string>
 </resources>

@@ -1,4 +1,4 @@
-@file:Suppress("TooManyFunctions")
+@file:Suppress("TooManyFunctions", "ImportOrdering")
 
 package com.nextcloud.tasks
 
@@ -10,14 +10,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,7 +39,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,12 +51,16 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.LinkOff
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notes
@@ -98,9 +101,13 @@ import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -109,25 +116,33 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -136,6 +151,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.compose.NavHost
@@ -167,10 +183,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -238,8 +257,9 @@ fun NextcloudTasksApp(
     val hasPendingChanges by taskListViewModel.hasPendingChanges.collectAsState()
     val refreshError by taskListViewModel.refreshError.collectAsState()
     val refreshErrorDetail by taskListViewModel.refreshErrorDetail.collectAsState()
-    val animatingEntryTaskIds by taskListViewModel.animatingEntryTaskIds.collectAsState()
     val collapsedIds by taskListViewModel.collapsedIds.collectAsState()
+    val selectionMode by taskListViewModel.selectionMode.collectAsState()
+    val selectedIds by taskListViewModel.selectedIds.collectAsState()
     val createListError by taskListViewModel.createListError.collectAsState()
     val editListError by taskListViewModel.editListError.collectAsState()
     val deleteListError by taskListViewModel.deleteListError.collectAsState()
@@ -312,8 +332,20 @@ fun NextcloudTasksApp(
             searchQuery = searchQuery,
             isOnline = isOnline,
             hasPendingChanges = hasPendingChanges,
-            animatingEntryTaskIds = animatingEntryTaskIds,
             collapsedIds = collapsedIds,
+            selectionMode = selectionMode,
+            selectedIds = selectedIds,
+            onEnterSelection = taskListViewModel::enterSelection,
+            onToggleSelection = taskListViewModel::toggleSelection,
+            onClearSelection = taskListViewModel::clearSelection,
+            onSelectAll = taskListViewModel::selectAll,
+            onCompleteSelected = taskListViewModel::completeSelected,
+            onDetachSelected = taskListViewModel::detachSelected,
+            onMoveSelectedToList = taskListViewModel::moveSelectedToList,
+            onStageDeleteSelected = taskListViewModel::stageDeleteSelected,
+            onReorderTasks = taskListViewModel::reorderTasks,
+            onReparentTask = taskListViewModel::reparentTask,
+            anySelectedIsChild = taskListViewModel::anySelectedIsChild,
             showCreateDialog = showCreateDialog,
             isExpandedScreen = isExpandedScreen,
             onLogout = loginFlowViewModel::onLogout,
@@ -329,11 +361,12 @@ fun NextcloudTasksApp(
                 taskListViewModel.createTask(input)
                 showCreateDialog = false
             },
-            onToggleTaskComplete = taskListViewModel::toggleTaskComplete,
             onToggleFavorite = taskListViewModel::toggleFavorite,
             onToggleTaskCollapsed = taskListViewModel::toggleCollapsed,
-            onDeleteTask = taskListViewModel::deleteTask,
-            onClearAnimatingEntryTaskId = taskListViewModel::clearAnimatingEntryTaskId,
+            onApplyCompletion = taskListViewModel::applyCompletion,
+            onStageDelete = taskListViewModel::stageDelete,
+            onUndoDelete = taskListViewModel::undoDelete,
+            onCommitDelete = taskListViewModel::commitDelete,
             onAddAccount = { forceShowLogin = true },
             onOpenSettings = { showSettings = true },
             refreshError = refreshError,
@@ -400,8 +433,20 @@ fun AuthenticatedHome(
     searchQuery: String,
     isOnline: Boolean,
     hasPendingChanges: Boolean,
-    animatingEntryTaskIds: Set<String>,
     collapsedIds: Set<String>,
+    selectionMode: Boolean,
+    selectedIds: Set<String>,
+    onEnterSelection: (String) -> Unit,
+    onToggleSelection: (String) -> Unit,
+    onClearSelection: () -> Unit,
+    onSelectAll: (Collection<String>) -> Unit,
+    onCompleteSelected: () -> Unit,
+    onDetachSelected: () -> Unit,
+    onMoveSelectedToList: (String) -> Unit,
+    onStageDeleteSelected: () -> Deletion,
+    onReorderTasks: (List<Pair<String, String?>>) -> Unit,
+    onReparentTask: (String, String?) -> Unit,
+    anySelectedIsChild: () -> Boolean,
     showCreateDialog: Boolean,
     isExpandedScreen: Boolean = false,
     onLogout: (String) -> Unit,
@@ -414,11 +459,12 @@ fun AuthenticatedHome(
     onShowCreateDialog: () -> Unit,
     onDismissCreateDialog: () -> Unit,
     onCreateTask: (NewTaskInput) -> Unit,
-    onToggleTaskComplete: (Task) -> Unit,
     onToggleFavorite: (Task) -> Unit,
     onToggleTaskCollapsed: (String) -> Unit,
-    onDeleteTask: (String) -> Unit,
-    onClearAnimatingEntryTaskId: (String) -> Unit,
+    onApplyCompletion: (Task) -> Unit,
+    onStageDelete: (Task, Boolean) -> Deletion,
+    onUndoDelete: (Deletion) -> Unit,
+    onCommitDelete: (Deletion) -> Unit,
     onAddAccount: () -> Unit,
     onOpenSettings: () -> Unit,
     refreshError: RefreshError? = null,
@@ -482,6 +528,38 @@ fun AuthenticatedHome(
     EditListErrorEffect(editListError, snackbarHostState, onClearEditListError)
     DeleteListErrorEffect(deleteListError, snackbarHostState, onClearDeleteListError)
 
+    // Swipe actions: complete/delete with an undo snackbar. Deleting a task that has sub-tasks
+    // first asks whether to delete the whole subtree or free the children.
+    val undoLabel = stringResource(R.string.action_undo)
+    val deletedMsg = stringResource(R.string.task_deleted)
+    var deleteDialogTask by remember { mutableStateOf<Task?>(null) }
+    var subtaskParent by remember { mutableStateOf<Task?>(null) }
+
+    val performDelete: (Task, Boolean) -> Unit = { task, keepChildren ->
+        val deletion = onStageDelete(task, keepChildren)
+        scope.launch {
+            val result = snackbarHostState.showSnackbar(deletedMsg, undoLabel, duration = SnackbarDuration.Short)
+            if (result == SnackbarResult.ActionPerformed) onUndoDelete(deletion) else onCommitDelete(deletion)
+        }
+    }
+    val onSwipeDelete: (Task, Boolean) -> Unit = { task, hasChildren ->
+        if (hasChildren) deleteDialogTask = task else performDelete(task, false)
+    }
+    // Bulk delete from selection mode: no per-task dialog (children are freed automatically), one undo.
+    val performBulkDelete: () -> Unit = {
+        val deletion = onStageDeleteSelected()
+        if (deletion.deleteIds.isNotEmpty()) {
+            scope.launch {
+                val result = snackbarHostState.showSnackbar(deletedMsg, undoLabel, duration = SnackbarDuration.Short)
+                if (result == SnackbarResult.ActionPerformed) onUndoDelete(deletion) else onCommitDelete(deletion)
+            }
+        }
+    }
+    BackHandler(enabled = selectionMode) { onClearSelection() }
+    // Unified completion for both the checkbox and the swipe: mark done/reopen (cascading).
+    // No snackbar — re-tapping the checkbox already undoes it, so a toast would just be noise.
+    val completeWithUndo: (Task) -> Unit = { task -> onApplyCompletion(task) }
+
     // Share errors and success are shown in the bottom sheet only (no duplicate snackbar)
 
     // Determine if selected list is read-only
@@ -514,17 +592,37 @@ fun AuthenticatedHome(
                     },
                 ) { padding ->
                     Column(modifier = Modifier.padding(padding)) {
-                        UnifiedSearchBar(
-                            state = state,
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = onSetSearchQuery,
-                            onOpenDrawer = if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
-                            onSwitchAccount = onSwitchAccount,
-                            onLogout = onLogout,
-                            taskSort = taskSort,
-                            onSetSort = onSetSort,
-                            onAddAccount = onAddAccount,
-                        )
+                        if (selectionMode) {
+                            SelectionTopBar(
+                                count = selectedIds.size,
+                                canDetach = anySelectedIsChild(),
+                                canAddSubtask = selectedIds.size == 1,
+                                lists = taskLists.filter { it.shareAccess != ShareAccess.READ },
+                                onExit = onClearSelection,
+                                onComplete = onCompleteSelected,
+                                onAddSubtask = {
+                                    subtaskParent = tasks.firstOrNull { it.id in selectedIds }
+                                    onClearSelection()
+                                },
+                                onMove = onMoveSelectedToList,
+                                onSelectAll = { onSelectAll(tasks.map { it.id }) },
+                                onDetach = onDetachSelected,
+                                onDelete = performBulkDelete,
+                            )
+                        } else {
+                            UnifiedSearchBar(
+                                state = state,
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = onSetSearchQuery,
+                                onOpenDrawer =
+                                    if (isExpandedScreen) null else ({ scope.launch { drawerState.open() } }),
+                                onSwitchAccount = onSwitchAccount,
+                                onLogout = onLogout,
+                                taskSort = taskSort,
+                                onSetSort = onSetSort,
+                                onAddAccount = onAddAccount,
+                            )
+                        }
 
                         PullToRefreshBox(
                             isRefreshing = isRefreshing,
@@ -540,14 +638,20 @@ fun AuthenticatedHome(
                                 taskSort = taskSort,
                                 searchQuery = searchQuery,
                                 isOnline = isOnline,
-                                animatingEntryTaskIds = animatingEntryTaskIds,
                                 collapsedIds = collapsedIds,
+                                selectionMode = selectionMode,
+                                selectedIds = selectedIds,
+                                onEnterSelection = onEnterSelection,
+                                onToggleSelection = onToggleSelection,
+                                onClearSelectionForDrag = onClearSelection,
+                                onReorder = onReorderTasks,
+                                onReparent = onReparentTask,
                                 isExpandedScreen = isExpandedScreen,
                                 onSetFilter = onSetFilter,
                                 onSetSort = onSetSort,
                                 onToggleTaskComplete = { task ->
                                     if (!isReadOnly) {
-                                        onToggleTaskComplete(task)
+                                        completeWithUndo(task)
                                         if (!isOnline) {
                                             showOfflineSnackbar = true
                                         }
@@ -562,15 +666,7 @@ fun AuthenticatedHome(
                                     }
                                 },
                                 onToggleTaskCollapsed = onToggleTaskCollapsed,
-                                onDeleteTask = { taskId ->
-                                    if (!isReadOnly) {
-                                        onDeleteTask(taskId)
-                                        if (!isOnline) {
-                                            showOfflineSnackbar = true
-                                        }
-                                    }
-                                },
-                                onClearAnimatingEntryTaskId = onClearAnimatingEntryTaskId,
+                                onSwipeDelete = onSwipeDelete,
                                 onShowCreateListDialog = onShowCreateListDialog,
                                 onOpenTask = { taskId -> navController.navigate("task/$taskId") },
                             )
@@ -581,6 +677,7 @@ fun AuthenticatedHome(
             composable("task/{taskId}") {
                 TaskDetailScreen(
                     onNavigateBack = { navController.navigateUp() },
+                    onOpenTask = { taskId -> navController.navigate("task/$taskId") },
                 )
             }
         }
@@ -651,6 +748,24 @@ fun AuthenticatedHome(
                 },
             )
         }
+
+        // Add-sub-task from the selection bar: the create sheet opens with the parent pre-set.
+        subtaskParent?.let { parent ->
+            CreateTaskOverlay(
+                taskLists = taskLists,
+                tasks = tasks,
+                initialListId = parent.listId,
+                initialParentUid = parent.uid,
+                onDismiss = { subtaskParent = null },
+                onCreate = { input ->
+                    onCreateTask(input)
+                    subtaskParent = null
+                    if (!isOnline) {
+                        showOfflineSnackbar = true
+                    }
+                },
+            )
+        }
     }
 
     // Create list dialog
@@ -676,6 +791,21 @@ fun AuthenticatedHome(
             listName = listToDelete!!.name,
             onDismiss = onDismissDeleteListDialog,
             onConfirm = { onDeleteList(listToDelete!!.id) },
+        )
+    }
+
+    // Delete-with-sub-tasks choice dialog (shown when swiping a parent away)
+    deleteDialogTask?.let { task ->
+        DeleteWithChildrenDialog(
+            onDeleteAll = {
+                performDelete(task, false)
+                deleteDialogTask = null
+            },
+            onKeepChildren = {
+                performDelete(task, true)
+                deleteDialogTask = null
+            },
+            onDismiss = { deleteDialogTask = null },
         )
     }
 
@@ -833,7 +963,8 @@ private fun UnifiedSearchBar(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(64.dp), // Fixed total height
+                // 72 dp box with 8 dp vertical padding → 56 dp pill (Material 3 SearchBar input height).
+                .height(72.dp),
     ) {
         // Surface adapts based on search state
         Surface(
@@ -844,7 +975,7 @@ private fun UnifiedSearchBar(
                         horizontal = if (isSearchActive) 0.dp else 16.dp,
                         vertical = if (isSearchActive) 0.dp else 8.dp,
                     ).fillMaxHeight(),
-            shape = RoundedCornerShape(if (isSearchActive) 0.dp else 24.dp),
+            shape = RoundedCornerShape(if (isSearchActive) 0.dp else 28.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
         ) {
             Row(
@@ -1003,6 +1134,14 @@ private fun SortDialog(
                         onDismiss()
                     },
                 )
+                SortOption(
+                    text = stringResource(R.string.sort_by_manual),
+                    isSelected = currentSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL,
+                    onClick = {
+                        onSetSort(com.nextcloud.tasks.domain.model.TaskSort.MANUAL)
+                        onDismiss()
+                    },
+                )
             }
         },
         confirmButton = {
@@ -1048,6 +1187,17 @@ data class NewTaskInput(
     val starred: Boolean,
 )
 
+/**
+ * A staged, still-undoable delete. Rows in [hiddenIds] vanish from the list immediately; on commit
+ * [freeIds] are detached from their parent (parentUid=null) and [deleteIds] are removed from the
+ * server. Undo just un-hides — nothing was written yet.
+ */
+data class Deletion(
+    val hiddenIds: Set<String>,
+    val deleteIds: List<String>,
+    val freeIds: List<String>,
+)
+
 /** A flattened sub-task tree row: the task plus its display depth and sub-task chip data. */
 internal data class TaskRow(
     val task: Task,
@@ -1074,14 +1224,16 @@ internal fun buildOpenTaskRows(
     listTasks: List<Task>,
     childCounts: Map<String, Pair<Int, Int>>,
     collapsedUids: Set<String>,
+    done: Boolean = false,
 ): List<TaskRow> {
     val byParentUid = listTasks.groupBy { it.parentUid }
     val uidsInList = listTasks.mapNotNull { it.uid }.toSet()
-    // Open roots: top-level (or orphaned) tasks that aren't done. Their whole subtree renders here,
-    // INCLUDING done children (struck through in place); a done root drops to the completed section.
+    // Roots: top-level (or orphaned) tasks matching the requested done state. An open tree renders its
+    // whole subtree INCLUDING done children (struck through in place); the done tree only nests done
+    // children so an open child of a done parent still surfaces in the open section, not here.
     val roots =
         listTasks.filter {
-            (it.parentUid == null || it.parentUid !in uidsInList) && !it.isEffectivelyDone
+            (it.parentUid == null || it.parentUid !in uidsInList) && it.isEffectivelyDone == done
         }
     val rows = mutableListOf<TaskRow>()
     val visited = mutableSetOf<String>()
@@ -1091,21 +1243,246 @@ internal fun buildOpenTaskRows(
         depth: Int,
     ) {
         if (!visited.add(task.id)) return
-        val (done, total) = task.uid?.let { childCounts[it] } ?: (0 to 0)
+        val (childDone, total) = task.uid?.let { childCounts[it] } ?: (0 to 0)
         val collapsed = task.uid != null && task.uid in collapsedUids
-        rows.add(TaskRow(task, depth.coerceAtMost(MAX_DISPLAY_DEPTH), total > 0, done, total, collapsed))
+        rows.add(TaskRow(task, depth.coerceAtMost(MAX_DISPLAY_DEPTH), total > 0, childDone, total, collapsed))
         if (!collapsed) {
-            task.uid?.let { byParentUid[it] }?.forEach { emit(it, depth + 1) }
+            task.uid
+                ?.let { byParentUid[it] }
+                ?.filter { !done || it.isEffectivelyDone }
+                ?.forEach { emit(it, depth + 1) }
         }
     }
     roots.forEach { emit(it, 0) }
-    // Open tasks stuck in a parent cycle with no reachable root — surface at top level so they aren't
-    // lost. (An unvisited task under a visited parent is just collapsed; done tasks belong below.)
+    // Tasks stuck in a parent cycle with no reachable root — surface at top level so they aren't lost.
     listTasks.forEach {
-        if (!it.isEffectivelyDone && it.id !in visited && it.parentUid !in visited) emit(it, 0)
+        if (it.isEffectivelyDone == done && it.id !in visited && it.parentUid !in visited) emit(it, 0)
     }
     return rows
 }
+
+/** Comparator for the active [sort]; MANUAL orders by the drag-assigned sortOrder (nulls last). */
+internal fun taskComparator(sort: com.nextcloud.tasks.domain.model.TaskSort): Comparator<Task> =
+    when (sort) {
+        com.nextcloud.tasks.domain.model.TaskSort.MANUAL ->
+            compareBy(nullsLast()) { t: Task -> t.sortOrder }.thenByDescending { t: Task -> t.updatedAt }
+        com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE -> compareBy(nullsLast()) { t: Task -> t.due }
+        com.nextcloud.tasks.domain.model.TaskSort.PRIORITY -> compareBy(nullsLast()) { t: Task -> t.priority }
+        com.nextcloud.tasks.domain.model.TaskSort.TITLE -> compareBy { t: Task -> t.title }
+        com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT -> compareByDescending { t: Task -> t.updatedAt }
+    }
+
+/**
+ * Hand-rolled drag state for the open list. One long-press drag lets the row float; the row it is
+ * dropped onto (found via the list layout) plus the horizontal travel decide the new parent — drag
+ * right to nest under that row, left to un-nest. Works in every sort (nesting is sort-independent);
+ * only "My order" also persists the new position. On release the change is written back.
+ */
+@Suppress("LongParameterList")
+internal class ManualReorder(
+    val enabled: Boolean,
+    val isManual: Boolean,
+    val lazyListState: androidx.compose.foundation.lazy.LazyListState,
+    val rows: List<TaskRow>,
+    val liveIds: SnapshotStateList<String>,
+    val draggingId: MutableState<String?>,
+    val dragOffset: MutableState<androidx.compose.ui.geometry.Offset>,
+    // Gesture state must be REMEMBERED (not instance fields): this holder is rebuilt on every
+    // recomposition — e.g. the one triggered by entering selection at drag start — and fresh fields
+    // would zero grabTop mid-drag, teleporting the row to the top of the viewport.
+    private val grabTop: MutableState<Float>,
+    private val itemSize: MutableState<Int>,
+    private val moved: MutableState<Boolean>,
+    val stepPx: Float,
+    val slopPx: Float,
+    private val onReorder: (List<Pair<String, String?>>) -> Unit,
+    private val onReparent: (String, String?) -> Unit,
+    private val onClearSelection: () -> Unit,
+) {
+    val rowById: Map<String, TaskRow> = rows.associateBy { it.task.id }
+
+    /** True once the finger has travelled past touch slop — i.e. a real drag, not a long-press-to-select. */
+    fun movedEnough(): Boolean = moved.value
+
+    fun start(id: String) {
+        draggingId.value = id
+        dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
+        moved.value = false
+        val info = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == id }
+        grabTop.value = (info?.offset ?: 0).toFloat()
+        itemSize.value = info?.size ?: 0
+    }
+
+    fun dragBy(amount: androidx.compose.ui.geometry.Offset) {
+        dragOffset.value += amount
+        if (!moved.value && dragOffset.value.getDistance() > slopPx) {
+            moved.value = true
+            // Long-press just became a drag (Tasks.org finishActionMode): drop the selection it flashed.
+            onClearSelection()
+        }
+        if (moved.value) updateLivePosition()
+    }
+
+    /** Shift the dragged id in [liveIds] to the slot whose row the finger centre now overlaps. */
+    private fun updateLivePosition() {
+        val id = draggingId.value ?: return
+        val centerY = grabTop.value + itemSize.value / 2f + dragOffset.value.y
+        val target =
+            lazyListState.layoutInfo.visibleItemsInfo
+                .filter { it.key != id }
+                .firstOrNull { centerY >= it.offset && centerY <= it.offset + it.size }
+                ?: return
+        val from = liveIds.indexOf(id)
+        val to = (target.key as? String)?.let { liveIds.indexOf(it) } ?: -1
+        // ItemTouchHelper-style hysteresis: only swap once the finger centre has CROSSED the target
+        // row's midpoint. Swapping on first touch oscillated ("flicker") whenever neighbouring rows
+        // have different heights — after the swap the neighbour sat under the finger again.
+        val targetMid = target.offset + target.size / 2f
+        val crossed = if (to > from) centerY >= targetMid else centerY <= targetMid
+        val validMove = from >= 0 && to >= 0 && from != to
+        if (validMove && crossed) {
+            liveIds.add(to, liveIds.removeAt(from))
+        }
+    }
+
+    /**
+     * translationY that pins the dragged row under the finger no matter which live slot it now occupies:
+     * finger-absolute top minus the row's current slot top. Keeps the float continuous across shuffles,
+     * so the row never jumps (the bug the old raw-offset version had).
+     */
+    fun draggedTranslationY(): Float {
+        val id = draggingId.value ?: return 0f
+        val slotTop =
+            lazyListState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.key == id }
+                ?.offset
+                ?.toFloat() ?: grabTop.value
+        return grabTop.value + dragOffset.value.y - slotTop
+    }
+
+    fun clear() {
+        draggingId.value = null
+        dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
+    }
+
+    /**
+     * Depth the dragged row would land at right now. The row is RE-LAYOUTED at this depth while
+     * dragging (real rail, real line) instead of being translated — a pixel shift could never match
+     * the rail metrics for every level, and a level-0 row has no line to shift in the first place.
+     */
+    fun previewDepth(id: String): Int = resolveTarget(id).first
+
+    /**
+     * (targetDepth, parentUid), mirroring Tasks.org's onChildDraw: depth is the dragged row's OWN depth
+     * plus the horizontal steps, clamped to [0, (live row above).depth + 1] so it can never reach an
+     * impossible level; the parent is the nearest preceding row one level shallower.
+     */
+    private fun resolveTarget(id: String): Pair<Int, String?> {
+        val ownDepth = rowById[id]?.depth ?: 0
+        val aboveIdx = liveIds.indexOf(id) - 1
+        val aboveDepth = liveIds.getOrNull(aboveIdx)?.let { rowById[it]?.depth } ?: -1
+        val steps = (dragOffset.value.x / stepPx).roundToInt()
+        val targetDepth = (ownDepth + steps).coerceIn(0, (aboveDepth + 1).coerceAtLeast(0))
+        if (targetDepth == 0) return 0 to null
+        var i = aboveIdx
+        while (i >= 0) {
+            val d = liveIds.getOrNull(i)?.let { rowById[it]?.depth }
+            if (d != null) {
+                if (d == targetDepth - 1) return targetDepth to rowById[liveIds[i]]?.task?.uid
+                if (d < targetDepth - 1) break
+            }
+            i--
+        }
+        return targetDepth to null
+    }
+
+    fun drop() {
+        val id = draggingId.value ?: return
+        val newParent = resolveTarget(id).second
+        if (isManual) {
+            onReorder(liveIds.map { rid -> rid to if (rid == id) newParent else rowById[rid]?.task?.parentUid })
+        } else {
+            onReparent(id, newParent)
+        }
+    }
+}
+
+@Composable
+private fun rememberManualReorder(
+    taskSort: com.nextcloud.tasks.domain.model.TaskSort,
+    openListIds: List<String>,
+    treeByList: Map<String, List<TaskRow>>,
+    readOnly: Boolean,
+    onReorder: (List<Pair<String, String?>>) -> Unit,
+    onReparent: (String, String?) -> Unit,
+    onClearSelection: () -> Unit,
+): ManualReorder {
+    // Drag whenever a single WRITABLE list is shown (nesting works in any sort); only MANUAL also
+    // persists order. Read-only shares can't accept the server write, so the gesture never starts.
+    val enabled = openListIds.size == 1 && !readOnly
+    val rows = if (enabled) openListIds.firstOrNull()?.let { treeByList[it] }.orEmpty() else emptyList()
+    val lazyListState = rememberLazyListState()
+    val draggingId = remember { mutableStateOf<String?>(null) }
+    val dragOffset = remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val grabTop = remember { mutableStateOf(0f) }
+    val itemSize = remember { mutableStateOf(0) }
+    val moved = remember { mutableStateOf(false) }
+    val liveIds = remember { mutableStateListOf<String>() }
+    LaunchedEffect(rows.map { it.task.id }) {
+        // Keep the live (preview) order in sync with the data while not dragging.
+        if (draggingId.value == null) {
+            liveIds.clear()
+            liveIds.addAll(rows.map { it.task.id })
+        }
+    }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val stepPx = with(density) { 40.dp.toPx() }
+    val slopPx = with(density) { 24.dp.toPx() }
+    return ManualReorder(
+        enabled = enabled,
+        isManual = taskSort == com.nextcloud.tasks.domain.model.TaskSort.MANUAL,
+        lazyListState = lazyListState,
+        rows = rows,
+        liveIds = liveIds,
+        draggingId = draggingId,
+        dragOffset = dragOffset,
+        grabTop = grabTop,
+        itemSize = itemSize,
+        moved = moved,
+        stepPx = stepPx,
+        slopPx = slopPx,
+        onReorder = onReorder,
+        onReparent = onReparent,
+        onClearSelection = onClearSelection,
+    )
+}
+
+/** The per-row callbacks, bundled so the list rendering doesn't thread seven lambdas through. */
+@Suppress("LongParameterList")
+class TaskRowCallbacks(
+    val onToggleTaskComplete: (Task) -> Unit,
+    val onSwipeDelete: (Task, Boolean) -> Unit,
+    val onToggleFavorite: (Task) -> Unit,
+    val onToggleTaskCollapsed: (String) -> Unit,
+    val onOpenTask: (String) -> Unit,
+    val onEnterSelection: (String) -> Unit,
+    val onToggleSelection: (String) -> Unit,
+)
+
+/** parentUid → (done, total) child counts across [tasks], for the sub-task collapse chip. */
+internal fun subtaskChildCounts(tasks: List<Task>): Map<String, Pair<Int, Int>> =
+    tasks
+        .groupBy { it.parentUid }
+        .entries
+        .mapNotNull { (parentUid, kids) ->
+            parentUid?.let { it to (kids.count(Task::isEffectivelyDone) to kids.size) }
+        }.toMap()
+
+/** Nested rows for the completed section: done parents followed by their done children, indented. */
+internal fun buildCompletedTaskRows(
+    completedTasks: List<Task>,
+    collapsedUids: Set<String>,
+): List<TaskRow> = buildOpenTaskRows(completedTasks, subtaskChildCounts(completedTasks), collapsedUids, done = true)
 
 @Suppress("UnusedParameter", "LongParameterList")
 @Composable
@@ -1118,16 +1495,21 @@ private fun TasksContent(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     searchQuery: String,
     isOnline: Boolean,
-    animatingEntryTaskIds: Set<String>,
     collapsedIds: Set<String>,
+    selectionMode: Boolean,
+    selectedIds: Set<String>,
+    onEnterSelection: (String) -> Unit,
+    onToggleSelection: (String) -> Unit,
+    onClearSelectionForDrag: () -> Unit,
+    onReorder: (List<Pair<String, String?>>) -> Unit,
+    onReparent: (String, String?) -> Unit,
     isExpandedScreen: Boolean = false,
     onSetFilter: (com.nextcloud.tasks.domain.model.TaskFilter) -> Unit,
     onSetSort: (com.nextcloud.tasks.domain.model.TaskSort) -> Unit,
     onToggleTaskComplete: (Task) -> Unit,
     onToggleFavorite: (Task) -> Unit,
     onToggleTaskCollapsed: (String) -> Unit,
-    onDeleteTask: (String) -> Unit,
-    onClearAnimatingEntryTaskId: (String) -> Unit,
+    onSwipeDelete: (Task, Boolean) -> Unit,
     onShowCreateListDialog: () -> Unit = {},
     onOpenTask: (String) -> Unit = {},
 ) {
@@ -1145,19 +1527,15 @@ private fun TasksContent(
     // completed section below.
     val treeByList =
         knownTasks.groupBy { it.listId }.mapValues { (_, listTasks) ->
-            val childCounts =
-                listTasks
-                    .groupBy { it.parentUid }
-                    .entries
-                    .mapNotNull { (parentUid, kids) ->
-                        parentUid?.let { it to (kids.count(Task::isEffectivelyDone) to kids.size) }
-                    }.toMap()
-            buildOpenTaskRows(listTasks, childCounts, collapsedIds)
+            buildOpenTaskRows(listTasks, subtaskChildCounts(listTasks), collapsedIds)
         }
     val emittedIds = treeByList.values.flatten().mapTo(mutableSetOf()) { it.task.id }
     // Lists that actually have an open tree, in first-seen order.
     val openListIds = knownTasks.map { it.listId }.distinct().filter { treeByList[it]?.isNotEmpty() == true }
     val completedTasks = knownTasks.filter { it.isEffectivelyDone && it.id !in emittedIds }
+    // Keep the sub-task tree in the completed section too (done parent → done children, indented),
+    // instead of flattening everything to depth 0.
+    val completedRows = buildCompletedTaskRows(completedTasks, collapsedIds)
 
     // On expanded screens, constrain max content width for readability
     val contentModifier =
@@ -1167,7 +1545,29 @@ private fun TasksContent(
             Modifier.padding(padding)
         }
 
+    val reorder =
+        rememberManualReorder(
+            taskSort = taskSort,
+            openListIds = openListIds,
+            treeByList = treeByList,
+            readOnly = taskListMap[openListIds.firstOrNull()]?.shareAccess == ShareAccess.READ,
+            onReorder = onReorder,
+            onReparent = onReparent,
+            onClearSelection = onClearSelectionForDrag,
+        )
+    val rowCallbacks =
+        TaskRowCallbacks(
+            onToggleTaskComplete = onToggleTaskComplete,
+            onSwipeDelete = onSwipeDelete,
+            onToggleFavorite = onToggleFavorite,
+            onToggleTaskCollapsed = onToggleTaskCollapsed,
+            onOpenTask = onOpenTask,
+            onEnterSelection = onEnterSelection,
+            onToggleSelection = onToggleSelection,
+        )
+
     LazyColumn(
+        state = reorder.lazyListState,
         modifier = contentModifier,
         contentPadding =
             PaddingValues(
@@ -1236,30 +1636,14 @@ private fun TasksContent(
                         }
                     }
 
-                    val rows = treeByList.getValue(listId)
-
-                    items(rows, key = { it.task.id }) { row ->
-                        val task = row.task
-                        val taskIsReadOnly =
-                            taskListMap[task.listId]?.shareAccess == ShareAccess.READ
-                        SimpleAnimatedTaskCard(
-                            task = task,
-                            isReadOnly = taskIsReadOnly,
-                            animateEntry = task.id in animatingEntryTaskIds,
-                            depth = row.depth,
-                            hasChildren = row.hasChildren,
-                            subtaskDone = row.subtaskDone,
-                            subtaskTotal = row.subtaskTotal,
-                            isCollapsed = row.isCollapsed,
-                            isStarred = task.isStarred,
-                            onToggleComplete = { onToggleTaskComplete(task) },
-                            onToggleFavorite = { onToggleFavorite(task) },
-                            onToggleCollapsed = { task.uid?.let(onToggleTaskCollapsed) },
-                            onDelete = { onDeleteTask(task.id) },
-                            onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
-                            onOpenTask = { onOpenTask(task.id) },
-                        )
-                    }
+                    openListRows(
+                        reorder = reorder,
+                        rows = treeByList.getValue(listId),
+                        taskListMap = taskListMap,
+                        selectionMode = selectionMode,
+                        selectedIds = selectedIds,
+                        callbacks = rowCallbacks,
+                    )
                 }
             }
 
@@ -1283,17 +1667,14 @@ private fun TasksContent(
 
                 // Erledigte Tasks (wenn aufgeklappt)
                 if (showCompletedTasks) {
-                    items(completedTasks, key = { it.id }) { task ->
-                        val taskIsReadOnly =
-                            taskListMap[task.listId]?.shareAccess == ShareAccess.READ
-                        SimpleAnimatedTaskCard(
-                            task = task,
-                            isReadOnly = taskIsReadOnly,
-                            animateEntry = task.id in animatingEntryTaskIds,
-                            onToggleComplete = { onToggleTaskComplete(task) },
-                            onDelete = { onDeleteTask(task.id) },
-                            onEntryAnimationComplete = { onClearAnimatingEntryTaskId(task.id) },
-                            onOpenTask = { onOpenTask(task.id) },
+                    items(completedRows, key = { it.task.id }) { row ->
+                        TaskRowItem(
+                            row = row,
+                            taskListMap = taskListMap,
+                            selectionMode = selectionMode,
+                            isSelected = row.task.id in selectedIds,
+                            callbacks = rowCallbacks,
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -2180,142 +2561,7 @@ private fun AccountItem(
     }
 }
 
-/**
- * Simple animated wrapper for TaskCard.
- * - Toggle complete: Fade out animation, then update
- * - Delete: Fade out animation, then delete
- *
- * IMPORTANT: Animation must complete BEFORE data changes,
- * otherwise the composable is removed from composition immediately.
- */
-@Suppress("LongParameterList")
-@Composable
-private fun SimpleAnimatedTaskCard(
-    task: Task,
-    isReadOnly: Boolean = false,
-    animateEntry: Boolean = false,
-    depth: Int = 0,
-    hasChildren: Boolean = false,
-    subtaskDone: Int = 0,
-    subtaskTotal: Int = 0,
-    isCollapsed: Boolean = false,
-    isStarred: Boolean = false,
-    onToggleComplete: () -> Unit,
-    onDelete: () -> Unit,
-    onToggleCollapsed: () -> Unit = {},
-    onToggleFavorite: () -> Unit = {},
-    onEntryAnimationComplete: () -> Unit = {},
-    onOpenTask: () -> Unit = {},
-) {
-    // Only start invisible if this task should animate entry (recently toggled)
-    var isVisible by remember { mutableStateOf(!animateEntry) }
-    var isAnimating by remember { mutableStateOf(false) }
-    // Local checkbox state to show change before animation.
-    // CANCELLED tasks are treated as completed for display purposes.
-    val isCancelledTask = task.status?.uppercase() == "CANCELLED"
-    var localCompleted by remember(task.id) { mutableStateOf(task.completed || isCancelledTask) }
-    val scope = rememberCoroutineScope()
-
-    // Trigger entry animation only for recently toggled tasks
-    LaunchedEffect(animateEntry) {
-        if (animateEntry && !isVisible) {
-            isVisible = true
-            // Clear the animating flag after a short delay so it doesn't retrigger
-            delay(250)
-            onEntryAnimationComplete()
-        }
-    }
-
-    // Sync local state when task changes (e.g., from server sync)
-    LaunchedEffect(task.completed, task.status) {
-        if (!isAnimating) {
-            localCompleted = task.completed || task.status?.uppercase() == "CANCELLED"
-        }
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter =
-            expandVertically(
-                animationSpec = tween(durationMillis = 200),
-            ) + fadeIn(animationSpec = tween(durationMillis = 200)),
-        exit =
-            shrinkVertically(
-                animationSpec = tween(durationMillis = 200),
-            ) + fadeOut(animationSpec = tween(durationMillis = 150)),
-    ) {
-        // Column includes bottom spacing so it animates with shrinkVertically
-        Column {
-            // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
-            // level (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp, then +16 dp each deeper level).
-            Row(
-                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
-            ) {
-                if (depth > 0) {
-                    Spacer(modifier = Modifier.width((9 + (depth - 1) * 16).dp))
-                    Box(
-                        modifier =
-                            Modifier
-                                .width(2.dp)
-                                .fillMaxHeight()
-                                .background(MaterialTheme.colorScheme.outlineVariant),
-                    )
-                    Spacer(modifier = Modifier.width(if (depth == 1) 16.dp else 12.dp))
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    TaskCard(
-                        task = task.copy(completed = localCompleted),
-                        isReadOnly = isReadOnly,
-                        depth = depth,
-                        hasChildren = hasChildren,
-                        subtaskDone = subtaskDone,
-                        subtaskTotal = subtaskTotal,
-                        isCollapsed = isCollapsed,
-                        isStarred = isStarred,
-                        onToggleComplete = {
-                            if (!isAnimating) {
-                                isAnimating = true
-                                scope.launch {
-                                    // Show checkbox change first
-                                    localCompleted = !localCompleted
-                                    // Wait for user to see the change
-                                    delay(200)
-                                    // Then start fade/shrink animation
-                                    isVisible = false
-                                    // Wait for animation to complete
-                                    delay(250)
-                                    // Then trigger the data change
-                                    onToggleComplete()
-                                    // Reset so subsequent toggles on the same card work
-                                    isAnimating = false
-                                }
-                            }
-                        },
-                        onDelete = {
-                            if (!isAnimating) {
-                                isAnimating = true
-                                scope.launch {
-                                    // Start fade/shrink animation
-                                    isVisible = false
-                                    // Wait for animation to complete
-                                    delay(250)
-                                    // Then delete
-                                    onDelete()
-                                }
-                            }
-                        },
-                        onToggleCollapsed = onToggleCollapsed,
-                        onToggleFavorite = onToggleFavorite,
-                        onOpenTask = onOpenTask,
-                    )
-                }
-            }
-            // Bottom spacing - animates with shrinkVertically
-            Spacer(modifier = Modifier.height(if (depth > 0) 8.dp else 12.dp))
-        }
-    }
-}
-
+@OptIn(ExperimentalFoundationApi::class)
 @Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun TaskCard(
@@ -2327,11 +2573,12 @@ private fun TaskCard(
     subtaskTotal: Int = 0,
     isCollapsed: Boolean = false,
     isStarred: Boolean = false,
+    isSelected: Boolean = false,
     onToggleComplete: () -> Unit,
-    onDelete: () -> Unit,
     onToggleCollapsed: () -> Unit = {},
     onToggleFavorite: () -> Unit = {},
     onOpenTask: () -> Unit = {},
+    onLongPress: (() -> Unit)? = null,
 ) {
     val isChild = depth > 0
     val hasDescription = !isChild && task.description != null
@@ -2353,18 +2600,25 @@ private fun TaskCard(
                 .ofPattern(pattern, locale)
         }
 
+    val borderColor =
+        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val containerColor =
+        if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     Card(
-        onClick = onOpenTask,
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-            ),
-        elevation =
-            CardDefaults.cardElevation(
-                defaultElevation = 0.dp,
-            ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(if (isSelected) 2.dp else 1.dp, borderColor),
         shape = MaterialTheme.shapes.medium,
+        // Long-press enters selection mode; a tap opens the task or toggles selection (decided by caller).
+        // clip BEFORE the clickable so the press ripple is rounded like the card — unclipped it painted
+        // square corners peeking out as little crescents.
+        modifier =
+            Modifier
+                .clip(MaterialTheme.shapes.medium)
+                .combinedClickable(
+                    onClick = onOpenTask,
+                    onLongClick = onLongPress,
+                ),
     ) {
         Row(
             modifier = Modifier.padding(if (isChild) 10.dp else 12.dp).fillMaxWidth(),
@@ -2481,18 +2735,409 @@ private fun TaskCard(
                     tint = if (isStarred) NextcloudWarning else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
 
-            // Delete button (hidden for read-only lists; moves to swipe/selection in a later change)
-            if (!isReadOnly) {
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.delete_description),
-                        tint = MaterialTheme.colorScheme.error,
+/**
+ * One list row: the swipe wrapper plus the card. Swipe is disabled in selection mode; a tap then
+ * toggles selection instead of opening, and a long-press enters selection mode.
+ */
+@Composable
+private fun TaskRowItem(
+    row: TaskRow,
+    taskListMap: Map<String, com.nextcloud.tasks.domain.model.TaskList>,
+    selectionMode: Boolean,
+    isSelected: Boolean,
+    callbacks: TaskRowCallbacks,
+    modifier: Modifier = Modifier,
+    dragGesture: Modifier = Modifier,
+    reorderable: Boolean = false,
+) {
+    val task = row.task
+    val taskIsReadOnly = taskListMap[task.listId]?.shareAccess == ShareAccess.READ
+    Column(modifier = modifier) {
+        // Sub-task rows: rail margin + 2 dp guide line + gap before the card. Rail steps 16 dp per
+        // level (Ebene 1: 9 + 2 + 16 dp, Ebene 2: 25 + 2 + 12 dp, then +16 dp each deeper level).
+        // The rail sits OUTSIDE the swipe box: it is structural chrome, so only the card swipes and
+        // the line stays put — it never slides across the action colour.
+        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            if (row.depth > 0) {
+                Spacer(modifier = Modifier.width((9 + (row.depth - 1) * 16).dp))
+                Box(
+                    modifier =
+                        Modifier
+                            .width(2.dp)
+                            .fillMaxHeight()
+                            .background(MaterialTheme.colorScheme.outlineVariant),
+                )
+                Spacer(modifier = Modifier.width(if (row.depth == 1) 16.dp else 12.dp))
+            }
+            Box(modifier = Modifier.weight(1f)) {
+                SwipeableTaskRow(
+                    // Swipe (immediate horizontal drag) and reorder (post-long-press drag) coexist: a
+                    // quick swipe fires before the long-press timeout, a hold starts the drag. Only
+                    // disabled in selection mode.
+                    enabled = !taskIsReadOnly && !selectionMode,
+                    hasChildren = row.hasChildren,
+                    onComplete = { callbacks.onToggleTaskComplete(task) },
+                    onDelete = { hasChildren -> callbacks.onSwipeDelete(task, hasChildren) },
+                ) {
+                    // Long-press drag lives here, INSIDE the swipe box: after the long-press it consumes
+                    // the gesture (innermost wins the main pass) so swipe and reorder stop competing.
+                    Box(modifier = dragGesture) {
+                        TaskCard(
+                            task = task,
+                            isReadOnly = taskIsReadOnly,
+                            depth = row.depth,
+                            hasChildren = row.hasChildren,
+                            subtaskDone = row.subtaskDone,
+                            subtaskTotal = row.subtaskTotal,
+                            isCollapsed = row.isCollapsed,
+                            isStarred = task.isStarred,
+                            isSelected = isSelected,
+                            onToggleComplete = { callbacks.onToggleTaskComplete(task) },
+                            onToggleFavorite = { callbacks.onToggleFavorite(task) },
+                            onToggleCollapsed = { task.uid?.let(callbacks.onToggleTaskCollapsed) },
+                            onOpenTask = {
+                                if (selectionMode) {
+                                    callbacks.onToggleSelection(task.id)
+                                } else {
+                                    callbacks.onOpenTask(task.id)
+                                }
+                            },
+                            // When draggable the long-press must reach the drag gesture, so the card
+                            // registers no long-click of its own (null) — otherwise it would consume it.
+                            onLongPress = if (reorderable) null else ({ callbacks.onEnterSelection(task.id) }),
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(if (row.depth > 0) 8.dp else 12.dp))
+    }
+}
+
+/** Renders one list's open rows. When [reorder] is enabled each row can be long-press dragged. */
+@Suppress("LongParameterList")
+private fun LazyListScope.openListRows(
+    reorder: ManualReorder,
+    rows: List<TaskRow>,
+    taskListMap: Map<String, com.nextcloud.tasks.domain.model.TaskList>,
+    selectionMode: Boolean,
+    selectedIds: Set<String>,
+    callbacks: TaskRowCallbacks,
+) {
+    // While enabled, render the live (preview) order so siblings part to show where the row will land.
+    val displayRows = if (reorder.enabled) reorder.liveIds.mapNotNull { reorder.rowById[it] } else rows
+    items(displayRows, key = { it.task.id }) { row ->
+        val id = row.task.id
+        val dragging = reorder.draggingId.value == id
+        // Read the CURRENT holder/state through rememberUpdatedState: pointerInput(id) caches its
+        // lambda, so a directly captured `reorder` would keep a stale rows/rowById snapshot — its
+        // drop() then wrote OLD parentUids back for every row, teleporting uninvolved tasks to the
+        // nesting they had when the lambda was first composed.
+        val liveReorder by rememberUpdatedState(reorder)
+        val selMode by rememberUpdatedState(selectionMode)
+        // While dragging, re-layout the row at the depth it would land at: real rail, real line —
+        // preview is pixel-identical to the drop, and a level-0 row grows its line immediately.
+        val displayRow = if (dragging) row.copy(depth = reorder.previewDepth(id)) else row
+        // Visual (on the LazyColumn item root): the dragged row must NOT animate its slot so translationY
+        // can pin it to the finger; the others animate to open a gap — the live preview.
+        val visualModifier =
+            if (reorder.enabled) {
+                Modifier
+                    .then(if (dragging) Modifier else Modifier.animateItem())
+                    .zIndex(if (dragging) 1f else 0f)
+                    .graphicsLayer {
+                        if (dragging) {
+                            // Vertical pins the row to the finger across live shuffles. No shadow here:
+                            // the item's bounds include the transparent bottom spacer below the card, so
+                            // a layer shadow paints offset under the row with a visible gap.
+                            translationY = reorder.draggedTranslationY()
+                        }
+                    }
+            } else {
+                Modifier.animateItem()
+            }
+        // Gesture (on the card, inside the swipe box, so it out-competes swipe only after the long-press).
+        // Tasks.org shows the selection immediately (onSelectedChanged -> startActionMode); the first
+        // movement converts it to a drag (finishActionMode); release with no movement stays selected.
+        val gestureModifier =
+            if (reorder.enabled) {
+                Modifier.pointerInput(id) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = {
+                            if (!selMode) {
+                                liveReorder.start(id)
+                                callbacks.onEnterSelection(id)
+                            }
+                        },
+                        onDrag = { change, amount ->
+                            change.consume()
+                            if (liveReorder.draggingId.value == id) liveReorder.dragBy(amount)
+                        },
+                        onDragEnd = {
+                            when {
+                                liveReorder.draggingId.value == id -> {
+                                    if (liveReorder.movedEnough()) liveReorder.drop()
+                                    liveReorder.clear()
+                                }
+                                selMode -> callbacks.onToggleSelection(id)
+                            }
+                        },
+                        onDragCancel = { if (liveReorder.draggingId.value == id) liveReorder.clear() },
                     )
                 }
             } else {
-                Spacer(modifier = Modifier.size(48.dp))
+                Modifier
+            }
+        TaskRowItem(
+            row = displayRow,
+            taskListMap = taskListMap,
+            selectionMode = selectionMode,
+            isSelected = id in selectedIds,
+            callbacks = callbacks,
+            modifier = visualModifier,
+            dragGesture = gestureModifier,
+            reorderable = reorder.enabled,
+        )
+    }
+}
+
+/**
+ * Wraps just the task CARD so swiping right completes it and swiping left deletes it. The gesture
+ * fires the action and snaps back (returns false from confirmValueChange) — the action removes the
+ * row itself, which keeps the swipe reusable if an undo brings the row back. The content must not
+ * run its own size animation: collapsing to height 0 inside a SwipeToDismissBox makes the swipe
+ * anchors settle and fire a spurious dismiss (was double-firing delete on a plain checkbox tap).
+ */
+@Composable
+private fun SwipeableTaskRow(
+    enabled: Boolean,
+    hasChildren: Boolean,
+    onComplete: () -> Unit,
+    onDelete: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    // Always snap back (return false): the action drives removal itself — complete moves the row to
+    // the done section, delete hides it via the pending set — and the LazyColumn animates it out with
+    // animateItem(). Returning true would leave the box in a dismissed state showing its coloured
+    // background; on the delete-with-children path (which only opens a dialog) that background then
+    // sticks forever if the dialog is cancelled.
+    val state =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                when (value) {
+                    SwipeToDismissBoxValue.StartToEnd -> onComplete()
+                    SwipeToDismissBoxValue.EndToStart -> onDelete(hasChildren)
+                    SwipeToDismissBoxValue.Settled -> Unit
+                }
+                false
+            },
+        )
+    // The box stays mounted even when swipe is off (only the gesture is disabled via the flags). Swapping
+    // to a plain Box when [enabled] flips — e.g. the moment a long-press enters selection mode — would
+    // rebuild this subtree and cancel an in-flight reorder drag.
+    SwipeToDismissBox(
+        state = state,
+        modifier = modifier,
+        enableDismissFromStartToEnd = enabled,
+        enableDismissFromEndToStart = enabled,
+        // dismissDirection follows the drag offset immediately, so the colour + icon reveal as the
+        // row moves (targetValue only flips past the settle threshold, leaving a blank gap on a
+        // partial swipe).
+        backgroundContent = { SwipeActionBackground(state.dismissDirection) },
+        content = { content() },
+    )
+}
+
+@Composable
+private fun SwipeActionBackground(direction: SwipeToDismissBoxValue) {
+    val completing = direction == SwipeToDismissBoxValue.StartToEnd
+    val color =
+        when (direction) {
+            SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.primary
+            SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
+            SwipeToDismissBoxValue.Settled -> androidx.compose.ui.graphics.Color.Transparent
+        }
+    val onColor = if (completing) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onError
+    Box(
+        modifier =
+            Modifier
+                // The swipe box wraps exactly the card (rail + bottom gap live outside it), so the
+                // colour covers precisely what the swiped card exposes — no insets needed.
+                .fillMaxSize()
+                .clip(MaterialTheme.shapes.medium)
+                .background(color)
+                .padding(horizontal = 20.dp),
+        contentAlignment = if (completing) Alignment.CenterStart else Alignment.CenterEnd,
+    ) {
+        if (direction != SwipeToDismissBoxValue.Settled) {
+            val label =
+                if (completing) {
+                    stringResource(R.string.swipe_complete)
+                } else {
+                    stringResource(R.string.delete)
+                }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = if (completing) Icons.Filled.Check else Icons.Default.Delete,
+                    contentDescription = label,
+                    tint = onColor,
+                )
+                Text(text = label, style = MaterialTheme.typography.labelSmall, color = onColor)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeleteWithChildrenDialog(
+    onDeleteAll: () -> Unit,
+    onKeepChildren: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.delete_subtasks_title)) },
+        text = { Text(stringResource(R.string.delete_subtasks_message)) },
+        confirmButton = {
+            TextButton(onClick = onDeleteAll) {
+                Text(
+                    stringResource(R.string.delete_subtasks_all),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeepChildren) {
+                Text(stringResource(R.string.delete_subtasks_keep))
+            }
+        },
+    )
+}
+
+/**
+ * Contextual top bar shown while the selection mode is active — replaces the search bar. Back exits,
+ * the count sits left, then bulk-complete and an overflow (select all, detach, delete).
+ */
+@Suppress("LongParameterList", "LongMethod")
+@Composable
+private fun SelectionTopBar(
+    count: Int,
+    canDetach: Boolean,
+    canAddSubtask: Boolean,
+    lists: List<com.nextcloud.tasks.domain.model.TaskList>,
+    onExit: () -> Unit,
+    onComplete: () -> Unit,
+    onAddSubtask: () -> Unit,
+    onMove: (String) -> Unit,
+    onSelectAll: () -> Unit,
+    onDetach: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    var showMoveMenu by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Surface(
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = RoundedCornerShape(28.dp),
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+            ) {
+                IconButton(onClick = onExit) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.close))
+                }
+                // Per the reference design the bar shows just the number; the full "N selected"
+                // stays as the accessibility label so TalkBack still announces the context.
+                val countLabel = stringResource(R.string.selection_count, count)
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .padding(start = 4.dp, end = 8.dp)
+                            .semantics { contentDescription = countLabel },
+                )
+                IconButton(onClick = onComplete) {
+                    Icon(Icons.Filled.CheckCircle, contentDescription = stringResource(R.string.mark_complete))
+                }
+                // Add sub-task — only meaningful for a single selection; dimmed otherwise.
+                IconButton(onClick = onAddSubtask, enabled = canAddSubtask) {
+                    Icon(
+                        Icons.Filled.SubdirectoryArrowRight,
+                        contentDescription = stringResource(R.string.add_subtask),
+                    )
+                }
+                Box {
+                    IconButton(onClick = { showMoveMenu = true }) {
+                        Icon(Icons.Filled.DriveFileMove, contentDescription = stringResource(R.string.move_to_list))
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showMoveMenu,
+                        onDismissRequest = { showMoveMenu = false },
+                    ) {
+                        lists.forEach { list ->
+                            DropdownMenuItem(
+                                text = { Text(list.name) },
+                                onClick = {
+                                    showMoveMenu = false
+                                    onMove(list.id)
+                                },
+                            )
+                        }
+                    }
+                }
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options))
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.select_all)) },
+                            leadingIcon = { Icon(Icons.Filled.Checklist, contentDescription = null) },
+                            onClick = {
+                                showMenu = false
+                                onSelectAll()
+                            },
+                        )
+                        if (canDetach) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.selection_detach)) },
+                                leadingIcon = { Icon(Icons.Filled.LinkOff, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    onDetach()
+                                },
+                            )
+                        }
+                        androidx.compose.material3.HorizontalDivider()
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Filled.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            },
+                        )
+                    }
+                }
             }
         }
     }
@@ -2525,6 +3170,7 @@ private fun CreateTaskOverlay(
     initialListId: String,
     onDismiss: () -> Unit,
     onCreate: (NewTaskInput) -> Unit,
+    initialParentUid: String? = null,
 ) {
     val writableLists = taskLists.filter { it.shareAccess != ShareAccess.READ }
     if (writableLists.isEmpty()) return
@@ -2534,9 +3180,12 @@ private fun CreateTaskOverlay(
     var showDescription by remember { mutableStateOf(false) }
     var due by remember { mutableStateOf<java.time.Instant?>(null) }
     var starred by remember { mutableStateOf(false) }
-    var parentUid by remember { mutableStateOf<String?>(null) }
+    var parentUid by remember { mutableStateOf(initialParentUid) }
+    // A pre-set parent forces the list to follow it (a sub-task lives in its parent's list).
+    val parentListId = initialParentUid?.let { uid -> tasks.firstOrNull { it.uid == uid }?.listId }
     var selectedListId by remember {
-        mutableStateOf(writableLists.firstOrNull { it.id == initialListId }?.id ?: writableLists.first().id)
+        val start = parentListId ?: initialListId
+        mutableStateOf(writableLists.firstOrNull { it.id == start }?.id ?: writableLists.first().id)
     }
     var listDropdownExpanded by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -3323,7 +3972,7 @@ internal fun withErrorDetail(
 ): String = if (detail.isNullOrBlank()) base else "$base ($detail)"
 
 @HiltViewModel
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "LargeClass")
 class TaskListViewModel
     @Inject
     constructor(
@@ -3334,6 +3983,7 @@ class TaskListViewModel
         private val shareListUseCase: ShareListUseCase,
         private val unshareListUseCase: UnshareListUseCase,
         private val searchShareesUseCase: SearchShareesUseCase,
+        private val appPreferences: com.nextcloud.tasks.data.AppPreferences,
     ) : ViewModel() {
         // Raw tasks from repository
         private val allTasks =
@@ -3353,8 +4003,28 @@ class TaskListViewModel
         private val _taskFilter = MutableStateFlow(com.nextcloud.tasks.domain.model.TaskFilter.ALL)
         val taskFilter = _taskFilter.asStateFlow()
 
-        private val _taskSort = MutableStateFlow(com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE)
-        val taskSort = _taskSort.asStateFlow()
+        val perListSortEnabled =
+            appPreferences.perListSortEnabled
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+        // Active sort, persisted: per selected list when the "remember per list" toggle is on (falling
+        // back to the global sort), otherwise the global sort.
+        @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+        val taskSort =
+            combine(_selectedListId, appPreferences.perListSortEnabled) { listId, perList -> listId to perList }
+                .flatMapLatest { (listId, perList) ->
+                    if (perList && listId != null) {
+                        combine(appPreferences.listSort(listId), appPreferences.globalSort) { forList, global ->
+                            forList ?: global
+                        }
+                    } else {
+                        appPreferences.globalSort
+                    }
+                }.stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5_000),
+                    com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE,
+                )
 
         private val _isRefreshing = MutableStateFlow(false)
         val isRefreshing = _isRefreshing.asStateFlow()
@@ -3365,14 +4035,6 @@ class TaskListViewModel
         // Frozen tasks during sync to prevent UI flicker
         private val frozenTasksForSync = MutableStateFlow<List<Task>?>(null)
 
-        // Track task IDs that were recently toggled and should animate entry in their new section
-        private val _animatingEntryTaskIds = MutableStateFlow<Set<String>>(emptySet())
-        val animatingEntryTaskIds = _animatingEntryTaskIds.asStateFlow()
-
-        fun clearAnimatingEntryTaskId(taskId: String) {
-            _animatingEntryTaskIds.update { it - taskId }
-        }
-
         // UIDs of parent tasks whose sub-tasks are collapsed in the list.
         // ponytail: kept in the ViewModel — survives config changes and in-session navigation, but
         // not process death. Persist to Room/DataStore if that matters (tracked as a follow-up issue).
@@ -3382,6 +4044,120 @@ class TaskListViewModel
         fun toggleCollapsed(taskUid: String) {
             _collapsedIds.update { if (taskUid in it) it - taskUid else it + taskUid }
         }
+
+        /** Change only [taskId]'s parent (drag-to-nest in a non-manual sort; order stays field-driven). */
+        fun reparentTask(
+            taskId: String,
+            newParentUid: String?,
+        ) {
+            val task = allTasks.value.firstOrNull { it.id == taskId } ?: return
+            if (task.parentUid == newParentUid) return
+            viewModelScope.launch { runCatching { tasksRepository.updateTask(task.copy(parentUid = newParentUid)) } }
+        }
+
+        /**
+         * Persist a manual reorder/reparent. [ordered] is the new display order as (taskId, newParentUid)
+         * pairs; each task gets sortOrder = its index and, if changed, the new parentUid. Only tasks that
+         * actually changed are written. Used by drag & drop in the MANUAL sort mode.
+         */
+        fun reorderTasks(ordered: List<Pair<String, String?>>) {
+            val byId = allTasks.value.associateBy { it.id }
+            viewModelScope.launch {
+                ordered.forEachIndexed { index, (id, newParentUid) ->
+                    val task = byId[id] ?: return@forEachIndexed
+                    val order = index.toLong()
+                    if (task.sortOrder != order || task.parentUid != newParentUid) {
+                        runCatching {
+                            tasksRepository.updateTask(
+                                task.copy(sortOrder = order, parentUid = newParentUid),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Selection mode (long-press) --- ponytail: in-VM, survives config change; process death
+        // is an acceptable loss for a transient selection.
+        private val _selectionMode = MutableStateFlow(false)
+        val selectionMode = _selectionMode.asStateFlow()
+        private val _selectedIds = MutableStateFlow<Set<String>>(emptySet())
+        val selectedIds = _selectedIds.asStateFlow()
+
+        fun enterSelection(taskId: String) {
+            _selectedIds.value = setOf(taskId)
+            _selectionMode.value = true
+        }
+
+        fun toggleSelection(taskId: String) {
+            _selectedIds.update { if (taskId in it) it - taskId else it + taskId }
+            if (_selectedIds.value.isEmpty()) _selectionMode.value = false
+        }
+
+        fun selectAll(ids: Collection<String>) {
+            _selectedIds.value = ids.toSet()
+        }
+
+        fun clearSelection() {
+            _selectedIds.value = emptySet()
+            _selectionMode.value = false
+        }
+
+        /** True if any selected task is still nested under a parent (enables "detach"). */
+        fun anySelectedIsChild(): Boolean {
+            val byId = allTasks.value.associateBy { it.id }
+            return _selectedIds.value.any { byId[it]?.parentUid != null }
+        }
+
+        /** Bulk-complete every still-open selected task (cascading like the single toggle), then exit. */
+        fun completeSelected() {
+            val byId = allTasks.value.associateBy { it.id }
+            _selectedIds.value
+                .mapNotNull { byId[it] }
+                .filter { !it.isEffectivelyDone }
+                .forEach { applyCompletion(it) }
+            clearSelection()
+        }
+
+        /** Move the selection (whole subtrees, so nesting stays valid) to [targetListId], then exit. */
+        fun moveSelectedToList(targetListId: String) {
+            val all = allTasks.value
+            val selected = _selectedIds.value.mapNotNull { id -> all.firstOrNull { it.id == id } }
+            val toMove = selected.flatMap { collectDescendants(it, all) }.distinctBy { it.id }
+            clearSelection()
+            viewModelScope.launch {
+                toMove.forEach { runCatching { tasksRepository.moveTask(it.id, targetListId) } }
+            }
+        }
+
+        /** Detach every selected task from its parent (parentUid=null), then exit. */
+        fun detachSelected() {
+            val byId = allTasks.value.associateBy { it.id }
+            val toDetach = _selectedIds.value.mapNotNull { byId[it] }.filter { it.parentUid != null }
+            clearSelection()
+            viewModelScope.launch {
+                toDetach.forEach { runCatching { tasksRepository.updateTask(it.copy(parentUid = null)) } }
+            }
+        }
+
+        /**
+         * Stage a bulk delete of the selection: delete each selected task, freeing any direct child
+         * that isn't itself selected. Hidden immediately (undo window); committed via [commitDelete].
+         */
+        fun stageDeleteSelected(): Deletion {
+            val all = allTasks.value
+            val byId = all.associateBy { it.id }
+            val deleteIds = _selectedIds.value.mapNotNull { byId[it]?.id }.toSet()
+            val deletedUids = deleteIds.mapNotNull { byId[it]?.uid }.toSet()
+            val freeIds = all.filter { it.parentUid in deletedUids && it.id !in deleteIds }.map { it.id }
+            val deletion = Deletion(hiddenIds = deleteIds, deleteIds = deleteIds.toList(), freeIds = freeIds)
+            pendingDeleteIds.update { it + deletion.hiddenIds }
+            clearSelection()
+            return deletion
+        }
+
+        // Ids of tasks swipe-deleted but not yet committed (undo window). Hidden from the list.
+        private val pendingDeleteIds = MutableStateFlow<Set<String>>(emptySet())
 
         // Network status and pending changes
         val isOnline =
@@ -3498,7 +4274,7 @@ class TaskListViewModel
                 allTasks,
                 _selectedListId,
                 _taskFilter,
-                _taskSort,
+                taskSort,
                 _searchQuery,
             ) { tasks, listId, filter, sort, query ->
                 tasks
@@ -3523,30 +4299,14 @@ class TaskListViewModel
                             task.title.lowercase().contains(searchLower) ||
                                 task.description?.lowercase()?.contains(searchLower) == true
                         }
-                    }.sortedWith(
-                        when (sort) {
-                            com.nextcloud.tasks.domain.model.TaskSort.DUE_DATE ->
-                                compareBy(
-                                    nullsLast(),
-                                ) { it.due }
-                            com.nextcloud.tasks.domain.model.TaskSort.PRIORITY ->
-                                compareBy(
-                                    nullsLast(),
-                                ) { it.priority }
-                            com.nextcloud.tasks.domain.model.TaskSort.TITLE -> compareBy { it.title }
-                            com.nextcloud.tasks.domain.model.TaskSort.UPDATED_AT ->
-                                compareByDescending {
-                                    it.updatedAt
-                                }
-                        },
-                    )
+                    }.sortedWith(taskComparator(sort))
             }
 
-        // Public tasks flow that respects freezing during sync
+        // Public tasks flow that respects freezing during sync and hides pending swipe-deletes
         val tasks =
-            combine(filteredTasks, frozenTasksForSync) { filtered, frozen ->
+            combine(filteredTasks, frozenTasksForSync, pendingDeleteIds) { filtered, frozen, pending ->
                 // Use frozen tasks during refresh to prevent UI flicker
-                frozen ?: filtered
+                (frozen ?: filtered).filter { it.id !in pending }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         init {
@@ -3576,7 +4336,18 @@ class TaskListViewModel
         }
 
         fun setSort(sort: com.nextcloud.tasks.domain.model.TaskSort) {
-            _taskSort.value = sort
+            viewModelScope.launch {
+                val listId = _selectedListId.value
+                if (appPreferences.perListSortEnabled.first() && listId != null) {
+                    appPreferences.setListSort(listId, sort)
+                } else {
+                    appPreferences.setGlobalSort(sort)
+                }
+            }
+        }
+
+        fun setPerListSortEnabled(enabled: Boolean) {
+            viewModelScope.launch { appPreferences.setPerListSortEnabled(enabled) }
         }
 
         fun setSearchQuery(query: String) {
@@ -3648,39 +4419,45 @@ class TaskListViewModel
         }
 
         fun toggleTaskComplete(task: Task) {
-            // Mark task for entry animation in the new section
-            _animatingEntryTaskIds.update { it + task.id }
+            applyCompletion(task)
+        }
+
+        /**
+         * Toggle [task]'s completion, cascading down to descendants (complete) or up to ancestors
+         * (reopen) — matching Todoist/Reminders/Google Tasks. Undo is a second tap, so nothing to return.
+         */
+        fun applyCompletion(task: Task) {
+            val all = allTasks.value
+            val readOnlyListIds =
+                taskLists.value
+                    .filter { it.shareAccess == ShareAccess.READ }
+                    .map { it.id }
+                    .toSet()
+            val wasDone = task.isEffectivelyDone
+            val affected =
+                (if (wasDone) collectAncestors(task, all) else collectDescendants(task, all))
+                    .filter { it.listId !in readOnlyListIds && it.isEffectivelyDone == wasDone }
+            setCompletion(affected, done = !wasDone)
+        }
+
+        private fun setCompletion(
+            tasks: List<Task>,
+            done: Boolean,
+        ) {
             viewModelScope.launch {
                 try {
-                    val all = allTasks.value
-                    val readOnlyListIds =
-                        taskLists.value
-                            .filter { it.shareAccess == ShareAccess.READ }
-                            .map { it.id }
-                            .toSet()
-                    val wasDone = task.isEffectivelyDone
-                    // Checking a parent cascades down to its descendants; re-opening a child
-                    // cascades up to its ancestors — matching Todoist/Reminders/Google Tasks.
-                    val affected =
-                        if (wasDone) {
-                            collectAncestors(task, all)
-                        } else {
-                            collectDescendants(task, all)
-                        }.filter { it.listId !in readOnlyListIds }
-                    affected.forEach { t ->
-                        // Skip tasks already in the target state (no write amplification).
-                        if (t.isEffectivelyDone == !wasDone) return@forEach
+                    tasks.forEach { t ->
                         val updated =
-                            if (wasDone) {
-                                t.copy(completed = false, completedAt = null, status = "NEEDS-ACTION")
-                            } else {
+                            if (done) {
                                 t.copy(completed = true, completedAt = java.time.Instant.now(), status = "COMPLETED")
+                            } else {
+                                t.copy(completed = false, completedAt = null, status = "NEEDS-ACTION")
                             }
                         tasksRepository.updateTask(updated)
                     }
-                    timber.log.Timber.d("Task completion toggled (${affected.size} affected)")
+                    timber.log.Timber.d("Completion set to $done (${tasks.size} tasks)")
                 } catch (ignored: Exception) {
-                    timber.log.Timber.e(ignored, "Failed to toggle task completion")
+                    timber.log.Timber.e(ignored, "Failed to set completion")
                 }
             }
         }
@@ -3732,13 +4509,45 @@ class TaskListViewModel
             return result
         }
 
-        fun deleteTask(taskId: String) {
+        /**
+         * Stage a swipe-delete of [task]: hide the affected rows now (undo window), commit later.
+         * [keepChildren] frees the task's direct children (parentUid=null) and deletes only [task];
+         * otherwise the whole subtree is deleted. Nothing is written until [commitDelete].
+         */
+        fun stageDelete(
+            task: Task,
+            keepChildren: Boolean,
+        ): Deletion {
+            val all = allTasks.value
+            val deletion =
+                if (keepChildren) {
+                    val childIds = all.filter { it.parentUid != null && it.parentUid == task.uid }.map { it.id }
+                    Deletion(hiddenIds = setOf(task.id), deleteIds = listOf(task.id), freeIds = childIds)
+                } else {
+                    val subtree = collectDescendants(task, all).map { it.id }
+                    Deletion(hiddenIds = subtree.toSet(), deleteIds = subtree, freeIds = emptyList())
+                }
+            pendingDeleteIds.update { it + deletion.hiddenIds }
+            return deletion
+        }
+
+        fun undoDelete(deletion: Deletion) {
+            pendingDeleteIds.update { it - deletion.hiddenIds }
+        }
+
+        fun commitDelete(deletion: Deletion) {
             viewModelScope.launch {
                 try {
-                    tasksRepository.deleteTask(taskId)
-                    timber.log.Timber.d("Task deleted successfully")
+                    val byId = allTasks.value.associateBy { it.id }
+                    deletion.freeIds.forEach { id ->
+                        byId[id]?.let { tasksRepository.updateTask(it.copy(parentUid = null)) }
+                    }
+                    deletion.deleteIds.forEach { tasksRepository.deleteTask(it) }
+                    timber.log.Timber.d("Delete committed (${deletion.deleteIds.size} removed)")
                 } catch (ignored: Exception) {
-                    timber.log.Timber.e(ignored, "Failed to delete task")
+                    timber.log.Timber.e(ignored, "Failed to commit delete")
+                } finally {
+                    pendingDeleteIds.update { it - deletion.hiddenIds }
                 }
             }
         }

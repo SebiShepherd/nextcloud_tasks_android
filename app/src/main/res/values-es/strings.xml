@@ -33,6 +33,7 @@
     <string name="no_search_results_title">No se encontraron resultados</string>
     <string name="no_search_results_hint">Prueba a ajustar tu búsqueda.</string>
     <string name="sort_dialog_title">Ordenar por</string>
+    <string name="sort_by_manual">Mi orden</string>
     <string name="sort_by_due_date">Fecha de vencimiento</string>
     <string name="sort_by_priority">Prioridad</string>
     <string name="sort_by_title">Título</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">Tarea principal</string>
     <string name="parent_none">Ninguna</string>
     <string name="pick_due_date">Fecha de vencimiento</string>
+    <string name="task_deleted">Tarea eliminada</string>
+    <string name="action_undo">Deshacer</string>
+    <string name="delete_subtasks_title">¿Eliminar tarea con subtareas?</string>
+    <string name="delete_subtasks_message">Esta tarea tiene subtareas. ¿Qué debe pasar con ellas?</string>
+    <string name="delete_subtasks_all">Eliminar todo</string>
+    <string name="delete_subtasks_keep">Conservar subtareas</string>
+    <string name="swipe_complete">Hecho</string>
+    <!-- Selection mode -->
+    <string name="selection_count">%1$d seleccionadas</string>
+    <string name="select_all">Seleccionar todo</string>
+    <string name="selection_detach">Desvincular de la tarea superior</string>
+    <string name="mark_complete">Marcar como completada</string>
+    <string name="more_options">Más opciones</string>
+    <string name="add_subtask">Añadir subtarea</string>
+    <string name="move_to_list">Mover a la lista</string>
+    <string name="task_detail_parent_label">Tarea principal</string>
+    <string name="reorder_handle">Reordenar</string>
+    <string name="settings_per_list_sort">Recordar orden por lista</string>
+    <string name="settings_per_list_sort_summary">Cada lista mantiene su propio orden en lugar de uno global</string>
 </resources>

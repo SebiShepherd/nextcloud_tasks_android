@@ -33,6 +33,7 @@
     <string name="no_search_results_title">未找到结果</string>
     <string name="no_search_results_hint">请尝试调整搜索内容。</string>
     <string name="sort_dialog_title">排序方式</string>
+    <string name="sort_by_manual">我的排序</string>
     <string name="sort_by_due_date">截止日期</string>
     <string name="sort_by_priority">优先级</string>
     <string name="sort_by_title">标题</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">父任务</string>
     <string name="parent_none">无</string>
     <string name="pick_due_date">截止日期</string>
+    <string name="task_deleted">任务已删除</string>
+    <string name="action_undo">撤销</string>
+    <string name="delete_subtasks_title">删除任务及其子任务？</string>
+    <string name="delete_subtasks_message">此任务包含子任务。要如何处理？</string>
+    <string name="delete_subtasks_all">全部删除</string>
+    <string name="delete_subtasks_keep">保留子任务</string>
+    <string name="swipe_complete">完成</string>
+    <!-- Selection mode -->
+    <string name="selection_count">已选择 %1$d 项</string>
+    <string name="select_all">全选</string>
+    <string name="selection_detach">从父任务分离</string>
+    <string name="mark_complete">标记为完成</string>
+    <string name="more_options">更多选项</string>
+    <string name="add_subtask">添加子任务</string>
+    <string name="move_to_list">移动到列表</string>
+    <string name="task_detail_parent_label">父任务</string>
+    <string name="reorder_handle">重新排序</string>
+    <string name="settings_per_list_sort">按列表记住排序</string>
+    <string name="settings_per_list_sort_summary">每个列表保留自己的排序，而不是使用统一排序</string>
 </resources>

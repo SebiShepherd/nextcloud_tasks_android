@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Keine Ergebnisse gefunden</string>
     <string name="no_search_results_hint">Suchbegriff anpassen oder verfeinern.</string>
     <string name="sort_dialog_title">Sortierung</string>
+    <string name="sort_by_manual">Meine Reihenfolge</string>
     <string name="sort_by_due_date">Fälligkeitsdatum</string>
     <string name="sort_by_priority">Priorität</string>
     <string name="sort_by_title">Titel</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">Übergeordnete Aufgabe</string>
     <string name="parent_none">Keine</string>
     <string name="pick_due_date">Fälligkeitsdatum</string>
+    <string name="task_deleted">Aufgabe gelöscht</string>
+    <string name="action_undo">Rückgängig</string>
+    <string name="delete_subtasks_title">Aufgabe mit Unteraufgaben löschen?</string>
+    <string name="delete_subtasks_message">Diese Aufgabe hat Unteraufgaben. Was soll damit geschehen?</string>
+    <string name="delete_subtasks_all">Alle löschen</string>
+    <string name="delete_subtasks_keep">Unteraufgaben behalten</string>
+    <string name="swipe_complete">Erledigt</string>
+    <!-- Selection mode -->
+    <string name="selection_count">%1$d ausgewählt</string>
+    <string name="select_all">Alle auswählen</string>
+    <string name="selection_detach">Aus Unteraufgabe lösen</string>
+    <string name="mark_complete">Als erledigt markieren</string>
+    <string name="more_options">Weitere Optionen</string>
+    <string name="add_subtask">Unteraufgabe hinzufügen</string>
+    <string name="move_to_list">In Liste verschieben</string>
+    <string name="task_detail_parent_label">Übergeordnete Aufgabe</string>
+    <string name="reorder_handle">Neu anordnen</string>
+    <string name="settings_per_list_sort">Sortierung pro Liste merken</string>
+    <string name="settings_per_list_sort_summary">Jede Liste behält ihre eigene Sortierung statt einer globalen</string>
 </resources>

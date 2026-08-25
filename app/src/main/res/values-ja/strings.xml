@@ -33,6 +33,7 @@
     <string name="no_search_results_title">結果が見つかりません</string>
     <string name="no_search_results_hint">検索キーワードを変更してみてください。</string>
     <string name="sort_dialog_title">並べ替え</string>
+    <string name="sort_by_manual">自分の順序</string>
     <string name="sort_by_due_date">期日</string>
     <string name="sort_by_priority">優先度</string>
     <string name="sort_by_title">タイトル</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">親タスク</string>
     <string name="parent_none">なし</string>
     <string name="pick_due_date">期限</string>
+    <string name="task_deleted">タスクを削除しました</string>
+    <string name="action_undo">元に戻す</string>
+    <string name="delete_subtasks_title">サブタスクごと削除しますか？</string>
+    <string name="delete_subtasks_message">このタスクにはサブタスクがあります。どうしますか？</string>
+    <string name="delete_subtasks_all">すべて削除</string>
+    <string name="delete_subtasks_keep">サブタスクを残す</string>
+    <string name="swipe_complete">完了</string>
+    <!-- Selection mode -->
+    <string name="selection_count">%1$d件選択中</string>
+    <string name="select_all">すべて選択</string>
+    <string name="selection_detach">親タスクから外す</string>
+    <string name="mark_complete">完了にする</string>
+    <string name="more_options">その他のオプション</string>
+    <string name="add_subtask">サブタスクを追加</string>
+    <string name="move_to_list">リストに移動</string>
+    <string name="task_detail_parent_label">親タスク</string>
+    <string name="reorder_handle">並べ替え</string>
+    <string name="settings_per_list_sort">リストごとに並び順を記憶</string>
+    <string name="settings_per_list_sort_summary">各リストが共通ではなく独自の並び順を保持します</string>
 </resources>

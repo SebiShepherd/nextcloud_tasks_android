@@ -1,0 +1,14 @@
+# local_certs: use Caddy's internal CA for every site → a self-signed cert the phone won't
+# trust (the whole point — exercises the cert4android accept dialog + pinning).
+{
+	local_certs
+	# Clients hitting a bare IP send no SNI; assume this one so Caddy still serves the cert
+	# (without it the handshake dies with a tls internal-error alert → ERR_SSL_PROTOCOL_ERROR).
+	default_sni 192.168.178.145
+}
+
+https://{$SERVER_IP} {
+	reverse_proxy nextcloud:80 {
+		header_up X-Forwarded-Proto https
+	}
+}

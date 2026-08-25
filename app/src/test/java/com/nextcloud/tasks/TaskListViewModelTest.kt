@@ -22,6 +22,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -36,6 +37,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass")
 class TaskListViewModelTest {
     private val testDispatcher = UnconfinedTestDispatcher()
     private val now = Instant.ofEpochMilli(1700000000000L)
@@ -59,6 +61,8 @@ class TaskListViewModelTest {
         completed: Boolean = false,
         due: Instant? = null,
         priority: Int? = null,
+        uid: String? = null,
+        parentUid: String? = null,
     ) = Task(
         id = id,
         listId = listId,
@@ -68,6 +72,8 @@ class TaskListViewModelTest {
         due = due,
         updatedAt = now,
         priority = priority,
+        uid = uid,
+        parentUid = parentUid,
     )
 
     private suspend fun withViewModel(
@@ -82,6 +88,14 @@ class TaskListViewModelTest {
         val shareListUseCase = mockk<ShareListUseCase>(relaxed = true)
         val unshareListUseCase = mockk<UnshareListUseCase>(relaxed = true)
         val searchShareesUseCase = mockk<SearchShareesUseCase>(relaxed = true)
+        val globalSortFlow = kotlinx.coroutines.flow.MutableStateFlow(TaskSort.DUE_DATE)
+        val appPreferences =
+            mockk<com.nextcloud.tasks.data.AppPreferences>(relaxed = true) {
+                every { perListSortEnabled } returns flowOf(false)
+                every { globalSort } returns globalSortFlow
+                every { listSort(any()) } returns flowOf(null)
+                coEvery { setGlobalSort(any()) } answers { globalSortFlow.value = firstArg() }
+            }
 
         every { loadTasksUseCase() } returns flowOf(tasks)
         every { tasksRepository.observeLists() } returns flowOf(emptyList())
@@ -98,8 +112,31 @@ class TaskListViewModelTest {
                 shareListUseCase = shareListUseCase,
                 unshareListUseCase = unshareListUseCase,
                 searchShareesUseCase = searchShareesUseCase,
+                appPreferences = appPreferences,
             )
         block(vm)
+    }
+
+    /** Builds a ViewModel with relaxed collaborators and the given [prefs], for sort-persistence tests. */
+    private fun viewModelWith(prefs: com.nextcloud.tasks.data.AppPreferences): TaskListViewModel {
+        val tasksRepository = mockk<TasksRepository>(relaxed = true)
+        val loadTasksUseCase = mockk<LoadTasksUseCase>()
+        val observeActiveAccountUseCase = mockk<ObserveActiveAccountUseCase>()
+        every { loadTasksUseCase() } returns flowOf(emptyList())
+        every { tasksRepository.observeLists() } returns flowOf(emptyList())
+        every { tasksRepository.observeIsOnline() } returns flowOf(true)
+        every { tasksRepository.observeHasPendingChanges() } returns flowOf(false)
+        every { observeActiveAccountUseCase() } returns flowOf(null)
+        return TaskListViewModel(
+            loadTasksUseCase = loadTasksUseCase,
+            tasksRepository = tasksRepository,
+            observeActiveAccountUseCase = observeActiveAccountUseCase,
+            getShareesUseCase = mockk(relaxed = true),
+            shareListUseCase = mockk(relaxed = true),
+            unshareListUseCase = mockk(relaxed = true),
+            searchShareesUseCase = mockk(relaxed = true),
+            appPreferences = prefs,
+        )
     }
 
     /** Variant that also exposes the mocked repository for verification. */
@@ -114,6 +151,14 @@ class TaskListViewModelTest {
         val shareListUseCase = mockk<ShareListUseCase>(relaxed = true)
         val unshareListUseCase = mockk<UnshareListUseCase>(relaxed = true)
         val searchShareesUseCase = mockk<SearchShareesUseCase>(relaxed = true)
+        val globalSortFlow = kotlinx.coroutines.flow.MutableStateFlow(TaskSort.DUE_DATE)
+        val appPreferences =
+            mockk<com.nextcloud.tasks.data.AppPreferences>(relaxed = true) {
+                every { perListSortEnabled } returns flowOf(false)
+                every { globalSort } returns globalSortFlow
+                every { listSort(any()) } returns flowOf(null)
+                coEvery { setGlobalSort(any()) } answers { globalSortFlow.value = firstArg() }
+            }
 
         every { loadTasksUseCase() } returns flowOf(tasks)
         every { tasksRepository.observeLists() } returns flowOf(emptyList())
@@ -130,6 +175,7 @@ class TaskListViewModelTest {
                 shareListUseCase = shareListUseCase,
                 unshareListUseCase = unshareListUseCase,
                 searchShareesUseCase = searchShareesUseCase,
+                appPreferences = appPreferences,
             )
         block(vm, tasksRepository)
     }
@@ -165,15 +211,32 @@ class TaskListViewModelTest {
     // --- setSort ---
 
     @Test
-    fun `setSort updates taskSort`() =
+    fun `setSort persists the global sort when per-list is off`() =
         runTest(testDispatcher) {
-            withViewModel {
-                it.setSort(TaskSort.TITLE)
-                assertEquals(TaskSort.TITLE, it.taskSort.value)
+            val prefs =
+                mockk<com.nextcloud.tasks.data.AppPreferences>(relaxed = true) {
+                    every { perListSortEnabled } returns flowOf(false)
+                    every { globalSort } returns flowOf(TaskSort.DUE_DATE)
+                    every { listSort(any()) } returns flowOf(null)
+                }
+            val vm = viewModelWith(prefs)
+            vm.setSort(TaskSort.TITLE)
+            coVerify { prefs.setGlobalSort(TaskSort.TITLE) }
+        }
 
-                it.setSort(TaskSort.PRIORITY)
-                assertEquals(TaskSort.PRIORITY, it.taskSort.value)
-            }
+    @Test
+    fun `setSort persists per list when per-list is on and a list is selected`() =
+        runTest(testDispatcher) {
+            val prefs =
+                mockk<com.nextcloud.tasks.data.AppPreferences>(relaxed = true) {
+                    every { perListSortEnabled } returns flowOf(true)
+                    every { globalSort } returns flowOf(TaskSort.DUE_DATE)
+                    every { listSort(any()) } returns flowOf(null)
+                }
+            val vm = viewModelWith(prefs)
+            vm.selectList("list-1")
+            vm.setSort(TaskSort.PRIORITY)
+            coVerify { prefs.setListSort("list-1", TaskSort.PRIORITY) }
         }
 
     // --- setSearchQuery ---
@@ -545,31 +608,90 @@ class TaskListViewModelTest {
             }
         }
 
-    // --- deleteTask ---
+    // --- staged delete (swipe + undo) ---
 
     @Test
-    fun `deleteTask calls repository`() =
+    fun `stage then commit delete calls repository`() =
         runTest(testDispatcher) {
             withViewModelAndRepo { vm, repo ->
-                vm.deleteTask("task-1")
+                val task = createTask(id = "task-1")
+                val deletion = vm.stageDelete(task, keepChildren = false)
+                vm.commitDelete(deletion)
                 coVerify { repo.deleteTask("task-1") }
             }
         }
 
-    // --- animatingEntryTaskIds ---
-
     @Test
-    fun `clearAnimatingEntryTaskId removes task id`() =
+    fun `undo delete never touches repository`() =
         runTest(testDispatcher) {
             withViewModelAndRepo { vm, repo ->
                 val task = createTask(id = "task-1")
-                coEvery { repo.updateTask(any()) } returns task
+                val deletion = vm.stageDelete(task, keepChildren = false)
+                vm.undoDelete(deletion)
+                coVerify(exactly = 0) { repo.deleteTask(any()) }
+            }
+        }
 
-                vm.toggleTaskComplete(task)
-                assertTrue(vm.animatingEntryTaskIds.value.contains("task-1"))
+    // --- selection mode ---
 
-                vm.clearAnimatingEntryTaskId("task-1")
-                assertFalse(vm.animatingEntryTaskIds.value.contains("task-1"))
+    @Test
+    fun `toggleSelection exits mode when the last item is removed`() =
+        runTest(testDispatcher) {
+            withViewModel { vm ->
+                vm.enterSelection("a")
+                vm.toggleSelection("b")
+                assertTrue(vm.selectionMode.value)
+                vm.toggleSelection("a")
+                vm.toggleSelection("b")
+                assertFalse(vm.selectionMode.value)
+                assertTrue(vm.selectedIds.value.isEmpty())
+            }
+        }
+
+    @Test
+    fun `stageDeleteSelected deletes the selected task and frees its non-selected child`() =
+        runTest(testDispatcher) {
+            val parent = createTask(id = "p", uid = "p")
+            val child = createTask(id = "c", uid = "c", parentUid = "p")
+            withViewModelAndRepo(tasks = listOf(parent, child)) { vm, repo ->
+                val job = launch { vm.tasks.collect {} }
+                vm.enterSelection("p")
+                val deletion = vm.stageDeleteSelected()
+                assertEquals(listOf("p"), deletion.deleteIds)
+                assertEquals(listOf("c"), deletion.freeIds)
+                vm.commitDelete(deletion)
+                coVerify { repo.deleteTask("p") }
+                coVerify { repo.updateTask(match { it.id == "c" && it.parentUid == null }) }
+                job.cancel()
+            }
+        }
+
+    @Test
+    fun `moveSelectedToList moves the whole selected subtree`() =
+        runTest(testDispatcher) {
+            val parent = createTask(id = "p", uid = "p")
+            val child = createTask(id = "c", uid = "c", parentUid = "p")
+            withViewModelAndRepo(tasks = listOf(parent, child)) { vm, repo ->
+                val job = launch { vm.tasks.collect {} }
+                vm.enterSelection("p")
+                vm.moveSelectedToList("list-2")
+                coVerify { repo.moveTask("p", "list-2") }
+                coVerify { repo.moveTask("c", "list-2") }
+                job.cancel()
+            }
+        }
+
+    @Test
+    fun `reorderTasks writes sequential sortOrder for the new order`() =
+        runTest(testDispatcher) {
+            val a = createTask(id = "a", uid = "a")
+            val b = createTask(id = "b", uid = "b")
+            withViewModelAndRepo(tasks = listOf(a, b)) { vm, repo ->
+                val job = launch { vm.tasks.collect {} }
+                vm.reorderTasks(listOf("b" to null, "a" to null))
+                coVerify { repo.updateTask(match { it.id == "b" && it.sortOrder == 0L }) }
+                coVerify { repo.updateTask(match { it.id == "a" && it.sortOrder == 1L }) }
+                job.cancel()
             }
         }
 

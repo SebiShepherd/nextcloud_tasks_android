@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Geen resultaten gevonden</string>
     <string name="no_search_results_hint">Pas je zoekopdracht aan.</string>
     <string name="sort_dialog_title">Sorteren op</string>
+    <string name="sort_by_manual">Mijn volgorde</string>
     <string name="sort_by_due_date">Vervaldatum</string>
     <string name="sort_by_priority">Prioriteit</string>
     <string name="sort_by_title">Titel</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">Oudertaak</string>
     <string name="parent_none">Geen</string>
     <string name="pick_due_date">Vervaldatum</string>
+    <string name="task_deleted">Taak verwijderd</string>
+    <string name="action_undo">Ongedaan maken</string>
+    <string name="delete_subtasks_title">Taak met subtaken verwijderen?</string>
+    <string name="delete_subtasks_message">Deze taak heeft subtaken. Wat moet ermee gebeuren?</string>
+    <string name="delete_subtasks_all">Alles verwijderen</string>
+    <string name="delete_subtasks_keep">Subtaken behouden</string>
+    <string name="swipe_complete">Klaar</string>
+    <!-- Selection mode -->
+    <string name="selection_count">%1$d geselecteerd</string>
+    <string name="select_all">Alles selecteren</string>
+    <string name="selection_detach">Loskoppelen van bovenliggende taak</string>
+    <string name="mark_complete">Als voltooid markeren</string>
+    <string name="more_options">Meer opties</string>
+    <string name="add_subtask">Subtaak toevoegen</string>
+    <string name="move_to_list">Naar lijst verplaatsen</string>
+    <string name="task_detail_parent_label">Bovenliggende taak</string>
+    <string name="reorder_handle">Herschikken</string>
+    <string name="settings_per_list_sort">Sortering per lijst onthouden</string>
+    <string name="settings_per_list_sort_summary">Elke lijst houdt zijn eigen sortering aan in plaats van één globale</string>
 </resources>

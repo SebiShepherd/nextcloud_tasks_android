@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Ничего не найдено</string>
     <string name="no_search_results_hint">Попробуйте изменить запрос.</string>
     <string name="sort_dialog_title">Сортировать по</string>
+    <string name="sort_by_manual">Мой порядок</string>
     <string name="sort_by_due_date">Сроку выполнения</string>
     <string name="sort_by_priority">Приоритету</string>
     <string name="sort_by_title">Названию</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">Родительская задача</string>
     <string name="parent_none">Нет</string>
     <string name="pick_due_date">Срок выполнения</string>
+    <string name="task_deleted">Задача удалена</string>
+    <string name="action_undo">Отменить</string>
+    <string name="delete_subtasks_title">Удалить задачу с подзадачами?</string>
+    <string name="delete_subtasks_message">У этой задачи есть подзадачи. Что с ними сделать?</string>
+    <string name="delete_subtasks_all">Удалить все</string>
+    <string name="delete_subtasks_keep">Сохранить подзадачи</string>
+    <string name="swipe_complete">Готово</string>
+    <!-- Selection mode -->
+    <string name="selection_count">Выбрано: %1$d</string>
+    <string name="select_all">Выбрать все</string>
+    <string name="selection_detach">Открепить от родительской</string>
+    <string name="mark_complete">Отметить выполненной</string>
+    <string name="more_options">Дополнительно</string>
+    <string name="add_subtask">Добавить подзадачу</string>
+    <string name="move_to_list">Переместить в список</string>
+    <string name="task_detail_parent_label">Родительская задача</string>
+    <string name="reorder_handle">Изменить порядок</string>
+    <string name="settings_per_list_sort">Запоминать сортировку для каждого списка</string>
+    <string name="settings_per_list_sort_summary">Каждый список сохраняет свою сортировку вместо общей</string>
 </resources>

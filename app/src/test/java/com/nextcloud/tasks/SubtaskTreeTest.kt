@@ -73,6 +73,31 @@ class SubtaskTreeTest {
     }
 
     @Test
+    fun `MANUAL sort orders by sortOrder with nulls last`() {
+        val a = task("a").copy(sortOrder = 30)
+        val b = task("b").copy(sortOrder = 10)
+        val c = task("c").copy(sortOrder = null)
+        val sorted =
+            listOf(a, c, b).sortedWith(
+                taskComparator(com.nextcloud.tasks.domain.model.TaskSort.MANUAL),
+            )
+        assertEquals(listOf("b", "a", "c"), sorted.map { it.uid })
+    }
+
+    @Test
+    fun `completed rows nest a done child under its done parent`() {
+        val tasks =
+            listOf(
+                task("p").copy(completed = true),
+                task("c", parentUid = "p").copy(completed = true),
+            )
+        val rows = buildCompletedTaskRows(tasks, emptySet())
+        assertEquals(listOf("p", "c"), rows.map { it.task.uid })
+        assertEquals(listOf(0, 1), rows.map { it.depth })
+        assertTrue(rows.first().hasChildren)
+    }
+
+    @Test
     fun `orphan child whose parent is absent shows at top level`() {
         val tasks = listOf(task("c", parentUid = "missing"))
         val rows = buildOpenTaskRows(tasks, emptyMap(), emptySet())

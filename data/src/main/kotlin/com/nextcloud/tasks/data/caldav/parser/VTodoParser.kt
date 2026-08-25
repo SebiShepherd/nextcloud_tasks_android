@@ -16,6 +16,7 @@ class VTodoParser
         /**
          * Parse iCalendar data and convert VTODO to TaskEntity
          */
+        @Suppress("LongMethod") // flat property extraction; splitting adds indirection without clarity
         fun parseVTodo(
             icalData: String,
             accountId: String,
@@ -54,6 +55,11 @@ class VTodoParser
                 val location = vtodo.getProperty<net.fortuna.ical4j.model.property.Location>("LOCATION")?.value
                 val url = vtodo.getProperty<net.fortuna.ical4j.model.property.Url>("URL")?.uri?.toString()
                 val percentComplete = vtodo.percentComplete?.percentage
+                val sortOrder =
+                    vtodo
+                        .getProperty<net.fortuna.ical4j.model.Property>("X-APPLE-SORT-ORDER")
+                        ?.value
+                        ?.toLongOrNull()
 
                 @Suppress("UNCHECKED_CAST")
                 val categories: List<String> = (
@@ -88,6 +94,7 @@ class VTodoParser
                             location = location,
                             url = url,
                             percentComplete = percentComplete,
+                            sortOrder = sortOrder,
                         ),
                     categories = categories,
                 )
@@ -286,6 +293,11 @@ class VTodoParser
                 val location = vtodo.getProperty<net.fortuna.ical4j.model.property.Location>("LOCATION")?.value
                 val url = vtodo.getProperty<net.fortuna.ical4j.model.property.Url>("URL")?.uri?.toString()
                 val percentComplete = vtodo.percentComplete?.percentage
+                val sortOrder =
+                    vtodo
+                        .getProperty<net.fortuna.ical4j.model.Property>("X-APPLE-SORT-ORDER")
+                        ?.value
+                        ?.toLongOrNull()
 
                 @Suppress("UNCHECKED_CAST")
                 val categories: List<String> = (
@@ -320,6 +332,7 @@ class VTodoParser
                             location = location,
                             url = url,
                             percentComplete = percentComplete,
+                            sortOrder = sortOrder,
                         ),
                     categories = categories,
                 )

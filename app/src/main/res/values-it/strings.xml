@@ -33,6 +33,7 @@
     <string name="no_search_results_title">Nessun risultato trovato</string>
     <string name="no_search_results_hint">Prova a modificare la tua ricerca.</string>
     <string name="sort_dialog_title">Ordina per</string>
+    <string name="sort_by_manual">Il mio ordine</string>
     <string name="sort_by_due_date">Data di scadenza</string>
     <string name="sort_by_priority">Priorità</string>
     <string name="sort_by_title">Titolo</string>
@@ -208,4 +209,23 @@
     <string name="select_parent_task">Attività principale</string>
     <string name="parent_none">Nessuna</string>
     <string name="pick_due_date">Scadenza</string>
+    <string name="task_deleted">Attività eliminata</string>
+    <string name="action_undo">Annulla</string>
+    <string name="delete_subtasks_title">Eliminare l\'attività con le sottoattività?</string>
+    <string name="delete_subtasks_message">Questa attività ha delle sottoattività. Cosa deve accadere?</string>
+    <string name="delete_subtasks_all">Elimina tutto</string>
+    <string name="delete_subtasks_keep">Mantieni le sottoattività</string>
+    <string name="swipe_complete">Fatto</string>
+    <!-- Selection mode -->
+    <string name="selection_count">%1$d selezionate</string>
+    <string name="select_all">Seleziona tutto</string>
+    <string name="selection_detach">Scollega dall’attività principale</string>
+    <string name="mark_complete">Segna come completata</string>
+    <string name="more_options">Altre opzioni</string>
+    <string name="add_subtask">Aggiungi attività secondaria</string>
+    <string name="move_to_list">Sposta nell’elenco</string>
+    <string name="task_detail_parent_label">Attività principale</string>
+    <string name="reorder_handle">Riordina</string>
+    <string name="settings_per_list_sort">Ricorda l’ordinamento per elenco</string>
+    <string name="settings_per_list_sort_summary">Ogni elenco mantiene il proprio ordinamento invece di uno globale</string>
 </resources>

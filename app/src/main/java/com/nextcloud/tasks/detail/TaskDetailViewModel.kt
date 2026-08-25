@@ -1,3 +1,5 @@
+@file:Suppress("ImportOrdering")
+
 package com.nextcloud.tasks.detail
 
 import androidx.lifecycle.SavedStateHandle
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -62,6 +65,24 @@ class TaskDetailViewModel
             tasksRepository
                 .observeTags()
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+        private val allTasks =
+            tasksRepository
+                .observeTasks()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+        /** Direct sub-tasks of this task (children whose parentUid is this task's uid). */
+        val subtasks: StateFlow<List<Task>> =
+            combine(_task, allTasks) { current, all ->
+                val uid = current?.uid ?: return@combine emptyList()
+                all.filter { it.parentUid == uid }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+        /** The parent task, for a back-link, when this task is itself a sub-task. */
+        val parentTask: StateFlow<Task?> =
+            combine(_task, allTasks) { current, all ->
+                current?.parentUid?.let { parentUid -> all.firstOrNull { it.uid == parentUid } }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
         init {
             viewModelScope.launch {
@@ -136,6 +157,47 @@ class TaskDetailViewModel
                     completed = status == "COMPLETED",
                 )
             scheduleSave(debounce = false)
+        }
+
+        /** Creates a sub-task under this task (same list, parentUid = this task's uid). */
+        fun addSubtask(title: String) {
+            val parent = _task.value ?: return
+            val cleanTitle = title.trim().ifEmpty { return }
+            applicationScope.launch {
+                try {
+                    tasksRepository.createTask(
+                        com.nextcloud.tasks.domain.model.TaskDraft(
+                            listId = parent.listId,
+                            title = cleanTitle,
+                            parentUid = parent.uid,
+                        ),
+                    )
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    Timber.e(e, "Failed to add sub-task")
+                }
+            }
+        }
+
+        /** Toggles a sub-task's completion from the detail list. */
+        fun toggleSubtaskComplete(child: Task) {
+            val done = child.completed || child.status?.uppercase() == "CANCELLED"
+            applicationScope.launch {
+                try {
+                    tasksRepository.updateTask(
+                        child.copy(
+                            completed = !done,
+                            status = if (!done) "COMPLETED" else "NEEDS-ACTION",
+                            completedAt = if (!done) Instant.now() else null,
+                        ),
+                    )
+                } catch (
+                    @Suppress("TooGenericExceptionCaught") e: Exception,
+                ) {
+                    Timber.e(e, "Failed to toggle sub-task ${child.id}")
+                }
+            }
         }
 
         fun triggerSync() {

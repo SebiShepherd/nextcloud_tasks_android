@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0..1,0&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f0eee9;font-family:Roboto,system-ui,sans-serif}
+a{color:#0082c9}a:hover{color:#006aa3}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 Roboto,system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 Roboto,system-ui,sans-serif;color:rgba(0,0,0,.55);max-width:760px}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 Roboto,system-ui,sans-serif;color:rgba(0,0,0,.5)}
+.material-symbols-outlined{font-variation-settings:'FILL' 1;line-height:1;user-select:none}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t7">
+<div class="dv-thd"><a class="dv-tid" href="#t7">7</a><span class="dv-tname">Neue Aufgabe als Blatt statt Dialog — mit Ort für „Übergeordnete Aufgabe“</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="7a" style="width:1512px">
+<div class="dv-olabel"><a class="dv-oid" href="#7a">7a</a><span>Der <code style="font:11px ui-monospace,monospace">AlertDialog</code> weicht einem Bottom Sheet über der Tastatur: Titel tippen, alles Weitere über die Icon-Reihe. Keine Chip-Wolke. Views: leer · mit Beschreibung und Liste · Auswahl der übergeordneten Aufgabe · aus einer Aufgabe heraus geöffnet (Parent vorbelegt).</span></div>
+<div style="display:flex;gap:24px">
+
+<div class="dv-card" style="width:360px;height:600px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:22px 16px 16px;filter:brightness(.99)">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;margin-bottom:8px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.24);padding:8px 0 4px">
+    <div style="padding:12px 20px 4px;font:16px/24px Roboto,sans-serif;color:#222;display:flex;align-items:center"><span style="color:#0082c9;font-weight:300">|</span><span style="color:#767676">Neue Aufgabe</span></div>
+    <div style="padding:4px 20px 8px;font:14px/20px Roboto,sans-serif;color:#767676">Beschreibung hinzufügen</div>
+    <div style="display:flex;align-items:center;padding:4px 8px 8px">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">notes</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">schedule</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">list_alt</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">subdirectory_arrow_right</span></div>
+      <div style="flex:1"></div>
+      <div style="height:40px;padding:0 16px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:#cacaca">SPEICHERN</div>
+    </div>
+    <div style="height:52px;background:#e7e7e7;display:flex;align-items:center;justify-content:center;font:500 11px Roboto,sans-serif;color:#767676;letter-spacing:.6px">TASTATUR</div>
+  </div>
+  <div style="position:absolute;left:16px;top:70px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">1 · GEÖFFNET · NUR TITEL NÖTIG</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:600px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:22px 16px 16px;filter:brightness(.99)">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;margin-bottom:8px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.24);padding:8px 0 4px">
+    <div style="padding:12px 20px 2px;font:16px/24px Roboto,sans-serif;color:#222">Kaution zurückfordern</div>
+    <div style="padding:2px 20px 8px;font:14px/20px Roboto,sans-serif;color:#222">Kontoauszug beilegen, Frist 6 Monate<span style="color:#0082c9;font-weight:300">|</span></div>
+    <div style="height:1px;background:#e0e0e0;margin:0 20px 8px"></div>
+    <div style="display:flex;align-items:center;gap:12px;padding:0 20px 10px"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">subdirectory_arrow_right</span><div style="flex:1;font:14px Roboto,sans-serif;color:#222">Unteraufgabe von <b>Wohnung in der Sonnenstraße …</b></div><span class="material-symbols-outlined" style="font-size:18px;color:#767676">close</span></div>
+    <div style="display:flex;align-items:center;padding:4px 8px 8px">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">notes</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">schedule</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#0082c9">list_alt</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#0082c9">subdirectory_arrow_right</span></div>
+      <div style="flex:1"></div>
+      <div style="height:40px;padding:0 16px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:#0082c9">SPEICHERN</div>
+    </div>
+    <div style="height:52px;background:#e7e7e7;display:flex;align-items:center;justify-content:center;font:500 11px Roboto,sans-serif;color:#767676;letter-spacing:.6px">TASTATUR</div>
+  </div>
+  <div style="position:absolute;left:16px;top:70px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">2 · BESCHREIBUNG · LISTE · ÜBERGEORDNET</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:600px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:22px 16px 16px;filter:brightness(.99)">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;margin-bottom:8px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.24);padding:8px 0 12px">
+    <div style="display:flex;justify-content:center;padding:0 0 4px"><div style="width:32px;height:4px;border-radius:2px;background:#cacaca"></div></div>
+    <div style="padding:8px 20px 4px;font:500 16px/24px Roboto,sans-serif;color:#222">Übergeordnete Aufgabe</div>
+    <div style="margin:4px 16px 8px;height:44px;border-radius:22px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 14px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">search</span><div style="flex:1;font:14px Roboto,sans-serif;color:#767676">Aufgabe suchen</div></div>
+    <div style="height:52px;display:flex;align-items:center;gap:14px;padding:0 20px"><span class="material-symbols-outlined" style="font-size:20px;color:#cacaca">block</span><div style="flex:1;font:16px Roboto,sans-serif;color:#222">Keine</div><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">check</span></div>
+    <div style="height:1px;background:#e0e0e0;margin:4px 20px"></div>
+    <div style="padding:6px 20px 2px;font:500 11px Roboto,sans-serif;color:#767676">PRIVAT</div>
+    <div style="height:52px;display:flex;align-items:center;gap:14px;padding:0 20px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9;flex:none"></div><div style="flex:1;min-width:0;font:16px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße kündigen</div></div>
+    <div style="height:44px;display:flex;align-items:center;gap:14px;padding:0 20px 0 40px"><div style="width:6px;height:6px;border-radius:50%;background:#cacaca;flex:none"></div><div style="flex:1;font:15px Roboto,sans-serif;color:#222">Möbel abbauen</div></div>
+    <div style="height:52px;display:flex;align-items:center;gap:14px;padding:0 20px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9;flex:none"></div><div style="flex:1;font:16px Roboto,sans-serif;color:#222">Steuererklärung</div></div>
+    <div style="padding:6px 20px 2px;font:500 11px Roboto,sans-serif;color:#767676">ARBEIT</div>
+    <div style="height:52px;display:flex;align-items:center;gap:14px;padding:0 20px"><div style="width:8px;height:8px;border-radius:50%;background:#46ba61;flex:none"></div><div style="flex:1;font:16px Roboto,sans-serif;color:#222">Release 1.4 vorbereiten</div></div>
+  </div>
+  <div style="position:absolute;left:16px;top:70px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">3 · PARENT WÄHLEN · KEINE CHIP-WOLKE</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:600px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:22px 16px 16px;filter:brightness(.99)">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;margin-bottom:8px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.24);padding:8px 0 4px">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 20px 6px"><span class="material-symbols-outlined" style="font-size:18px;color:#0082c9">subdirectory_arrow_right</span><div style="flex:1;min-width:0;font:500 12px Roboto,sans-serif;color:#0082c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Unteraufgabe von „Wohnung in der Sonnenstraße kündigen“</div></div>
+    <div style="padding:2px 20px 4px;font:16px/24px Roboto,sans-serif;color:#222;display:flex;align-items:center"><span style="color:#0082c9;font-weight:300">|</span><span style="color:#767676">Neue Unteraufgabe</span></div>
+    <div style="padding:4px 20px 8px;font:14px/20px Roboto,sans-serif;color:#767676">Beschreibung hinzufügen</div>
+    <div style="display:flex;align-items:center;padding:4px 8px 8px">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">notes</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">schedule</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">list_alt</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:22px;color:#0082c9">subdirectory_arrow_right</span></div>
+      <div style="flex:1"></div>
+      <div style="height:40px;padding:0 16px;display:flex;align-items:center;font:500 14px Roboto,sans-serif;color:#cacaca">SPEICHERN</div>
+    </div>
+    <div style="height:52px;background:#e7e7e7;display:flex;align-items:center;justify-content:center;font:500 11px Roboto,sans-serif;color:#767676;letter-spacing:.6px">TASTATUR</div>
+  </div>
+  <div style="position:absolute;left:16px;top:70px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">4 · AUS EINER AUFGABE HERAUS · VORBELEGT</div>
+</div>
+
+</div>
+</div>
+
+<div class="dv-opt" id="7r" style="width:600px">
+<div class="dv-olabel"><a class="dv-oid" href="#7r">7r</a>Warum so — und was vor der Umsetzung noch fehlt</div>
+<div class="dv-card" style="padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#555">
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:6px">Zum Blatt</div>
+<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+<div>Ein Feld, ein Blick: <b style="color:#222">Titel ist das einzige Pflichtfeld</b>, alles andere sind Icons, die das Blatt bei Bedarf wachsen lassen. Google Tasks macht genau das; der bisherige <code style="font:11px ui-monospace,monospace">AlertDialog</code> mit zwei Textfeldern plus Dropdown ist über der Tastatur zu hoch.</div>
+<div><b style="color:#222">Keine Chip-Wolke.</b> Übergeordnete Aufgabe und Liste laufen über eine Zeile mit Wert und ein Auswahl-Blatt mit Suche — bei 40 Aufgaben ist eine Wolke unbenutzbar, eine gesuchte Liste nicht.</div>
+<div><b style="color:#222">Parent-Auswahl zeigt Hierarchie:</b> gruppiert nach Liste, Ebene-1-Aufgaben eingerückt, Ebene 2 fehlt bewusst (tiefer als zwei geht nicht).</div>
+<div><b style="color:#222">Liste folgt dem Parent:</b> sobald eine übergeordnete Aufgabe gesetzt ist, verschwindet die Listen-Zeile ganz — die Liste ergibt sich aus dem Parent, und ein gesperrtes Feld mit Erklärzeile wäre nur Ballast.</div>
+<div><b style="color:#222">Vorbelegung schlägt Auswahl:</b> aus „Unteraufgabe hinzufügen“ geöffnet, steht der Parent schon oben und die Icon-Reihe zeigt ihn aktiv — kein zweiter Schritt.</div>
+</div>
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:6px">Favoriten</div><p style="margin:0 0 14px">Nextcloud Web hat sie schon, ohne eigenes Feld: der Stern ist <code style="font:11px ui-monospace,monospace">PRIORITY</code>. <code style="font:11px ui-monospace,monospace">toggleStarred</code> setzt 1, wenn die Priorität nicht zwischen 1 und 4 liegt, sonst 0; die Sammlung „Favoriten“ filtert <code style="font:11px ui-monospace,monospace">priority &gt; 0 &amp;&amp; priority &lt; 5</code>. Wir übernehmen das — dann ist der Stern in der App derselbe Wert wie „Dringlichkeit: Hoch“ im Detail, und beides muss dieselbe Quelle lesen.</p><div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:6px">Vor der Umsetzung offen</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<div><b style="color:#222">Dark Mode.</b> Alle Views sind Light. Bei den Auswahl-Farben (<code style="font:11px ui-monospace,monospace">primaryContainer</code>) und der Kind-Zeile brauchen wir einen Blick auf <code style="font:11px ui-monospace,monospace">DarkColorScheme</code> — dort liegen <code style="font:11px ui-monospace,monospace">surface #1E1E1E</code> und <code style="font:11px ui-monospace,monospace">surfaceVariant #2C2C2C</code> dicht beieinander.</div>
+<div><b style="color:#222">Dynamic Color.</b> Die App aktiviert <code style="font:11px ui-monospace,monospace">dynamicColor = true</code>; ab Android 12 ist Nextcloud-Blau also nicht garantiert. Auswahl-Zustand und Guide-Linie müssen über <code style="font:11px ui-monospace,monospace">colorScheme</code> laufen, nicht über Literale.</div>
+<div><b style="color:#222">Tablet/expanded.</b> <code style="font:11px ui-monospace,monospace">isExpandedScreen</code> mit 720dp Inhaltsbreite: dort ist Einrückung billig — eventuell dürfen dort drei Ebenen sichtbar sein.</div>
+<div><b style="color:#222">Leerer Zustand</b> für „keine Unteraufgaben“ im Detail und Verhalten bei <code style="font:11px ui-monospace,monospace">READ</code>-Listen sind noch nicht gezeichnet.</div>
+<div><b style="color:#222">Strings.</b> Neue Keys für alle Aktionen und Snackbars, DE und EN — die App pflegt 13 Sprachen, aber übersetzt werden müssen zuerst diese beiden.</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Weiter mit: „Blatt in den Prototyp“ · „Dark-Mode-Variante von <a class="dv-oid" href="#5a">5a</a>“ · „leerer Zustand + Read-only-Liste zeigen“</p>
+</section>
+
+<section class="dv-turn" id="t6">
+<div class="dv-thd"><a class="dv-tid" href="#t6">6</a><span class="dv-tname">Die vier offenen Entscheidungen aus <a class="dv-oid" href="#5s">5s</a> — was die Referenzen sagen</span></div>
+<div class="dv-opts">
+<div class="dv-opt" id="6r" style="width:660px">
+<div class="dv-olabel"><a class="dv-oid" href="#6r">6r</a>Belege, Empfehlung, Stand im Prototyp</div>
+<div class="dv-card" style="padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#555">
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:4px">1. Erledigter Parent mit offenen Kindern — eindeutig, und gegen meine erste Empfehlung</div>
+<p style="margin:0 0 6px">Die Frage stellt sich bei den Referenzen kaum, weil der Zustand dort <b>nicht entsteht</b>: Abhaken kaskadiert. Ich habe <code style="font:11px ui-monospace,monospace">TaskCompleter.kt</code> in Tasks.org gelesen — <code style="font:11px ui-monospace,monospace">setComplete(task, completed)</code> nimmt per Default alle Kinder mit, und beim <i>Wieder-Öffnen</i> zusätzlich alle <b>Eltern</b> (<code style="font:11px ui-monospace,monospace">if (!completed) addAll(getParents(...))</code>); read-only Aufgaben werden übersprungen. Todoist, Apple Reminders und Google Tasks verhalten sich genauso.</p>
+<p style="margin:0 0 14px"><b style="color:#222">Umgesetzt:</b> Parent abhaken hakt die Unteraufgaben mit ab, ein Kind wieder öffnen öffnet die Kette nach oben, ein Rückgängig deckt alles. Damit fällt meine alte Regel „völlig unabhängig“ weg. Der Restfall — ein anderer Client hakt den Parent ab und lässt Kinder offen — wird schlicht so gezeigt, wie er ist: Parent unten im Erledigt-Bereich, offene Kinder als eigenständige Zeilen oben.</p>
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:4px">2. Ebene 2 — dein (b), umgesetzt</div>
+<p style="margin:0 0 14px">Ebene 2 rendert mit halber Einrückung (12dp statt 16dp), tiefer wird gekappt; der Versuch quittiert per Snackbar. Todoist macht es genauso (mehrere Ebenen, gekappte Einrückung), Tasks.org rückt stur 20dp pro Ebene ein und läuft auf 360dp irgendwann in die Wand. Im Prototyp kannst du es über „Zuordnen zu …“ ausprobieren: dort stehen jetzt auch Unteraufgaben der Ebene 1 als Ziel.</p>
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:4px">3. Sortierung global oder pro Liste — Best Practice ist beides</div>
+<p style="margin:0 0 14px">Tasks.org löst genau deinen Zwiespalt mit einer Einstellung: <i>„Per-list sorting — Remember sort and group settings for each list independently“</i> (<code style="font:11px ui-monospace,monospace">p_per_list_sort</code>), standardmäßig <b>aus</b>; im Code entscheidet das, ob <code style="font:11px ui-monospace,monospace">FilterPreferences</code> oder die globalen <code style="font:11px ui-monospace,monospace">Preferences</code> gelesen werden. Google Tasks sortiert dagegen pro Liste, ohne Wahl. Dein Dateiexplorer-Vergleich trägt übrigens: dort ist Ordner-Sortierung nur deshalb unauffällig, weil man sie selbst gesetzt hat. <b style="color:#222">Empfehlung:</b> global als Default, „Sortierung pro Liste merken“ als Schalter in den Einstellungen — kein zusätzlicher Zustand im Sortier-Dialog, und wer es braucht, findet es.</p>
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:4px">4. Suchtreffer — Parent mitrendern, ja, und billiger als die Alternative</div>
+<p style="margin:0">Todoist zeigt bei Treffern den Pfad, Tasks.org zeigt Treffer flach ohne Kontext (und verliert ihn damit). Parent mitrendern ist auch technisch der einfachere Weg: die Ergebnisliste durchläuft denselben Baumbau wie die normale Liste, nur mit gefilterter Menge — Parent-Zeile als nicht-tappbarer Kontext, Kind darunter normal. Ein Breadcrumb wäre ein eigener Zeilentyp mit eigener Kürzungslogik.</p>
+</div>
+</div>
+</div>
+<p class="dv-next">Weiter mit: „zeig den Suchtreffer-Fall als View“ · „Ebene-2-Fall im Prototyp vorbefüllen“ · „Einstellungs-Screen mit dem Sortier-Schalter“</p>
+</section>
+
+<section class="dv-turn" id="t5">
+<div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname">Long-Press = Auswahl <i>und</i> Ziehen gleichzeitig (Tasks.org / MS To Do) — alle Views</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="5a" style="width:1900px">
+<div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a><span>Ein Modus, zwei Fähigkeiten: Long-Press wählt die Aufgabe aus <b>und</b> schaltet die Handles frei. Zurück-Geste beendet den Modus. Keine Icons in den Zeilen. Views: Ruhe · 1 ausgewählt · Ziehen · 3 ausgewählt mit Overflow · Liste wechseln (nur die Listen; danach die normale Snackbar „Nach … verschoben“ mit Rückgängig).</span></div>
+<div style="display:flex;gap:24px">
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;min-width:0">
+        <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung in der Sonnenstraße kündigen</div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:8px">
+          <div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_less</span><span style="font:500 12px Roboto,sans-serif;color:#222">1/3</span></div>
+          <div style="font:500 11px/16px Roboto,sans-serif;color:#767676">Fällig: 14. August</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding-left:8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">1 · RUHE</div>
+  <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;padding:0;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">arrow_back</span></div>
+      <div style="flex:1;min-width:0;font:500 16px Roboto,sans-serif;color:#006aa3;padding-left:4px">1</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">check_circle</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">subdirectory_arrow_right</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">drive_file_move</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">more_vert</span></div>
+    </div>
+  </div>
+  <div style="padding:22px 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#cacaca;flex:none">drag_indicator</span>
+    </div>
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca;flex:none">drag_indicator</span>
+      </div>
+      <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:9px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/22px Roboto,sans-serif;color:#006aa3">Nachsendeauftrag stellen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#0082c9;flex:none">drag_indicator</span>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca;flex:none">drag_indicator</span>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#cacaca;flex:none">drag_indicator</span>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">2 · LONG-PRESS: AUSGEWÄHLT + HANDLES</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;padding:0;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">arrow_back</span></div>
+      <div style="flex:1;min-width:0;font:500 16px Roboto,sans-serif;color:#006aa3;padding-left:4px">1</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none;opacity:.4"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">check_circle</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none;opacity:.4"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">subdirectory_arrow_right</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none;opacity:.4"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">drive_file_move</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none;opacity:.4"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">more_vert</span></div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#cacaca;flex:none">drag_indicator</span>
+    </div>
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca;flex:none">drag_indicator</span>
+      </div>
+      <div style="height:40px;border:2px dashed #0082c9;border-radius:12px;background:rgba(0,130,201,.06);display:flex;align-items:center;padding:0 10px;font:500 12px Roboto,sans-serif;color:#0082c9;box-sizing:border-box">Ebene 1 · Unteraufgabe von „Wohnung …“</div>
+    </div>
+    <div style="background:#fff;border:1px solid #0082c9;border-radius:12px;padding:10px;display:flex;align-items:center;box-shadow:0 10px 20px rgba(0,0,0,.26);transform:translateX(20px) rotate(-.7deg);margin-top:8px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/22px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      <span class="material-symbols-outlined" style="font-size:20px;color:#0082c9;flex:none">drag_indicator</span>
+    </div>
+    <div style="opacity:.45;display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center;margin-left:25px">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">3 · ZIEHEN · BAR BLEIBT, AKTIONEN INAKTIV</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;padding:0;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">arrow_back</span></div>
+      <div style="flex:1;min-width:0;font:500 16px Roboto,sans-serif;color:#006aa3;padding-left:4px">3</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">check_circle</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none;opacity:.4"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">subdirectory_arrow_right</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">drive_file_move</span></div>
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(0,106,163,.14);display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">more_vert</span></div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:11px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#006aa3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#0082c9;flex:none">drag_indicator</span>
+    </div>
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca;flex:none">drag_indicator</span>
+      </div>
+      <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:9px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/22px Roboto,sans-serif;color:#006aa3">Nachsendeauftrag stellen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#0082c9;flex:none">drag_indicator</span>
+      </div>
+      <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:9px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/22px Roboto,sans-serif;color:#006aa3">Möbel abbauen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#0082c9;flex:none">drag_indicator</span>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;right:8px;top:60px;background:#fff;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.28);padding:8px 0;width:238px">
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">low_priority</span><span style="font:16px Roboto,sans-serif;color:#222">Aus Unteraufgabe lösen</span></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#cacaca">format_indent_increase</span><span style="font:16px Roboto,sans-serif;color:#cacaca">Zuordnen zu …</span></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">select_all</span><span style="font:16px Roboto,sans-serif;color:#222">Alle auswählen</span></div>
+    <div style="height:1px;background:#e0e0e0;margin:4px 0"></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#e9322d">delete</span><span style="font:16px Roboto,sans-serif;color:#e9322d">Löschen</span></div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">4 · 3 AUSGEWÄHLT · OVERFLOW UNTER DER BAR</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px;filter:brightness(.98)">
+    <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;padding:0;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">arrow_back</span></div>
+      <div style="flex:1;min-width:0;font:500 16px Roboto,sans-serif;color:#006aa3;padding-left:4px">1</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">drive_file_move</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">more_vert</span></div>
+    </div>
+  </div>
+  <div style="padding:22px 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#cacaca;flex:none">drag_indicator</span>
+    </div>
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca;flex:none">drag_indicator</span>
+      </div>
+      <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:9px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/22px Roboto,sans-serif;color:#006aa3">Nachsendeauftrag stellen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#0082c9;flex:none">drag_indicator</span>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+        <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca;flex:none">drag_indicator</span>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32);display:flex;flex-direction:column;justify-content:flex-end">
+    <div style="background:#fff;border-radius:28px 28px 0 0;padding:0 0 16px;box-shadow:0 -6px 24px rgba(0,0,0,.24)">
+      <div style="display:flex;justify-content:center;padding:8px 0 4px"><div style="width:32px;height:4px;border-radius:2px;background:#cacaca"></div></div>
+      <div style="padding:8px 24px 12px;font:500 16px/24px Roboto,sans-serif;color:#222">Liste wechseln</div>
+      <div style="height:1px;background:#e0e0e0;margin-bottom:4px"></div>
+      <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><div style="width:10px;height:10px;border-radius:50%;background:#0082c9;flex:none"></div><div style="flex:1;font:16px Roboto,sans-serif;color:#222">Privat</div><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">check</span></div>
+      <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><div style="width:10px;height:10px;border-radius:50%;background:#46ba61;flex:none"></div><div style="flex:1;font:16px Roboto,sans-serif;color:#222">Arbeit</div></div>
+      <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">add</span><div style="flex:1;font:16px Roboto,sans-serif;color:#222">Neue Liste …</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;top:66px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">5 · LISTE WECHSELN · NUR LISTEN, KEINE ERKLÄRUNG</div>
+</div>
+
+</div>
+</div>
+
+<div class="dv-opt" id="5r" style="width:620px">
+<div class="dv-olabel"><a class="dv-oid" href="#5r">5r</a>Deine Logik-Fragen — und die Fälle, die wir bisher nicht bedacht haben</div>
+<div class="dv-card" style="padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#555">
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:6px">Unteraufgabe in eine andere Liste?</div>
+<p style="margin:0 0 14px"><code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">RELATED-TO</code> zeigt auf eine <b>UID</b>, nicht auf eine Collection — technisch ließe sich ein Kind in eine andere Liste legen. Praktisch löst niemand die Beziehung über Listengrenzen auf: die Nextcloud-Weboberfläche zeigt sie nicht, und beim nächsten Sync wäre es eine Waise. Deshalb die Regel: <b>Parent verschieben nimmt die Kinder immer mit</b> (keine Rückfrage nötig), <b>ein Kind allein verschieben löst die Verknüpfung</b>. Wichtig ist das <i>Wie</i>: kein Warnkasten und kein Erklärtext — der Picker zeigt nur Listen, danach kommt die gewohnte Snackbar „Nach … verschoben“ mit Rückgängig. Genau so verhalten sich Todoist und Google Tasks; MS To Do lässt Steps gar nicht einzeln wandern.</p>
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:6px">Neun Fälle, die noch offen sind</div>
+<div style="display:flex;flex-direction:column;gap:9px">
+<div><b style="color:#222">Tiefe Ketten von anderen Clients.</b> Das Web erlaubt Kind→Kind→Kind. Wir <i>zeigen</i> flach auf Ebene 1 — dürfen aber beim Speichern <code style="font:11px ui-monospace,monospace">RELATED-TO</code> nicht platt schreiben, sonst zerstört unsere UI eine Struktur, die wir nur nicht darstellen können.</div>
+<div><b style="color:#222">Zyklen.</b> Zwei Clients können A→B und B→A schreiben. Der Baumbau muss das erkennen und die Kette brechen, sonst Endlosrekursion.</div>
+<div><b style="color:#222">percentComplete.</b> Das Feld gehört dem Nutzer (es gibt einen eigenen Slider im Detail). Aus Kindern abgeleiteter Fortschritt darf nur <i>angezeigt</i>, nicht zurückgeschrieben werden — sonst überschreiben wir bei jedem Häkchen einen manuell gesetzten Wert.</div>
+<div><b style="color:#222">Erledigter Parent, offene Kinder.</b> Heute wandern erledigte Aufgaben in den Bereich unten — die offenen Kinder würden mit verschwinden. Nötige Regel: offene Kinder bleiben oben sichtbar (mit Parent-Zeile als Kontext) oder werden vorübergehend als Top-Level gezeigt.</div>
+<div><b style="color:#222">Suche und Filter.</b> Trifft die Suche ein Kind, fehlt der Kontext. Im Detail haben wir den Breadcrumb nach oben, in der Liste nicht — Suchtreffer brauchen eine Parent-Zeile darüber.</div>
+<div><b style="color:#222">Read-only geteilte Listen.</b> <code style="font:11px ui-monospace,monospace">ShareAccess.READ</code> muss Handles, „Unteraufgabe hinzufügen“ <i>und</i> das Ziehen in diese Liste sperren. Bisher deaktivieren wir nur Checkbox und Löschen.</div>
+<div><b style="color:#222">Bulk-Undo.</b> Drei Aufgaben löschen darf nicht drei Snackbars erzeugen, sondern eine mit einem Rückgängig über alle.</div>
+<div><b style="color:#222">Auswahl über Listengrenzen.</b> Bei Auswahl aus zwei Listen sind „Zuordnen zu …“ und Verschachteln sinnlos — die Aktionen müssen sich abschalten (in View&nbsp;4 ist genau das gezeigt: <i>Zuordnen zu …</i> ist ausgegraut, weil ein Parent mit seinen Kindern ausgewählt ist).</div>
+<div><b style="color:#222">Reihenfolge-Persistenz.</b> Kein CalDAV-Standardfeld. Vorschlag: <code style="font:11px ui-monospace,monospace">X-APPLE-SORT-ORDER</code> schreiben (Reminders-kompatibel), lokal spiegeln, bei Konflikt letzter Schreiber gewinnt — und die Reihenfolge nie gegen eine Feld-Sortierung ausspielen.</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="5s" style="width:620px">
+<div class="dv-olabel"><a class="dv-oid" href="#5s">5s</a>Die 9 Fälle, aufgeteilt: entschieden · brauche dich · erst bei der Umsetzung</div>
+<div class="dv-card" style="padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#555">
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#0082c9;margin-bottom:8px">Entschieden — steckt schon im Prototyp</div>
+<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:16px">
+<div><b style="color:#222">Waisen</b> erscheinen still als Top-Level, ohne Hinweis-Chip.</div>
+<div><b style="color:#222">Verschieben</b> ohne Vorab-Warnung, Parent nimmt Kinder mit, Snackbar danach.</div>
+<div><b style="color:#222">Bulk-Undo:</b> eine Snackbar, ein Rückgängig für die ganze Auswahl.</div>
+<div><b style="color:#222">Auswahl über Listengrenzen:</b> „Zuordnen zu …“ und Verschachteln schalten ab.</div>
+<div><b style="color:#222">Read-only-Listen:</b> keine Handles, kein „Unteraufgabe hinzufügen“, kein Drop.</div>
+<div><b style="color:#222">Fortschritt am Parent</b> wird nur angezeigt, nie geschrieben.</div>
+</div>
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#e9322d;margin-bottom:8px">Brauche eine Entscheidung von dir</div>
+<div style="display:flex;flex-direction:column;gap:9px;margin-bottom:16px">
+<div><b style="color:#222">1. Erledigter Parent, offene Kinder.</b> (a) Kinder bleiben oben als Top-Level sichtbar · (b) Parent samt Kindern wandert nach unten in „Erledigt“ · (c) Parent lässt sich erst abhaken, wenn alle Kinder erledigt sind. Ich tendiere zu (a) — Arbeit verschwindet sonst aus dem Blick.</div>
+<div><b style="color:#222">2. Tiefe Ketten aus dem Web.</b> (a) flach auf Ebene 1 anzeigen · (b) Ebene 2 mit halber Einrückung zeigen und ab Ebene 3 kappen (Todoist-Weg). Ich tendiere zu (a), du hattest bei 360dp Platzbedenken.</div>
+<div><b style="color:#222">3. „Meine Reihenfolge“ global oder pro Liste?</b> Tasks.org kann pro Liste. Pro Liste ist mächtiger, verdoppelt aber die Zustände im Sortier-Dialog.</div>
+<div><b style="color:#222">4. Suchtreffer auf ein Kind:</b> Parent-Zeile als Kontext mitrendern (mehr Platzverbrauch) oder nur ein kleiner Breadcrumb über dem Titel?</div>
+</div>
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;color:#767676;margin-bottom:8px">Erst bei der Umsetzung — steht in <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">UMSETZUNG.md</code></div>
+<div style="display:flex;flex-direction:column;gap:7px">
+<div>Zyklen (A→B→A) beim Baumbau erkennen und brechen.</div>
+<div>Fremde Verschachtelungstiefe niemals platt zurückschreiben.</div>
+<div>Persistenz der manuellen Reihenfolge und Konfliktauflösung.</div>
+<div>Klapp-Zustand in die lokale DB statt in <code style="font:11px ui-monospace,monospace">remember</code>.</div>
+<div>Schreib-Verstärkung: ein Häkchen am Kind darf nicht den Parent mit-syncen.</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Weiter mit: „<a class="dv-oid" href="#5a">5a</a> ist gesetzt, bau die offenen Fälle aus <a class="dv-oid" href="#5r">5r</a> ein“ · „View für erledigten Parent mit offenen Kindern“ · „Suchtreffer mit Parent-Kontext zeigen“</p>
+</section>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Warum die Referenzen eine kontextuelle Top-Bar nehmen — und was das für uns heißt</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4r" style="width:600px">
+<div class="dv-olabel"><a class="dv-oid" href="#4r">4r</a>Die Hintergründe, sortiert nach Gewicht</div>
+<div class="dv-card" style="padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#555">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div><b style="color:#222">1. Mehrfachauswahl ist der eigentliche Grund.</b> Ein Dreipunkt pro Zeile kann nur „diese eine Aufgabe“. Sobald ein Produkt „drei Aufgaben in eine andere Liste verschieben“ können will, braucht es einen Auswahl-Zustand — und der braucht eine Leiste, die zeigt, <i>wie viele</i> ausgewählt sind und <i>was</i> damit geht. Das ist die Android-Konvention seit der Contextual Action Bar (Gmail, Fotos, Dateien).</div>
+<div><b style="color:#222">2. Accessibility, aber anders als man denkt.</b> Der Dreipunkt ist nicht per se unzugänglich — das Problem ist die <i>Menge</i>: bei 20 Aufgaben liegen 20 zusätzliche fokussierbare Buttons in der Liste. TalkBack liest pro Zeile „Nachsendeauftrag stellen … Weitere Optionen“, Switch-Access und Tastatur brauchen pro Zeile einen Extra-Stopp. Die Top-Bar hat <i>einen</i> Satz Aktionen, unabhängig von der Listenlänge, und die Auswahl wird als Zustand angekündigt („1 ausgewählt“) statt als 20 gleich benannte Buttons.</div>
+<div><b style="color:#222">3. Trefferflächen.</b> 48dp Mindestgröße gilt auch für den Dreipunkt. In einer kompakten Kind-Zeile (bei uns 40dp Inhalt) kollidiert das mit der Zeilenhöhe — in <a class="dv-oid" href="#3a">3a</a> mussten wir auf 32–36dp runter, also unter die Vorgabe. Die Top-Bar-Icons sind immer 48dp.</div>
+<div><b style="color:#222">4. Optische Ruhe.</b> Genau dein Punkt: eine Spalte Dreipunkte, die bei unterschiedlich hohen Karten nicht auf einer Linie sitzt, ist unruhig. Deswegen sitzt bei den Referenzen in der Zeile <i>nichts</i>, und die Aktionen erscheinen nur im Auswahl-Zustand.</div>
+<div><b style="color:#222">5. Warum es sich trotzdem nerviger anfühlt:</b> zwei Schritte statt einem (auswählen → Aktion), und der Auswahl-Modus kapert die Bar samt Zurück-Geste. Für die häufigste Einzelaktion — löschen — ist der Swipe schneller als beides.</div>
+<div style="padding-top:4px;border-top:1px solid #e0e0e0"><b style="color:#222">Mein Fazit:</b> Long-Press bleibt bei uns <b>Auswahl</b> (nicht Ziehen, nicht Menü) — das ist die Erwartung auf Android und löst gleichzeitig Mehrfachauswahl. Der Zieh-Modus hängt sich als Aktion in genau diese Leiste. Für Einzelaktionen bleiben Swipe und das Detail. Und der Dreipunkt in der Zeile fällt weg — damit ist auch das 48dp-Problem aus <a class="dv-oid" href="#3a">3a</a> weg und die Karte bleibt ruhig.</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="4a" style="width:748px">
+<div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a><span><b>Auswahl-Modus statt Dreipunkt.</b> Long-Press wählt aus (links, eine Aufgabe): die Bar zeigt Anzahl und die vier häufigsten Aktionen als Icons, alles Weitere im Overflow rechts. Rechts: drei ausgewählte Aufgaben, Overflow offen — Hierarchie- und Zieh-Aktion sitzen darin. Die Zeilen selbst bleiben frei von Icons.</span></div>
+<div style="display:flex;gap:28px">
+
+<div class="dv-card" style="width:360px;height:600px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;padding:0;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">close</span></div>
+      <div style="flex:1;min-width:0;font:500 16px Roboto,sans-serif;color:#006aa3;white-space:nowrap;overflow:hidden;padding-left:4px">1</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">check_circle</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">subdirectory_arrow_right</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">drive_file_move</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">more_vert</span></div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;min-width:0">
+        <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung in der Sonnenstraße kündigen</div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:8px">
+          <div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_less</span><span style="font:500 12px Roboto,sans-serif;color:#222">1/3</span></div>
+          <div style="font:500 11px/16px Roboto,sans-serif;color:#767676">Fällig: 14. August</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding-left:8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+      </div>
+      <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:9px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;min-width:0;font:500 16px/22px Roboto,sans-serif;color:#006aa3">Nachsendeauftrag stellen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">EINE AUSGEWÄHLT · ZEILE OHNE ICONS</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:600px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;padding:0;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">close</span></div>
+      <div style="flex:1;min-width:0;font:500 16px Roboto,sans-serif;color:#006aa3;padding-left:4px">3</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">check_circle</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">subdirectory_arrow_right</span></div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">drive_file_move</span></div>
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(0,106,163,.14);display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#006aa3">more_vert</span></div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:11px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#006aa3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße …</div>
+    </div>
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:9px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;font:500 16px/22px Roboto,sans-serif;color:#006aa3">Nachsendeauftrag stellen</div>
+      </div>
+      <div style="background:#d3e4f4;border:2px solid #0082c9;border-radius:12px;padding:9px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #006aa3;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;font:500 16px/22px Roboto,sans-serif;color:#006aa3">Möbel abbauen</div>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;right:8px;top:60px;background:#fff;border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.28);padding:8px 0;width:230px">
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">low_priority</span><span style="font:16px Roboto,sans-serif;color:#222">Aus Unteraufgabe lösen</span></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">format_indent_increase</span><span style="font:16px Roboto,sans-serif;color:#222">Zuordnen zu …</span></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">swap_vert</span><span style="font:16px Roboto,sans-serif;color:#222">Reihenfolge ändern</span></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">select_all</span><span style="font:16px Roboto,sans-serif;color:#222">Alle auswählen</span></div>
+    <div style="height:1px;background:#e0e0e0;margin:4px 0"></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#e9322d">delete</span><span style="font:16px Roboto,sans-serif;color:#e9322d">Löschen</span></div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">DREI AUSGEWÄHLT · OVERFLOW OFFEN</div>
+</div>
+
+</div>
+</div>
+
+</div>
+<p class="dv-next">Weiter mit: „<a class="dv-oid" href="#4a">4a</a> in den Prototyp“ · „<a class="dv-oid" href="#4a">4a</a> nur mit Einzelauswahl, ohne Mehrfach“ · „Swipe-Aktionen konfigurierbar machen“</p>
+</section>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Zwei vollständige Varianten — Long-Press = Draggen, Dreipunkt statt Delete-Icon, Swipes dabei, Sortierung geklärt</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3r" style="width:560px">
+<div class="dv-olabel"><a class="dv-oid" href="#3r">3r</a>Notiz: Drag-Sortierung × Feld-Sortierung — und was die Referenzen machen</div>
+<div class="dv-card" style="padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#555">
+<p style="margin:0 0 12px"><b style="color:#222">Das Kernproblem:</b> eine Drag-Reihenfolge ist eine <i>gespeicherte Ordnung</i> (bei CalDAV in <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">X-APPLE-SORT-ORDER</code>/<code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">RELATED-TO</code>-Position). Eine Feld-Sortierung berechnet die Ordnung jedes Mal neu. Beides gleichzeitig ist logisch unmöglich — man kann in einer nach Fälligkeit sortierten Liste nichts „an Platz 3“ ziehen.</p>
+<div style="display:flex;flex-direction:column;gap:9px;margin-bottom:12px">
+<div style="display:grid;grid-template-columns:112px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">Tasks.org</span><span>Löst es über die Adapter-Wahl: nur wenn die Sortier-Einstellung manuell ist, wird überhaupt ein Drag-fähiger Adapter gebaut (<code style="font:11px ui-monospace,monospace">filter.supportsManualSort() &amp;&amp; queryPreferences.isManualSort</code> in <code style="font:11px ui-monospace,monospace">TaskAdapterProvider</code>). Sonst kein Ziehen. Ein Parent kann außerdem nie in sein eigenes Kind fallen (<code style="font:11px ui-monospace,monospace">canMove</code> prüft <code style="font:11px ui-monospace,monospace">isDescendantOf</code>). Sortierung ist optional pro Liste.</span></div>
+<div style="display:grid;grid-template-columns:112px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">Google Tasks</span><span>„Meine Reihenfolge“ ist eine eigene Sortier-Option — Ziehen geht nur dort; nach Datum sortiert ist die Liste unbeweglich. Long-Press = ausschließlich Ziehen, kein Menü.</span></div>
+<div style="display:grid;grid-template-columns:112px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">MS To Do</span><span>Long-Press startet Ziehen <i>und</i> blendet oben eine Aktionsleiste ein — genau die versteckte Doppelbelegung, die du zu Recht nicht willst.</span></div>
+<div style="display:grid;grid-template-columns:112px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">Todoist</span><span>Beim Ziehen in einer sortierten Ansicht kommt ein Hinweis, dass die Sortierung dafür auf manuell wechseln muss.</span></div>
+</div>
+<p style="margin:0 0 12px"><b style="color:#222">Vorschlag für die App:</b> <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">TaskSort</code> bekommt einen fünften Wert <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">MANUAL</code> und heißt user-facing „Meine Reihenfolge“ (wie Google Tasks) und wird Default für neue Installationen. Nur dort sind Handles aktiv. Wer nach Fälligkeit sortiert und lange drückt, bekommt eine Snackbar „Zum Sortieren per Hand auf <i>Meine Reihenfolge</i> umstellen“ mit Aktion — kein stiller Fehlschlag. <b style="color:#222">Verschachteln bleibt in beiden Fällen möglich</b>, nur nicht per Drag: dafür ist das Dreipunkt-Blatt da.</p>
+<p style="margin:0"><b style="color:#222">Deine Entscheidungen, eingebaut:</b> kein Long-Press-Menü. Long-Press = Ziehen (wie Google Tasks). Delete-Icon → Dreipunkt-Icon, öffnet das Blatt. Swipes zusätzlich. Und für <a class="dv-oid" href="#3b">3b</a>: Kind-Zeilen bekommen wieder eine eigene Kontur, sonst sind sie nicht swipebar lesbar.</p>
+</div>
+</div>
+
+<div class="dv-opt" id="3a" style="width:1504px">
+<div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a><span><b>Einrückungs-Liste, vollständig.</b> Ruhezustand mit Dreipunkt · Long-Press zieht sofort (keine Zwischenstufe) · Dreipunkt-Blatt mit allen Aktionen aus #59/#107/#108 · Sortier-Dialog mit dem neuen Eintrag „Meine Reihenfolge“.</span></div>
+<div style="display:flex;gap:28px">
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;min-width:0">
+        <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung in der Sonnenstraße kündigen</div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:8px">
+          <div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_less</span><span style="font:500 12px Roboto,sans-serif;color:#222">1/3</span></div>
+          <div style="font:500 11px/16px Roboto,sans-serif;color:#767676">Fällig: 14. August</div>
+        </div>
+      </div>
+      <div style="width:36px;height:36px;margin:-8px -8px 0 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">more_vert</span></div>
+    </div>
+
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+        <span class="material-symbols-outlined" style="font-size:22px;color:#767676;flex:none">more_vert</span>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+        <span class="material-symbols-outlined" style="font-size:22px;color:#767676;flex:none">more_vert</span>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;min-width:0;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+        <span class="material-symbols-outlined" style="font-size:22px;color:#767676;flex:none">more_vert</span>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding-left:8px">
+        <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:8px"><div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_more</span><span style="font:500 12px Roboto,sans-serif;color:#222">0/2</span></div></div>
+      </div>
+      <div style="width:36px;height:36px;margin:-8px -8px 0 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">more_vert</span></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">RUHEZUSTAND · DREIPUNKT STATT DELETE</div>
+  <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße kündigen</div>
+    </div>
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding:0 8px;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:14px;height:2px;background:#0082c9;flex:none"></div>
+        <div style="flex:1;height:40px;border:2px dashed #0082c9;border-radius:12px;background:rgba(0,130,201,.06);display:flex;align-items:center;padding:0 10px;font:500 12px Roboto,sans-serif;color:#0082c9">Ebene 1 · Unteraufgabe von „Wohnung …“</div>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #0082c9;border-radius:12px;padding:12px;display:flex;align-items:center;box-shadow:0 10px 20px rgba(0,0,0,.26);transform:translateX(20px) rotate(-.7deg);margin-top:8px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#0082c9;flex:none">drag_indicator</span>
+    </div>
+    <div style="opacity:.45;display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">LONG-PRESS ZIEHT DIREKT · KEIN MENÜ</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px;filter:brightness(.98)">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:0 16px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;opacity:.45">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung kündigen</div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:0 0 12px;box-shadow:0 -6px 24px rgba(0,0,0,.24)">
+    <div style="display:flex;justify-content:center;padding:8px 0 4px"><div style="width:32px;height:4px;border-radius:2px;background:#cacaca"></div></div>
+    <div style="padding:8px 24px 12px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div><div style="font:500 11px Roboto,sans-serif;color:#767676;padding-top:2px">Privat · Unteraufgabe von „Wohnung kündigen“</div></div>
+    <div style="height:1px;background:#e0e0e0;margin-bottom:4px"></div>
+    <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#46ba61">check_circle</span><span style="font:16px Roboto,sans-serif;color:#222">Als erledigt markieren</span></div>
+    <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">subdirectory_arrow_right</span><span style="font:16px Roboto,sans-serif;color:#222">Unteraufgabe hinzufügen</span></div>
+    <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">low_priority</span><span style="font:16px Roboto,sans-serif;color:#222">Aus Unteraufgabe lösen</span></div>
+    <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">format_indent_increase</span><div style="flex:1"><span style="font:16px Roboto,sans-serif;color:#222">Zuordnen zu …</span><div style="font:500 11px Roboto,sans-serif;color:#767676">Andere übergeordnete Aufgabe wählen</div></div></div>
+    <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">drive_file_move</span><div style="flex:1"><span style="font:16px Roboto,sans-serif;color:#222">Liste wechseln</span><div style="font:500 11px Roboto,sans-serif;color:#767676">Privat</div></div><span class="material-symbols-outlined" style="font-size:22px;color:#767676">chevron_right</span></div>
+    <div style="height:1px;background:#e0e0e0;margin:4px 0"></div>
+    <div style="height:52px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#e9322d">delete</span><span style="font:16px Roboto,sans-serif;color:#e9322d">Löschen</span></div>
+  </div>
+  <div style="position:absolute;right:16px;top:72px;text-align:right;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">DREIPUNKT-BLATT · #59 + #107 + #108</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px;filter:brightness(.98)">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#0082c9">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+  <div style="position:absolute;left:24px;right:24px;top:120px;background:#fff;border-radius:28px;box-shadow:0 8px 28px rgba(0,0,0,.3);padding:24px 0 12px">
+    <div style="font:400 24px/32px Roboto,sans-serif;color:#222;padding:0 24px 12px">Sortierung</div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 24px">
+      <div style="width:20px;height:20px;border-radius:50%;border:2px solid #0082c9;display:flex;align-items:center;justify-content:center;flex:none"><div style="width:10px;height:10px;border-radius:50%;background:#0082c9"></div></div>
+      <div style="flex:1"><div style="font:16px Roboto,sans-serif;color:#222">Meine Reihenfolge</div><div style="font:500 11px Roboto,sans-serif;color:#0082c9">Ziehen &amp; Verschachteln möglich</div></div>
+    </div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 24px"><div style="width:20px;height:20px;border-radius:50%;border:2px solid #767676;flex:none"></div><div style="font:16px Roboto,sans-serif;color:#222">Fälligkeitsdatum</div></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 24px"><div style="width:20px;height:20px;border-radius:50%;border:2px solid #767676;flex:none"></div><div style="font:16px Roboto,sans-serif;color:#222">Priorität</div></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 24px"><div style="width:20px;height:20px;border-radius:50%;border:2px solid #767676;flex:none"></div><div style="font:16px Roboto,sans-serif;color:#222">Titel</div></div>
+    <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 24px"><div style="width:20px;height:20px;border-radius:50%;border:2px solid #767676;flex:none"></div><div style="font:16px Roboto,sans-serif;color:#222">Zuletzt aktualisiert</div></div>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;bottom:16px;min-height:48px;border-radius:4px;background:#e7e7e7;display:flex;align-items:center;justify-content:space-between;padding:8px 16px"><span style="font:14px/20px Roboto,sans-serif;color:#222;padding-right:12px">Sortieren per Hand braucht „Meine Reihenfolge“</span><span style="font:500 14px Roboto,sans-serif;color:#0082c9">UMSTELLEN</span></div>
+</div>
+
+</div>
+</div>
+
+<div class="dv-opt" id="3b" style="width:1136px">
+<div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a><span><b>Gruppen-Karte, jetzt swipe-fähig.</b> Die Kind-Zeilen bekommen eine eigene Kontur und eigenes Surface (weiß in grauer Rinne) — damit sind sie erkennbar eigenständige Objekte und können gewischt werden; das Swipe-Feld liegt <i>innerhalb</i> der Gruppen-Karte, weil die Zeile dort auch endet. Dreipunkt sitzt in jeder Zeile. Rechts: Long-Press zieht, der Slot am Kartenfuß nimmt an.</span></div>
+<div style="display:flex;gap:28px">
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden">
+      <div style="padding:12px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;min-width:0"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung in der Sonnenstraße kündigen</div><div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:6px">Fällig: 14. August · 1 von 3 erledigt</div></div>
+        <div style="width:36px;height:36px;margin:-8px -8px 0 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">more_vert</span></div>
+      </div>
+      <div style="background:#eeeeee;padding:8px;display:flex;flex-direction:column;gap:6px">
+        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 10px;display:flex;align-items:center">
+          <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+          <div style="flex:1;padding:0 8px;min-width:0;font:15px/20px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+          <span class="material-symbols-outlined" style="font-size:20px;color:#767676;flex:none">more_vert</span>
+        </div>
+        <div style="position:relative;border-radius:8px;background:#e9322d;overflow:hidden">
+          <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 10px;display:flex;align-items:center;width:calc(100% - 64px);box-sizing:border-box">
+            <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+            <div style="flex:1;padding:0 8px;min-width:0;font:15px/20px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Nachsendeauftrag stellen</div>
+          </div>
+          <div style="position:absolute;right:0;top:0;bottom:0;width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span class="material-symbols-outlined" style="font-size:20px;color:#fff">delete</span><span style="font:500 10px Roboto,sans-serif;color:#fff">Löschen</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 10px;display:flex;align-items:center">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding:0 8px;min-width:0;font:15px/20px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+          <span class="material-symbols-outlined" style="font-size:20px;color:#767676;flex:none">more_vert</span>
+        </div>
+        <div style="height:36px;display:flex;align-items:center;gap:8px;padding:0 4px"><span class="material-symbols-outlined" style="font-size:18px;color:#0082c9">add</span><div style="font:500 14px Roboto,sans-serif;color:#0082c9">Unteraufgabe</div></div>
+      </div>
+    </div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      <div style="width:36px;height:36px;margin:-6px -8px -6px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">more_vert</span></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;bottom:16px;min-height:48px;border-radius:4px;background:#e7e7e7;display:flex;align-items:center;justify-content:space-between;padding:8px 16px"><span style="font:14px/20px Roboto,sans-serif;color:#222">Unteraufgabe gelöscht</span><span style="font:500 14px Roboto,sans-serif;color:#0082c9">RÜCKGÄNGIG</span></div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px;padding-top:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:2px solid #0082c9;border-radius:12px;overflow:hidden;box-shadow:0 0 0 4px rgba(0,130,201,.12)">
+      <div style="padding:11px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;min-width:0"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung kündigen</div><div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:6px">1 von 2 erledigt</div></div>
+      </div>
+      <div style="background:#eeeeee;padding:8px;display:flex;flex-direction:column;gap:6px">
+        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 10px;display:flex;align-items:center">
+          <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+          <div style="flex:1;padding:0 8px;font:15px/20px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+          <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca;flex:none">drag_indicator</span>
+        </div>
+        <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:9px 10px;display:flex;align-items:center">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding:0 8px;font:15px/20px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+          <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca;flex:none">drag_indicator</span>
+        </div>
+        <div style="height:40px;border:2px dashed #0082c9;border-radius:8px;background:rgba(0,130,201,.08);display:flex;align-items:center;padding:0 10px;font:500 12px Roboto,sans-serif;color:#0082c9">Hier ablegen — wird Unteraufgabe</div>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #0082c9;border-radius:12px;padding:11px;display:flex;align-items:center;box-shadow:0 10px 20px rgba(0,0,0,.26);transform:translateX(20px) rotate(-.7deg)">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#0082c9;flex:none">drag_indicator</span>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;opacity:.45">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">LONG-PRESS ZIEHT · KARTE NIMMT AN</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:620px;position:relative;background:#fff;overflow:hidden">
+  <div style="padding:22px 20px;font:13px/1.6 Roboto,sans-serif;color:#555">
+    <div style="font:500 15px/1.3 Roboto,sans-serif;color:#222;margin-bottom:10px">Was <a class="dv-oid" href="#3b">3b</a> teuer macht</div>
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div><b style="color:#222">Drei Flächen übereinander.</b> Screen-Weiß → Karte <code style="font:11px ui-monospace,monospace">#F8F8F8</code> → Rinne <code style="font:11px ui-monospace,monospace">#EEEEEE</code> → Kind-Zeile Weiß. Das ist eine Ebene mehr als das Theme sonst benutzt und im Dark Mode schwer nachzubauen (<code style="font:11px ui-monospace,monospace">surface #1E1E1E</code>, <code style="font:11px ui-monospace,monospace">surfaceVariant #2C2C2C</code> — dazwischen liegt kaum Kontrast).</div>
+      <div><b style="color:#222">Swipe im Swipe.</b> Die Gruppen-Karte selbst ist swipebar (Parent löschen), die Kind-Zeile darin auch. Zwei verschachtelte horizontale Gesten in derselben vertikalen Liste — technisch machbar, aber die Trefferzonen müssen sauber getrennt sein.</div>
+      <div><b style="color:#222">Die Reorder-Rechnung.</b> Ziehen innerhalb der Rinne = Reihenfolge unter dem Parent. Ziehen aus der Rinne heraus = Ebene 0. Beides zusammen braucht eine Drop-Logik mit zwei Achsen, während <a class="dv-oid" href="#3a">3a</a> nur eine braucht (vertikale Position + Einrück-Level).</div>
+      <div style="padding-top:2px;border-top:1px solid #e0e0e0"><b style="color:#222">Deswegen weiterhin:</b> <a class="dv-oid" href="#3a">3a</a> ausliefern. <a class="dv-oid" href="#3b">3b</a> ist die schönere Struktur, aber sie kostet eine neue Komponente plus Dark-Mode-Arbeit — sinnvoll als zweiter Schritt, wenn die Hierarchie steht.</div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+</div>
+<p class="dv-next">Weiter mit: „<a class="dv-oid" href="#3a">3a</a> in den Prototyp übernehmen“ · „Sortier-Dialog aus <a class="dv-oid" href="#3a">3a</a> mit Reihenfolge pro Liste“ · „<a class="dv-oid" href="#3b">3b</a> im Dark Mode prüfen“</p>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname"><a class="dv-oid" href="#1b">1b</a> × <a class="dv-oid" href="#1e">1e</a> kombiniert · Delete-Icon raus · <a class="dv-oid" href="#1d">1d</a> doch draggable · Menü deckt #107 + #108 mit ab</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a" style="width:748px">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a><span><b>Die Kombination.</b> Ruhezustand (links) = <a class="dv-oid" href="#1b">1b</a> ohne Delete-Icon: der Titel gewinnt 48dp zurück, zweizeilige Titel werden selten. Long-Press startet den Sortier-Modus (rechts): Handles erscheinen, die Guide-Linie zeigt das Ziel-Level, Loslassen verschachtelt. Kein permanentes Handle — es würde 24dp auf <i>jeder</i> Zeile kosten.</span></div>
+<div style="display:flex;gap:28px">
+
+<div class="dv-card" style="width:360px;height:600px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px">
+    <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;min-width:0">
+        <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung in der Sonnenstraße kündigen</div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:8px">
+          <div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_less</span><span style="font:500 12px Roboto,sans-serif;color:#222">1/3</span></div>
+          <div style="font:500 11px/16px Roboto,sans-serif;color:#767676">Fällig: 14. August</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;padding-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding-left:8px;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;font:16px/22px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding-left:8px">
+        <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:8px"><div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_more</span><span style="font:500 12px Roboto,sans-serif;color:#222">0/2</span></div></div>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">RUHEZUSTAND · KEIN HANDLE, KEIN DELETE-ICON</div>
+  <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+</div>
+
+<div class="dv-card" style="width:360px;height:600px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#006aa3">close</span></div>
+      <div style="flex:1;font:500 16px/24px Roboto,sans-serif;color:#006aa3">Sortieren &amp; zuordnen</div>
+      <div style="font:500 14px Roboto,sans-serif;color:#006aa3;padding-right:12px">FERTIG</div>
+    </div>
+  </div>
+  <div style="padding:16px">
+    <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;margin-bottom:8px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung kündigen</div>
+      <span class="material-symbols-outlined" style="font-size:24px;color:#cacaca">drag_indicator</span>
+    </div>
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding:0 8px;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+        <span class="material-symbols-outlined" style="font-size:22px;color:#cacaca">drag_indicator</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:16px;height:2px;background:#0082c9"></div>
+        <div style="flex:1;height:40px;border:2px dashed #0082c9;border-radius:12px;background:rgba(0,130,201,.06);display:flex;align-items:center;padding:0 10px;font:500 12px Roboto,sans-serif;color:#0082c9">Ebene 1 — Unteraufgabe von „Wohnung kündigen“</div>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #0082c9;border-radius:12px;padding:10px;display:flex;align-items:center;box-shadow:0 8px 18px rgba(0,0,0,.24);transform:translateX(22px) rotate(-.7deg);margin-top:8px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#0082c9">drag_indicator</span>
+    </div>
+    <div style="opacity:.5;margin-top:8px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div>
+        <span class="material-symbols-outlined" style="font-size:24px;color:#cacaca">drag_indicator</span>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+        <span class="material-symbols-outlined" style="font-size:24px;color:#cacaca">drag_indicator</span>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">SORTIER-MODUS NACH LONG-PRESS</div>
+</div>
+
+</div>
+</div>
+
+<div class="dv-opt" id="2b" style="width:748px">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a><span><b><a class="dv-oid" href="#1d">1d</a> lässt sich doch draggen.</b> Nicht die Zeile lädt zum Ziehen ein, sondern die <i>Karte</i> nimmt an: beim Ziehen über eine Gruppen-Karte öffnet sich ein Slot am unteren Kartenrand und der Kartenrand färbt sich blau (links). Rechts der Ruhezustand mit zugeklappter Gruppe — kompakter geht es nicht.</span></div>
+<div style="display:flex;gap:28px">
+
+<div class="dv-card" style="width:360px;height:560px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#d3e4f4;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#006aa3">close</span></div>
+      <div style="flex:1;font:500 16px/24px Roboto,sans-serif;color:#006aa3">Sortieren &amp; zuordnen</div>
+      <div style="font:500 14px Roboto,sans-serif;color:#006aa3;padding-right:12px">FERTIG</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:2px solid #0082c9;border-radius:12px;overflow:hidden;box-shadow:0 0 0 4px rgba(0,130,201,.12)">
+      <div style="padding:11px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding-left:8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung kündigen</div><div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:6px">Fällig: 14. August · 1 von 2 erledigt</div></div>
+      </div>
+      <div style="height:1px;background:#e0e0e0"></div>
+      <div style="background:#f1f1f1">
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px">
+          <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+          <div style="flex:1;padding:0 8px;font:14px/20px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+          <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca">drag_indicator</span>
+        </div>
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding:0 8px;font:14px/20px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+          <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca">drag_indicator</span>
+        </div>
+        <div style="height:44px;margin:0 12px 10px;border:2px dashed #0082c9;border-radius:8px;background:rgba(0,130,201,.08);display:flex;align-items:center;padding:0 10px;font:500 12px Roboto,sans-serif;color:#0082c9">Hier ablegen — wird Unteraufgabe</div>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #0082c9;border-radius:12px;padding:11px;display:flex;align-items:center;box-shadow:0 8px 18px rgba(0,0,0,.24);transform:translateX(20px) rotate(-.7deg)">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      <span class="material-symbols-outlined" style="font-size:22px;color:#0082c9">drag_indicator</span>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;opacity:.5">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      <span class="material-symbols-outlined" style="font-size:24px;color:#cacaca">drag_indicator</span>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">KARTE NIMMT AN — SLOT ÖFFNET SICH</div>
+</div>
+
+<div class="dv-card" style="width:360px;height:560px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden">
+      <div style="padding:12px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding-left:8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung in der Sonnenstraße kündigen</div><div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:6px">Fällig: 14. August · 1 von 3 erledigt</div></div>
+        <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">expand_less</span></div>
+      </div>
+      <div style="height:1px;background:#e0e0e0"></div>
+      <div style="background:#f1f1f1">
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px">
+          <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+          <div style="flex:1;padding:0 8px;font:14px/20px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+        </div>
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding:0 8px;font:14px/20px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+        </div>
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding:0 8px;font:14px/20px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+        </div>
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px;gap:8px"><span class="material-symbols-outlined" style="font-size:18px;color:#0082c9">add</span><div style="font:500 14px Roboto,sans-serif;color:#0082c9">Unteraufgabe</div></div>
+      </div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding-left:8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div><div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:6px">0 von 2 erledigt</div></div>
+      <div style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">expand_more</span></div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;bottom:16px;font:500 10px Roboto,sans-serif;color:#0082c9;letter-spacing:.6px">RUHEZUSTAND · CHEVRON KLAPPT</div>
+  <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+</div>
+
+</div>
+</div>
+
+<div class="dv-opt" id="2c" style="width:748px">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a><span><b>Das Menü, das drei Issues bedient.</b> Links das Long-Press-Blatt (#108: erledigen, bearbeiten, Liste wechseln, löschen — plus die beiden Hierarchie-Aktionen und #107). Rechts die Swipe-Affordanzen: nach rechts erledigen (grün), nach links löschen (rot), immer mit Rückgängig-Snackbar. Das ist die Bedingung dafür, dass das Delete-Icon aus der Karte darf.</span></div>
+<div style="display:flex;gap:28px">
+
+<div class="dv-card" style="width:360px;height:560px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px;filter:brightness(.98)">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;opacity:.45">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding-left:8px;font:500 16px/24px Roboto,sans-serif;color:#222">Wohnung kündigen</div>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:28px 28px 0 0;padding:8px 0 12px;box-shadow:0 -6px 24px rgba(0,0,0,.24)">
+    <div style="display:flex;justify-content:center;padding:8px 0 4px"><div style="width:32px;height:4px;border-radius:2px;background:#cacaca"></div></div>
+    <div style="padding:8px 24px 12px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div><div style="font:500 11px Roboto,sans-serif;color:#767676;padding-top:2px">Privat · Unteraufgabe von „Wohnung kündigen“</div></div>
+    <div style="height:1px;background:#e0e0e0;margin-bottom:4px"></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#46ba61">check_circle</span><span style="font:16px Roboto,sans-serif;color:#222">Als erledigt markieren</span></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">edit</span><span style="font:16px Roboto,sans-serif;color:#222">Bearbeiten</span></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">subdirectory_arrow_right</span><span style="font:16px Roboto,sans-serif;color:#222">Unteraufgabe hinzufügen</span></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">low_priority</span><span style="font:16px Roboto,sans-serif;color:#222">Aus Unteraufgabe lösen</span></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#767676">drive_file_move</span><div style="flex:1"><span style="font:16px Roboto,sans-serif;color:#222">Liste wechseln</span><div style="font:500 11px Roboto,sans-serif;color:#767676">Privat</div></div><span class="material-symbols-outlined" style="font-size:22px;color:#767676">chevron_right</span></div>
+    <div style="height:1px;background:#e0e0e0;margin:4px 0"></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 24px"><span class="material-symbols-outlined" style="font-size:22px;color:#e9322d">delete</span><span style="font:16px Roboto,sans-serif;color:#e9322d">Löschen</span></div>
+  </div>
+</div>
+
+<div class="dv-card" style="width:360px;height:560px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+
+    <div style="margin:0 -16px;background:#46ba61;display:flex;align-items:center;overflow:hidden">
+      <div style="width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#fff">check</span><span style="font:500 10px Roboto,sans-serif;color:#fff">Erledigt</span></div>
+      <div style="flex:1;min-width:0;margin-right:-64px;padding-right:16px;box-sizing:border-box">
+        <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding-left:8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wohnung in der Sonnenstraße kündigen</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;display:flex;flex-direction:column;gap:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;font:16px/22px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding-left:8px;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+      </div>
+    </div>
+
+    <div style="margin:0 -16px;background:#e9322d;display:flex;align-items:center;overflow:hidden">
+      <div style="flex:1;min-width:0;margin-left:-64px;padding-left:16px;box-sizing:border-box">
+        <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding-left:8px;min-width:0;font:500 16px/24px Roboto,sans-serif;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Zahnarzttermin</div>
+        </div>
+      </div>
+      <div style="width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:none"><span class="material-symbols-outlined" style="font-size:22px;color:#fff">delete</span><span style="font:500 10px Roboto,sans-serif;color:#fff">Löschen</span></div>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;bottom:16px;min-height:48px;border-radius:4px;background:#e7e7e7;display:flex;align-items:center;justify-content:space-between;padding:8px 16px"><span style="font:14px/20px Roboto,sans-serif;color:#222">Unteraufgabe gelöscht</span><span style="font:500 14px Roboto,sans-serif;color:#0082c9">RÜCKGÄNGIG</span></div>
+</div>
+
+</div>
+</div>
+
+<div class="dv-opt" id="2r" style="width:520px">
+<div class="dv-olabel"><a class="dv-oid" href="#2r">2r</a>Wo ich <a class="dv-oid" href="#2a">2a</a> gegen <a class="dv-oid" href="#2b">2b</a> abwäge</div>
+<div class="dv-card" style="padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#555">
+<div style="display:flex;flex-direction:column;gap:11px">
+<div><b style="color:#222">Zum Dropdown-Punkt:</b> das Klappen aus <a class="dv-oid" href="#1b">1b</a> steckt in beiden — in <a class="dv-oid" href="#2a">2a</a> als Zähler-Chip, in <a class="dv-oid" href="#2b">2b</a> als Chevron in der Kartenkopfzeile. Standard bleibt „zugeklappt“, außer die Aufgabe hat eine offene, fällige Unteraufgabe.</div>
+<div><b style="color:#222">Delete-Icon streichen kostet nichts</b>, sobald <a class="dv-oid" href="#2c">2c</a> existiert: Löschen liegt dann doppelt an (Swipe + Menü), also besser erreichbar als heute — und die Karte gewinnt 48dp. Vorher darf es nicht raus.</div>
+<div><b style="color:#222">Ein Sortier-Modus statt Drag überall.</b> Long-Press ist in #108 schon fürs Menü vergeben. Deshalb: Long-Press → Menü, und aus dem Menü heraus (oder über den Sortier-Eintrag im App-Bar-Overflow) der Modus mit Handles. Sonst kollidieren die beiden Features.</div>
+<div><b style="color:#222">Mein Tipp:</b> <a class="dv-oid" href="#2a">2a</a> ausliefern, <a class="dv-oid" href="#2b">2b</a> als Einstellung „Unteraufgaben in der Karte“ nachliefern. <a class="dv-oid" href="#2a">2a</a> ist ein Diff auf <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">TaskCard</code>, <a class="dv-oid" href="#2b">2b</a> ist eine neue Komponente mit eigener Swipe- und Reorder-Logik innerhalb der Karte.</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Weiter mit: „<a class="dv-oid" href="#2a">2a</a> in den Prototyp“ · „<a class="dv-oid" href="#2b">2b</a> mit zwei Ebenen zeigen“ · „<a class="dv-oid" href="#2c">2c</a> plus Mehrfachauswahl“</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Unteraufgaben — Recherche, Baseline und fünf Richtungen</span></div>
+
+<div class="dv-opts">
+
+<div class="dv-opt" id="1r" style="width:520px">
+<div class="dv-olabel"><a class="dv-oid" href="#1r">1r</a>Annahmen, Recherche &amp; Empfehlung — bitte zuerst lesen</div>
+<div class="dv-card" style="padding:22px 24px;font:13px/1.55 Roboto,sans-serif;color:#222">
+<div style="font:500 15px/1.3 Roboto,sans-serif;margin-bottom:4px">Was ich vorgefunden habe</div>
+<p style="margin:0 0 14px;color:#555"><code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">Task.parentUid</code> existiert im Domain-Modell schon (<code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">RELATED-TO</code>), wird aber nirgends gelesen. Die Liste ist flach, gruppiert nach Liste (<code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">TasksContent</code>), eine Karte pro Task mit Checkbox + Titel + Löschen-Icon. <code style="font:12px ui-monospace,monospace;background:#f2f2f2;padding:1px 4px;border-radius:3px">TaskDraft</code> hat kein Parent-Feld — das muss für jede Variante ergänzt werden.</p>
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;margin-bottom:4px">Referenzen</div>
+<div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px">
+<div style="display:grid;grid-template-columns:104px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">Tasks.org</span><span style="color:#555">Quellcode gelesen: <b>20dp Einrückung pro Ebene</b>, Zähler-Chip mit Pfeil am Parent (ein-/ausklappbar, Zustand persistiert), Listen-Chip nur auf Ebene&nbsp;0, Drag-to-Indent mit <code style="font:11px ui-monospace,monospace">minIndent</code>/<code style="font:11px ui-monospace,monospace">maxIndent</code>-Grenzen. Beliebige Tiefe.</span></div>
+<div style="display:grid;grid-template-columns:104px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">jtx Board</span><span style="color:#555">Unteraufgaben als eigener Abschnitt im Detail, in der Liste per Einstellung auf-/zugeklappt. Kompaktere Zeile für Kinder.</span></div>
+<div style="display:grid;grid-template-columns:104px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">Reminders</span><span style="color:#555">Drag-to-nest als einzige Erzeugungsart, genau <b>eine</b> Ebene, Parent zeigt „n“ und klappt auf.</span></div>
+<div style="display:grid;grid-template-columns:104px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">Things&nbsp;3</span><span style="color:#555">Checklist lebt <b>nur</b> im Detail, in der Liste nur ein Fortschritts-Ring. Maximale Platzersparnis, kostet Übersicht.</span></div>
+<div style="display:grid;grid-template-columns:104px 1fr;gap:10px"><span style="font:500 12px Roboto,sans-serif;color:#0082c9">Todoist</span><span style="color:#555">Bis 4 Ebenen, ab Ebene 3 wird die Einrückung gekappt; Erzeugung über Menü <i>und</i> Drag.</span></div>
+</div>
+
+<div style="font:500 15px/1.3 Roboto,sans-serif;margin-bottom:4px">Mein Vorschlag</div>
+<p style="margin:0 0 10px;color:#555">Bei 360dp Breite ist Einrückung das teuerste Mittel und Klappen das billigste. Deshalb: <b>eine sichtbare Ebene</b> in der Liste (tiefere Ebenen werden auf Ebene 1 flach gerendert, statt die Karte zu zerquetschen), <b>16dp Einrückung + Guide-Linie</b> statt 20dp, <b>Zähler-Chip zum Klappen</b> am Parent, Erzeugung <b>inline im Detail</b> plus Long-Press in der Liste. Abhaken bleibt unabhängig; nur <code style="font:12px ui-monospace,monospace">percentComplete</code> wird aus den Kindern abgeleitet — das ist die einzige Variante, die keinen Server-Roundtrip pro Kind erzwingt.</p>
+<p style="margin:0;color:#8a8a8a;font-size:12px">Waisen (Parent gelöscht / in anderer Liste / nicht synchron) werden als Top-Level-Task gezeigt — still, ohne Fehlerzustand. Beim Löschen eines Parents fragt ein Dialog: Unteraufgaben mitlöschen oder freistellen.</p>
+</div>
+</div>
+
+<div class="dv-opt" id="1a" style="width:756px">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Baseline — heutiger Stand, 1:1 aus <code style="font:11px ui-monospace,monospace">MainActivity.kt</code> und <code style="font:11px ui-monospace,monospace">TaskDetailScreen.kt</code>. Referenz für alles Folgende.</div>
+<div style="display:flex;gap:28px">
+
+<div class="dv-card" style="width:360px;height:640px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;width:100%;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div>
+      <div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding:0 8px">
+          <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Umzug planen</div>
+          <div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:8px">Fällig: 14. August</div>
+        </div>
+        <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding:0 8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Kartons besorgen</div></div>
+        <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding:0 8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div></div>
+        <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding:0 8px">
+          <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div>
+          <div style="font:14px/20px Roboto,sans-serif;color:#767676;padding-top:4px">Belege sortieren, Elster-Zugang prüfen</div>
+        </div>
+        <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:16px 0 8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#46ba61"></div>
+      <div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Arbeit</div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding:0 8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Release 1.4 vorbereiten</div></div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+  </div>
+  <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+</div>
+
+<div class="dv-card" style="width:360px;height:640px;background:#fff;overflow:hidden">
+  <div style="height:64px;display:flex;align-items:center;padding:0 4px">
+    <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#222">arrow_back</span></div>
+  </div>
+  <div style="padding:8px 16px;font:400 24px/32px Roboto,sans-serif;color:#222">Umzug planen</div>
+  <div style="display:flex;border-bottom:1px solid #e0e0e0">
+    <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#0082c9;box-shadow:inset 0 -3px 0 #0082c9">Details</div>
+    <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#767676">Notizen</div>
+  </div>
+  <div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">radio_button_unchecked</span><div style="flex:1"><div style="font:500 11px Roboto,sans-serif;color:#767676">Status</div><div style="font:16px Roboto,sans-serif;color:#222">Offen</div></div><span class="material-symbols-outlined" style="font-size:24px;color:#767676">arrow_drop_down</span></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">calendar_today</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Startdatum festlegen</div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">calendar_month</span><div style="flex:1"><div style="font:500 11px Roboto,sans-serif;color:#767676">Fälligkeitsdatum</div><div style="font:16px Roboto,sans-serif;color:#222">14. August 2026</div></div></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 4px"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">priority_high</span><div style="font:500 14px Roboto,sans-serif;color:#0082c9">Dringlichkeit</div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">flag</span><div style="flex:1;font:16px Roboto,sans-serif;color:#222">Mittel</div></div>
+    <div style="padding:4px 16px 12px"><div style="font:500 11px Roboto,sans-serif;color:#767676;margin-bottom:8px">40 % abgeschlossen</div><div style="height:4px;border-radius:2px;background:#e7e7e7"><div style="width:40%;height:4px;border-radius:2px;background:#0082c9"></div></div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-top:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">location_on</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Standort festlegen</div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">language</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">URL festlegen</div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">label</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Tags auswählen</div></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<div class="dv-opt" id="1b" style="width:360px">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Einrückung + Zähler-Chip — das Tasks.org-Modell, auf 16dp gekürzt und mit Guide-Linie. Kinder sind kompakter (kein Löschen-Icon, 10dp Padding), Chip klappt zu und merkt sich den Zustand.</div>
+<div class="dv-card" style="width:360px;height:640px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;width:100%;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:8px;padding-bottom:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding:0 8px">
+        <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Umzug planen</div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:8px">
+          <div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_less</span><span style="font:500 12px Roboto,sans-serif;color:#222">3</span></div>
+          <div style="font:500 11px/16px Roboto,sans-serif;color:#767676">Fällig: 14. August</div>
+        </div>
+      </div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+
+    <div style="padding-left:16px;border-left:2px solid #e0e0e0;margin-left:9px;display:flex;flex-direction:column;gap:8px;padding-top:8px">
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+        <div style="flex:1;padding:0 8px;font:16px/22px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;font:16px/22px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      </div>
+      <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:10px;display:flex;align-items:center">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+        <div style="flex:1;padding:0 8px;font:16px/22px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+        <div style="display:flex;align-items:center;gap:2px;height:22px;padding:0 7px 0 3px;border-radius:11px;background:#e7e7e7;flex:none"><span class="material-symbols-outlined" style="font-size:16px;color:#222">expand_more</span><span style="font:500 11px Roboto,sans-serif;color:#222">2</span></div>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding:0 8px">
+        <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:8px"><div style="display:flex;align-items:center;gap:2px;height:24px;padding:0 8px 0 4px;border-radius:12px;background:#e7e7e7"><span class="material-symbols-outlined" style="font-size:18px;color:#222">expand_more</span><span style="font:500 12px Roboto,sans-serif;color:#222">2</span></div></div>
+      </div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+    <div style="height:12px"></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+  </div>
+  <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c" style="width:360px">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Nur Fortschritt am Parent — Things-Modell. Die Liste bleibt genau so flach wie heute, Unteraufgaben existieren nur im Detail. Billigste Variante, teuerster Preis: man sieht nie, <i>was</i> offen ist.</div>
+<div class="dv-card" style="width:360px;height:640px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;width:100%;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding:0 8px">
+        <div style="display:flex;align-items:center;gap:8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222;flex:1">Umzug planen</div><div style="font:500 12px Roboto,sans-serif;color:#767676">1/3</div></div>
+        <div style="height:4px;border-radius:2px;background:#e7e7e7;margin-top:8px"><div style="width:33%;height:4px;border-radius:2px;background:#0082c9"></div></div>
+        <div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:8px">Fällig: 14. August</div>
+      </div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding:0 8px">
+        <div style="display:flex;align-items:center;gap:8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222;flex:1">Steuererklärung</div><div style="font:500 12px Roboto,sans-serif;color:#767676">0/2</div></div>
+        <div style="height:4px;border-radius:2px;background:#e7e7e7;margin-top:8px"></div>
+      </div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding-top:4px"><div style="width:8px;height:8px;border-radius:50%;background:#46ba61"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Arbeit</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:flex-start">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+      <div style="flex:1;padding:0 8px">
+        <div style="display:flex;align-items:center;gap:8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222;flex:1">Release 1.4 vorbereiten</div><div style="font:500 12px Roboto,sans-serif;color:#767676">4/6</div></div>
+        <div style="height:4px;border-radius:2px;background:#e7e7e7;margin-top:8px"><div style="width:66%;height:4px;border-radius:2px;background:#0082c9"></div></div>
+      </div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+  </div>
+  <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+</div>
+</div>
+
+<div class="dv-opt" id="1d" style="width:360px">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Gruppen-Karte — Parent und Kinder teilen <i>eine</i> Karte. Kostet null Einrückung: die Kind-Zeilen sind volle Kartenbreite, die Zugehörigkeit macht der Kartenrand. Bricht am stärksten mit dem heutigen „eine Karte = eine Aufgabe“.</div>
+<div class="dv-card" style="width:360px;height:640px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;width:100%;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">sort</span></div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden">
+      <div style="padding:12px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding:0 8px">
+          <div style="font:500 16px/24px Roboto,sans-serif;color:#222">Umzug planen</div>
+          <div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:8px">Fällig: 14. August · 1 von 3 erledigt</div>
+        </div>
+        <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+      </div>
+      <div style="height:1px;background:#e0e0e0"></div>
+      <div style="background:#f1f1f1">
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px">
+          <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+          <div style="flex:1;padding:0 8px;font:14px/20px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+        </div>
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding:0 8px;font:14px/20px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+        </div>
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px">
+          <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+          <div style="flex:1;padding:0 8px;font:14px/20px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+          <div style="font:500 11px Roboto,sans-serif;color:#767676">+2</div>
+        </div>
+        <div style="height:44px;display:flex;align-items:center;padding:0 12px;gap:8px"><span class="material-symbols-outlined" style="font-size:18px;color:#0082c9">add</span><div style="font:500 14px Roboto,sans-serif;color:#0082c9">Unteraufgabe</div></div>
+      </div>
+    </div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#e9322d">delete</span></div>
+    </div>
+
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden">
+      <div style="padding:12px;display:flex;align-items:flex-start">
+        <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;margin:3px 1px;flex:none"></div>
+        <div style="flex:1;padding:0 8px"><div style="font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div><div style="font:500 11px/16px Roboto,sans-serif;color:#767676;padding-top:8px">0 von 2 erledigt</div></div>
+        <div style="width:48px;height:48px;margin:-12px -12px -12px 0;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">expand_more</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;right:16px;bottom:16px;width:56px;height:56px;border-radius:16px;background:#0082c9;box-shadow:0 3px 6px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#fff">add</span></div>
+</div>
+</div>
+
+<div class="dv-opt" id="1e" style="width:748px">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Erzeugen: Drag-to-nest (links, mitten im Zug) und Long-Press-Menü (rechts). Beim Ziehen zeigt die Guide-Linie das Ziel-Level; tiefer als Ebene&nbsp;1 lässt die Rasterung nicht zu — genau die <code style="font:11px ui-monospace,monospace">minIndent/maxIndent</code>-Logik aus Tasks.org, nur auf eine Ebene begrenzt.</div>
+<div style="display:flex;gap:28px">
+<div class="dv-card" style="width:360px;height:560px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;width:100%;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Umzug planen</div>
+      <span class="material-symbols-outlined" style="font-size:24px;color:#cacaca">drag_indicator</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:9px">
+      <div style="width:16px;height:2px;background:#0082c9"></div>
+      <div style="flex:1;height:44px;border:2px dashed #0082c9;border-radius:12px;background:rgba(0,130,201,.06);display:flex;align-items:center;padding:0 10px;font:500 12px Roboto,sans-serif;color:#0082c9">Als Unteraufgabe von „Umzug planen“</div>
+    </div>
+    <div style="background:#fff;border:1px solid #0082c9;border-radius:12px;padding:10px;display:flex;align-items:center;box-shadow:0 6px 16px rgba(0,0,0,.22);transform:translateX(18px) rotate(-.6deg)">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+      <span class="material-symbols-outlined" style="font-size:24px;color:#0082c9">drag_indicator</span>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;opacity:.55">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Zahnarzttermin</div>
+      <span class="material-symbols-outlined" style="font-size:24px;color:#cacaca">drag_indicator</span>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;opacity:.55">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div>
+      <span class="material-symbols-outlined" style="font-size:24px;color:#cacaca">drag_indicator</span>
+    </div>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;bottom:16px;height:48px;border-radius:4px;background:#e7e7e7;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span style="font:14px Roboto,sans-serif;color:#767676">Zu „Umzug planen“ verschoben</span><span style="font:500 14px Roboto,sans-serif;color:#0082c9">RÜCKGÄNGIG</span></div>
+</div>
+
+<div class="dv-card" style="width:360px;height:560px;position:relative;background:#fff;overflow:hidden">
+  <div style="height:64px;width:100%;box-sizing:border-box;padding:8px 16px">
+    <div style="height:48px;border-radius:24px;background:#f1f1f1;display:flex;align-items:center;gap:8px;padding:0 8px;box-sizing:border-box">
+      <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#767676">menu</span></div>
+      <div style="flex:1;min-width:0;font:16px/24px Roboto,sans-serif;color:#767676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">In allen Notizen suchen</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#0082c9;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif">S</div>
+    </div>
+  </div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:12px;filter:brightness(.97)">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:#0082c9"></div><div style="font:500 14px/20px Roboto,sans-serif;color:#767676">Privat</div></div>
+    <div style="background:#f8f8f8;border:1px solid #0082c9;border-radius:12px;padding:12px;display:flex;align-items:center">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Umzug planen</div>
+    </div>
+    <div style="background:#fff;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.2);padding:8px 0;width:236px">
+      <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">subdirectory_arrow_right</span><span style="font:16px Roboto,sans-serif;color:#222">Unteraufgabe hinzufügen</span></div>
+      <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">low_priority</span><span style="font:16px Roboto,sans-serif;color:#222">Zuordnen zu …</span></div>
+      <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">drive_file_move</span><span style="font:16px Roboto,sans-serif;color:#222">Liste wechseln</span></div>
+      <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 16px"><span class="material-symbols-outlined" style="font-size:20px;color:#e9322d">delete</span><span style="font:16px Roboto,sans-serif;color:#e9322d">Löschen</span></div>
+    </div>
+    <div style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:12px;padding:12px;display:flex;align-items:center;opacity:.5">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 8px;font:500 16px/24px Roboto,sans-serif;color:#222">Steuererklärung</div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1f" style="width:1136px">
+<div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Detail-Screen, drei Platzierungen: dritter Tab mit Badge · Abschnitt im Details-Tab · immer sichtbar unter dem Titel. Alle drei mit derselben Inline-Eingabe zum Anlegen.</div>
+<div style="display:flex;gap:28px">
+
+<div class="dv-card" style="width:360px;height:640px;background:#fff;overflow:hidden">
+  <div style="height:64px;display:flex;align-items:center;padding:0 4px"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#222">arrow_back</span></div></div>
+  <div style="padding:8px 16px;font:400 24px/32px Roboto,sans-serif;color:#222">Umzug planen</div>
+  <div style="display:flex;border-bottom:1px solid #e0e0e0">
+    <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#767676">Details</div>
+    <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#767676">Notizen</div>
+    <div style="flex:1.2;height:48px;display:flex;align-items:center;justify-content:center;gap:6px;font:500 14px Roboto,sans-serif;color:#0082c9;box-shadow:inset 0 -3px 0 #0082c9">Unteraufg.<span style="min-width:18px;height:18px;border-radius:9px;background:#0082c9;color:#fff;font:500 11px/18px Roboto,sans-serif;text-align:center;padding:0 5px">3</span></div>
+  </div>
+  <div style="padding:8px 0">
+    <div style="padding:8px 16px 12px"><div style="display:flex;justify-content:space-between;font:500 11px Roboto,sans-serif;color:#767676;margin-bottom:6px"><span>1 von 3 erledigt</span><span>33 %</span></div><div style="height:4px;border-radius:2px;background:#e7e7e7"><div style="width:33%;height:4px;border-radius:2px;background:#0082c9"></div></div></div>
+    <div style="height:56px;display:flex;align-items:center;padding:0 16px;border-top:1px solid #e0e0e0">
+      <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+      <div style="flex:1;padding:0 12px;font:16px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+      <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca">drag_indicator</span>
+    </div>
+    <div style="height:56px;display:flex;align-items:center;padding:0 16px;border-top:1px solid #e0e0e0">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 12px"><div style="font:16px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div><div style="font:500 11px Roboto,sans-serif;color:#e9322d">Fällig: 1. August</div></div>
+      <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca">drag_indicator</span>
+    </div>
+    <div style="height:56px;display:flex;align-items:center;padding:0 16px;border-top:1px solid #e0e0e0">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 12px;font:16px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+      <span class="material-symbols-outlined" style="font-size:20px;color:#cacaca">drag_indicator</span>
+    </div>
+    <div style="height:56px;display:flex;align-items:center;padding:0 16px;border-top:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0;gap:12px">
+      <span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">add</span>
+      <div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Unteraufgabe hinzufügen</div>
+    </div>
+  </div>
+</div>
+
+<div class="dv-card" style="width:360px;height:640px;background:#fff;overflow:hidden">
+  <div style="height:64px;display:flex;align-items:center;padding:0 4px"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#222">arrow_back</span></div></div>
+  <div style="padding:8px 16px;font:400 24px/32px Roboto,sans-serif;color:#222">Umzug planen</div>
+  <div style="display:flex;border-bottom:1px solid #e0e0e0">
+    <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#0082c9;box-shadow:inset 0 -3px 0 #0082c9">Details</div>
+    <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#767676">Notizen</div>
+  </div>
+  <div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">radio_button_unchecked</span><div style="flex:1"><div style="font:500 11px Roboto,sans-serif;color:#767676">Status</div><div style="font:16px Roboto,sans-serif;color:#222">Offen</div></div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">calendar_month</span><div style="flex:1"><div style="font:500 11px Roboto,sans-serif;color:#767676">Fälligkeitsdatum</div><div style="font:16px Roboto,sans-serif;color:#222">14. August 2026</div></div></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 4px"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">account_tree</span><div style="font:500 14px Roboto,sans-serif;color:#0082c9;flex:1">Unteraufgaben</div><div style="font:500 12px Roboto,sans-serif;color:#767676">1/3</div></div>
+    <div style="padding:0 16px 8px"><div style="height:4px;border-radius:2px;background:#e7e7e7"><div style="width:33%;height:4px;border-radius:2px;background:#0082c9"></div></div></div>
+    <div style="height:48px;display:flex;align-items:center;padding:0 16px">
+      <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+      <div style="flex:1;padding:0 12px;font:16px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+    </div>
+    <div style="height:48px;display:flex;align-items:center;padding:0 16px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 12px;font:16px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+    </div>
+    <div style="height:48px;display:flex;align-items:center;padding:0 16px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 12px;font:16px Roboto,sans-serif;color:#222">Möbel abbauen</div>
+    </div>
+    <div style="height:48px;display:flex;align-items:center;padding:0 16px;gap:12px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">add</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Unteraufgabe hinzufügen</div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">location_on</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Standort festlegen</div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">label</span><div style="flex:1;font:16px Roboto,sans-serif;color:#767676">Tags auswählen</div></div>
+  </div>
+</div>
+
+<div class="dv-card" style="width:360px;height:640px;background:#fff;overflow:hidden">
+  <div style="height:64px;display:flex;align-items:center;padding:0 4px"><div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:24px;color:#222">arrow_back</span></div></div>
+  <div style="padding:8px 16px 0;font:400 24px/32px Roboto,sans-serif;color:#222">Umzug planen</div>
+  <div style="display:flex;align-items:center;gap:8px;padding:8px 16px 12px"><div style="font:500 11px Roboto,sans-serif;color:#767676;flex:none">1 von 3</div><div style="flex:1;height:4px;border-radius:2px;background:#e7e7e7"><div style="width:33%;height:4px;border-radius:2px;background:#0082c9"></div></div><span class="material-symbols-outlined" style="font-size:20px;color:#767676">expand_less</span></div>
+  <div style="background:#f8f8f8;border-top:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0">
+    <div style="height:48px;display:flex;align-items:center;padding:0 16px">
+      <div style="width:18px;height:18px;border-radius:2px;background:#0082c9;display:flex;align-items:center;justify-content:center;flex:none"><span class="material-symbols-outlined" style="font-size:14px;color:#fff">check</span></div>
+      <div style="flex:1;padding:0 12px;font:15px Roboto,sans-serif;color:#767676;text-decoration:line-through">Kartons besorgen</div>
+    </div>
+    <div style="height:48px;display:flex;align-items:center;padding:0 16px">
+      <div style="width:18px;height:18px;border:2px solid #767676;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 12px;font:15px Roboto,sans-serif;color:#222">Nachsendeauftrag stellen</div>
+    </div>
+    <div style="height:48px;display:flex;align-items:center;padding:0 16px">
+      <div style="width:18px;height:18px;border:2px solid #0082c9;border-radius:2px;flex:none"></div>
+      <div style="flex:1;padding:0 12px;font:15px Roboto,sans-serif;color:#222;border-bottom:2px solid #0082c9;margin-right:8px">Möbel abbauen<span style="color:#0082c9">|</span></div>
+    </div>
+    <div style="height:44px;display:flex;align-items:center;padding:0 16px;gap:12px"><span class="material-symbols-outlined" style="font-size:20px;color:#0082c9">add</span><div style="flex:1;font:15px Roboto,sans-serif;color:#767676">Weitere Unteraufgabe</div></div>
+  </div>
+  <div style="display:flex;border-bottom:1px solid #e0e0e0">
+    <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#0082c9;box-shadow:inset 0 -3px 0 #0082c9">Details</div>
+    <div style="flex:1;height:48px;display:flex;align-items:center;justify-content:center;font:500 14px Roboto,sans-serif;color:#767676">Notizen</div>
+  </div>
+  <div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">radio_button_unchecked</span><div style="flex:1"><div style="font:500 11px Roboto,sans-serif;color:#767676">Status</div><div style="font:16px Roboto,sans-serif;color:#222">Offen</div></div></div>
+    <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-bottom:1px solid #e0e0e0"><span class="material-symbols-outlined" style="font-size:20px;color:#767676">calendar_month</span><div style="flex:1"><div style="font:500 11px Roboto,sans-serif;color:#767676">Fälligkeitsdatum</div><div style="font:16px Roboto,sans-serif;color:#222">14. August 2026</div></div></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+</div>
+
+<p class="dv-next">Weiter mit: „zeig mir <a class="dv-oid" href="#1b">1b</a> und <a class="dv-oid" href="#1d">1d</a> mit 5 Ebenen“ · „<a class="dv-oid" href="#1c">1c</a> als Prototyp“ · „mach <a class="dv-oid" href="#1e">1e</a> ohne Drag-Handle“</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}"></script>
+</body>
+</html>
