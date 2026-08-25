@@ -1287,6 +1287,12 @@ internal class ManualReorder(
     val liveIds: SnapshotStateList<String>,
     val draggingId: MutableState<String?>,
     val dragOffset: MutableState<androidx.compose.ui.geometry.Offset>,
+    // Gesture state must be REMEMBERED (not instance fields): this holder is rebuilt on every
+    // recomposition — e.g. the one triggered by entering selection at drag start — and fresh fields
+    // would zero grabTop mid-drag, teleporting the row to the top of the viewport.
+    private val grabTop: MutableState<Float>,
+    private val itemSize: MutableState<Int>,
+    private val moved: MutableState<Boolean>,
     val stepPx: Float,
     val slopPx: Float,
     private val onReorder: (List<Pair<String, String?>>) -> Unit,
@@ -1294,36 +1300,33 @@ internal class ManualReorder(
     private val onClearSelection: () -> Unit,
 ) {
     val rowById: Map<String, TaskRow> = rows.associateBy { it.task.id }
-    private var grabTop = 0f
-    private var itemSize = 0
-    private var moved = false
 
     /** True once the finger has travelled past touch slop — i.e. a real drag, not a long-press-to-select. */
-    fun movedEnough(): Boolean = moved
+    fun movedEnough(): Boolean = moved.value
 
     fun start(id: String) {
         draggingId.value = id
         dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
-        moved = false
+        moved.value = false
         val info = lazyListState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == id }
-        grabTop = (info?.offset ?: 0).toFloat()
-        itemSize = info?.size ?: 0
+        grabTop.value = (info?.offset ?: 0).toFloat()
+        itemSize.value = info?.size ?: 0
     }
 
     fun dragBy(amount: androidx.compose.ui.geometry.Offset) {
         dragOffset.value += amount
-        if (!moved && dragOffset.value.getDistance() > slopPx) {
-            moved = true
+        if (!moved.value && dragOffset.value.getDistance() > slopPx) {
+            moved.value = true
             // Long-press just became a drag (Tasks.org finishActionMode): drop the selection it flashed.
             onClearSelection()
         }
-        if (moved) updateLivePosition()
+        if (moved.value) updateLivePosition()
     }
 
     /** Shift the dragged id in [liveIds] to the slot whose row the finger centre now overlaps. */
     private fun updateLivePosition() {
         val id = draggingId.value ?: return
-        val centerY = grabTop + itemSize / 2f + dragOffset.value.y
+        val centerY = grabTop.value + itemSize.value / 2f + dragOffset.value.y
         val targetKey =
             lazyListState.layoutInfo.visibleItemsInfo
                 .filter { it.key != id }
@@ -1345,8 +1348,8 @@ internal class ManualReorder(
             lazyListState.layoutInfo.visibleItemsInfo
                 .firstOrNull { it.key == id }
                 ?.offset
-                ?.toFloat() ?: grabTop
-        return grabTop + dragOffset.value.y - slotTop
+                ?.toFloat() ?: grabTop.value
+        return grabTop.value + dragOffset.value.y - slotTop
     }
 
     fun clear() {
@@ -1354,10 +1357,22 @@ internal class ManualReorder(
         dragOffset.value = androidx.compose.ui.geometry.Offset.Zero
     }
 
-    /** Live indent change (in whole levels) for the current horizontal travel, clamped to what's legal. */
-    fun indentDelta(): Int {
-        val id = draggingId.value ?: return 0
-        return resolveTarget(id).first - (rowById[id]?.depth ?: 0)
+    /**
+     * Horizontal shift (px) that puts the dragged row exactly where it will settle: the difference
+     * between the indent rail of the target depth and of its own depth. Uses the REAL rail metrics —
+     * shifting by the 40dp finger step instead made the preview look one level deeper than the drop.
+     */
+    fun indentShiftPx(): Float {
+        val id = draggingId.value ?: return 0f
+        val ownDepth = rowById[id]?.depth ?: 0
+        return railPx(resolveTarget(id).first) - railPx(ownDepth)
+    }
+
+    /** Left inset (px) of a card at [depth], mirroring SimpleAnimatedTaskCard's rail: 9+2+16, then +16/level. */
+    private fun railPx(depth: Int): Float {
+        if (depth <= 0) return 0f
+        val dp = 9 + (depth - 1) * 16 + 2 + if (depth == 1) 16 else 12
+        return dp * (stepPx / 40f)
     }
 
     /**
@@ -1410,6 +1425,9 @@ private fun rememberManualReorder(
     val lazyListState = rememberLazyListState()
     val draggingId = remember { mutableStateOf<String?>(null) }
     val dragOffset = remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val grabTop = remember { mutableStateOf(0f) }
+    val itemSize = remember { mutableStateOf(0) }
+    val moved = remember { mutableStateOf(false) }
     val liveIds = remember { mutableStateListOf<String>() }
     LaunchedEffect(rows.map { it.task.id }) {
         // Keep the live (preview) order in sync with the data while not dragging.
@@ -1429,6 +1447,9 @@ private fun rememberManualReorder(
         liveIds = liveIds,
         draggingId = draggingId,
         dragOffset = dragOffset,
+        grabTop = grabTop,
+        itemSize = itemSize,
+        moved = moved,
         stepPx = stepPx,
         slopPx = slopPx,
         onReorder = onReorder,
@@ -2859,9 +2880,9 @@ private fun LazyListScope.openListRows(
                     .zIndex(if (dragging) 1f else 0f)
                     .graphicsLayer {
                         if (dragging) {
-                            // Horizontal snaps to whole, legal indent steps (Tasks.org onChildDraw); vertical
-                            // pins the row to the finger across live shuffles.
-                            translationX = reorder.indentDelta() * reorder.stepPx
+                            // Horizontal snaps to the target level's REAL rail position (preview == drop);
+                            // vertical pins the row to the finger across live shuffles.
+                            translationX = reorder.indentShiftPx()
                             translationY = reorder.draggedTranslationY()
                             shadowElevation = 8f
                         }
