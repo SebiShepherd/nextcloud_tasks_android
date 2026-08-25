@@ -1358,22 +1358,11 @@ internal class ManualReorder(
     }
 
     /**
-     * Horizontal shift (px) that puts the dragged row exactly where it will settle: the difference
-     * between the indent rail of the target depth and of its own depth. Uses the REAL rail metrics —
-     * shifting by the 40dp finger step instead made the preview look one level deeper than the drop.
+     * Depth the dragged row would land at right now. The row is RE-LAYOUTED at this depth while
+     * dragging (real rail, real line) instead of being translated — a pixel shift could never match
+     * the rail metrics for every level, and a level-0 row has no line to shift in the first place.
      */
-    fun indentShiftPx(): Float {
-        val id = draggingId.value ?: return 0f
-        val ownDepth = rowById[id]?.depth ?: 0
-        return railPx(resolveTarget(id).first) - railPx(ownDepth)
-    }
-
-    /** Left inset (px) of a card at [depth], mirroring SimpleAnimatedTaskCard's rail: 9+2+16, then +16/level. */
-    private fun railPx(depth: Int): Float {
-        if (depth <= 0) return 0f
-        val dp = 9 + (depth - 1) * 16 + 2 + if (depth == 1) 16 else 12
-        return dp * (stepPx / 40f)
-    }
+    fun previewDepth(id: String): Int = resolveTarget(id).first
 
     /**
      * (targetDepth, parentUid), mirroring Tasks.org's onChildDraw: depth is the dragged row's OWN depth
@@ -2868,9 +2857,15 @@ private fun LazyListScope.openListRows(
     items(displayRows, key = { it.task.id }) { row ->
         val id = row.task.id
         val dragging = reorder.draggingId.value == id
-        // Read selection mode without a key on pointerInput, so entering selection mid-long-press
-        // (Tasks.org shows the bar immediately) does not tear down the running gesture.
+        // Read the CURRENT holder/state through rememberUpdatedState: pointerInput(id) caches its
+        // lambda, so a directly captured `reorder` would keep a stale rows/rowById snapshot — its
+        // drop() then wrote OLD parentUids back for every row, teleporting uninvolved tasks to the
+        // nesting they had when the lambda was first composed.
+        val liveReorder by rememberUpdatedState(reorder)
         val selMode by rememberUpdatedState(selectionMode)
+        // While dragging, re-layout the row at the depth it would land at: real rail, real line —
+        // preview is pixel-identical to the drop, and a level-0 row grows its line immediately.
+        val displayRow = if (dragging) row.copy(depth = reorder.previewDepth(id)) else row
         // Visual (on the LazyColumn item root): the dragged row must NOT animate its slot so translationY
         // can pin it to the finger; the others animate to open a gap — the live preview.
         val visualModifier =
@@ -2880,9 +2875,7 @@ private fun LazyListScope.openListRows(
                     .zIndex(if (dragging) 1f else 0f)
                     .graphicsLayer {
                         if (dragging) {
-                            // Horizontal snaps to the target level's REAL rail position (preview == drop);
-                            // vertical pins the row to the finger across live shuffles.
-                            translationX = reorder.indentShiftPx()
+                            // Vertical pins the row to the finger across live shuffles.
                             translationY = reorder.draggedTranslationY()
                             shadowElevation = 8f
                         }
@@ -2899,31 +2892,31 @@ private fun LazyListScope.openListRows(
                     detectDragGesturesAfterLongPress(
                         onDragStart = {
                             if (!selMode) {
-                                reorder.start(id)
+                                liveReorder.start(id)
                                 callbacks.onEnterSelection(id)
                             }
                         },
                         onDrag = { change, amount ->
                             change.consume()
-                            if (reorder.draggingId.value == id) reorder.dragBy(amount)
+                            if (liveReorder.draggingId.value == id) liveReorder.dragBy(amount)
                         },
                         onDragEnd = {
                             when {
-                                reorder.draggingId.value == id -> {
-                                    if (reorder.movedEnough()) reorder.drop()
-                                    reorder.clear()
+                                liveReorder.draggingId.value == id -> {
+                                    if (liveReorder.movedEnough()) liveReorder.drop()
+                                    liveReorder.clear()
                                 }
                                 selMode -> callbacks.onToggleSelection(id)
                             }
                         },
-                        onDragCancel = { if (reorder.draggingId.value == id) reorder.clear() },
+                        onDragCancel = { if (liveReorder.draggingId.value == id) liveReorder.clear() },
                     )
                 }
             } else {
                 Modifier
             }
         TaskRowItem(
-            row = row,
+            row = displayRow,
             taskListMap = taskListMap,
             selectionMode = selectionMode,
             isSelected = id in selectedIds,
