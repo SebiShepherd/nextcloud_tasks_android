@@ -1412,12 +1412,14 @@ private fun rememberManualReorder(
     taskSort: com.nextcloud.tasks.domain.model.TaskSort,
     openListIds: List<String>,
     treeByList: Map<String, List<TaskRow>>,
+    readOnly: Boolean,
     onReorder: (List<Pair<String, String?>>) -> Unit,
     onReparent: (String, String?) -> Unit,
     onClearSelection: () -> Unit,
 ): ManualReorder {
-    // Drag whenever a single list is shown (nesting works in any sort); only MANUAL also persists order.
-    val enabled = openListIds.size == 1
+    // Drag whenever a single WRITABLE list is shown (nesting works in any sort); only MANUAL also
+    // persists order. Read-only shares can't accept the server write, so the gesture never starts.
+    val enabled = openListIds.size == 1 && !readOnly
     val rows = if (enabled) openListIds.firstOrNull()?.let { treeByList[it] }.orEmpty() else emptyList()
     val lazyListState = rememberLazyListState()
     val draggingId = remember { mutableStateOf<String?>(null) }
@@ -1548,6 +1550,7 @@ private fun TasksContent(
             taskSort = taskSort,
             openListIds = openListIds,
             treeByList = treeByList,
+            readOnly = taskListMap[openListIds.firstOrNull()]?.shareAccess == ShareAccess.READ,
             onReorder = onReorder,
             onReparent = onReparent,
             onClearSelection = onClearSelectionForDrag,
