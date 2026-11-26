@@ -4000,6 +4000,18 @@ class TaskListViewModel
         private val _selectedListId = MutableStateFlow<String?>(null)
         val selectedListId = _selectedListId.asStateFlow()
 
+        // Load last selected list ID from preferences on startup
+        init {
+            viewModelScope.launch {
+                val savedListId = appPreferences.lastSelectedListId.first()
+                // Validate that the saved list still exists in the current account
+                val lists = tasksRepository.observeLists().first()
+                if (savedListId != null && lists.any { it.id == savedListId }) {
+                    _selectedListId.value = savedListId
+                }
+            }
+        }
+
         private val _taskFilter = MutableStateFlow(com.nextcloud.tasks.domain.model.TaskFilter.ALL)
         val taskFilter = _taskFilter.asStateFlow()
 
@@ -4329,6 +4341,7 @@ class TaskListViewModel
 
         fun selectList(listId: String?) {
             _selectedListId.value = listId
+            viewModelScope.launch { appPreferences.setLastSelectedListId(listId) }
         }
 
         fun setFilter(filter: com.nextcloud.tasks.domain.model.TaskFilter) {

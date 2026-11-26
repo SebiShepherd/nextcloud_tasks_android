@@ -94,7 +94,9 @@ class TaskListViewModelTest {
                 every { perListSortEnabled } returns flowOf(false)
                 every { globalSort } returns globalSortFlow
                 every { listSort(any()) } returns flowOf(null)
+                every { lastSelectedListId } returns flowOf<String?>(null)
                 coEvery { setGlobalSort(any()) } answers { globalSortFlow.value = firstArg() }
+                coEvery { setLastSelectedListId(any()) } returns Unit
             }
 
         every { loadTasksUseCase() } returns flowOf(tasks)
@@ -157,7 +159,9 @@ class TaskListViewModelTest {
                 every { perListSortEnabled } returns flowOf(false)
                 every { globalSort } returns globalSortFlow
                 every { listSort(any()) } returns flowOf(null)
+                every { lastSelectedListId } returns flowOf<String?>(null)
                 coEvery { setGlobalSort(any()) } answers { globalSortFlow.value = firstArg() }
+                coEvery { setLastSelectedListId(any()) } returns Unit
             }
 
         every { loadTasksUseCase() } returns flowOf(tasks)
@@ -218,6 +222,8 @@ class TaskListViewModelTest {
                     every { perListSortEnabled } returns flowOf(false)
                     every { globalSort } returns flowOf(TaskSort.DUE_DATE)
                     every { listSort(any()) } returns flowOf(null)
+                    every { lastSelectedListId } returns flowOf<String?>(null)
+                    coEvery { setLastSelectedListId(any()) } returns Unit
                 }
             val vm = viewModelWith(prefs)
             vm.setSort(TaskSort.TITLE)
@@ -232,6 +238,8 @@ class TaskListViewModelTest {
                     every { perListSortEnabled } returns flowOf(true)
                     every { globalSort } returns flowOf(TaskSort.DUE_DATE)
                     every { listSort(any()) } returns flowOf(null)
+                    every { lastSelectedListId } returns flowOf<String?>(null)
+                    coEvery { setLastSelectedListId(any()) } returns Unit
                 }
             val vm = viewModelWith(prefs)
             vm.selectList("list-1")

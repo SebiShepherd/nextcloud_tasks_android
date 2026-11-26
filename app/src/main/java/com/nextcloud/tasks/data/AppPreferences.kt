@@ -18,7 +18,7 @@ private val Context.appDataStore: DataStore<Preferences> by preferencesDataStore
 
 /**
  * App-level UI preferences persisted with DataStore: the global sort, whether sort is remembered per
- * list, and each list's remembered sort. Survives process death (unlike the transient ViewModel state).
+ * list, each list's remembered sort, and the last selected task list. Survives process death.
  */
 @Singleton
 class AppPreferences
@@ -37,6 +37,10 @@ class AppPreferences
         /** The remembered sort for [listId], or null if that list has none yet. */
         fun listSort(listId: String): Flow<TaskSort?> = store.data.map { it[listSortKey(listId)]?.toTaskSort() }
 
+        /** The last selected task list ID, or null if not set. */
+        val lastSelectedListId: Flow<String?> =
+            store.data.map { it[LAST_SELECTED_LIST_ID] }
+
         suspend fun setGlobalSort(sort: TaskSort) {
             store.edit { it[GLOBAL_SORT] = sort.name }
         }
@@ -52,12 +56,23 @@ class AppPreferences
             store.edit { it[listSortKey(listId)] = sort.name }
         }
 
+        suspend fun setLastSelectedListId(listId: String?) {
+            store.edit {
+                if (listId == null) {
+                    it.remove(LAST_SELECTED_LIST_ID)
+                } else {
+                    it[LAST_SELECTED_LIST_ID] = listId
+                }
+            }
+        }
+
         private fun String.toTaskSort(): TaskSort? = TaskSort.entries.firstOrNull { it.name == this }
 
         private companion object {
             val DEFAULT_SORT = TaskSort.DUE_DATE
             val GLOBAL_SORT = stringPreferencesKey("global_sort")
             val PER_LIST_ENABLED = booleanPreferencesKey("per_list_sort_enabled")
+            val LAST_SELECTED_LIST_ID = stringPreferencesKey("last_selected_list_id")
 
             fun listSortKey(listId: String) = stringPreferencesKey("list_sort_$listId")
         }
